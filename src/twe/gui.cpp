@@ -20,10 +20,10 @@ void GUI::draw() {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
     ImGui::SetNextWindowPos({0.f, 0.f}, ImGuiCond_Once);
-    ImGui::SetNextWindowSize({150.f, 75.f}, ImGuiCond_Once);
+    ImGui::SetNextWindowSize({150.f, 100.f}, ImGuiCond_Once);
 
     ImGui::Begin("TWEUI");
-    ImGui::Text("TWE Version 0.0.1");
+    ImGui::Text("TWE Version 0.0.2");
     for(auto checkbox : _checkBoxes)
         ImGui::Checkbox(checkbox.first, &checkbox.second);
     ImGui::End();

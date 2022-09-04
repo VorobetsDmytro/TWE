@@ -2,10 +2,10 @@
 
 Test::Test(int wndWidth, int wndHeight, const char* title, GLFWmonitor *monitor, GLFWwindow *share)
 :Engine(wndWidth, wndHeight, title, monitor, share){
-    Object* obj = Shape::createCube("../../src/textures/box.png");
+    Object* obj = Shape::createCube({"../../src/textures/box.png"});
     obj->move({0.f, 0.01f, 3.f});
     obj->setName("box");
-    Object* obj2 = Shape::createCube("../../src/textures/ok.png");
+    Object* obj2 = Shape::createCube({"../../src/textures/ok.png"});
     obj2->move(glm::vec3(3.5f, 1.f, -3.f));
     obj2->setName("ok");
     Object* obj3 = Shape::createCube();
@@ -41,8 +41,15 @@ Test::Test(int wndWidth, int wndHeight, const char* title, GLFWmonitor *monitor,
     Light* dirLight = Shape::createDirLight();
     dirLight->setName("dlight");
     dirLight->move({0.f, 10.f, 0.f});
-    dirLight->rotate(180.f, {1.f, 0.f, 0.f});
+    dirLight->rotate(90.f, {1.f, 0.f, 0.f});
     curScene->addObject(dirLight);
+
+    ModelLoader mLoader;
+    Object* model = mLoader.loadModel("../../src/models/tophat/TopHat.obj");
+    if(model){
+        model->scale({.2f, .2f, .2f});
+        curScene->addObject(model);
+    }
 
     camera.setPosition({0.f, 1.f, 5.f});
 }

@@ -1,47 +1,37 @@
 #include "object.hpp"
 
 Object::Object(const Object& obj) {
-    this->vertices = obj.vertices;
-    this->vertSize = obj.vertSize;
-    this->indices = obj.indices;
-    this->indSize = obj.indSize;
-    this->vao = obj.vao;
-    this->vbo = obj.vbo;
-    this->ebo = obj.ebo;
+    this->meshes = obj.meshes;
     this->shader = obj.shader;
-    this->texture = obj.texture;
     this->transform = obj.transform;
+    this->vertShader = obj.vertShader;
+    this->fragShader = obj.fragShader;
     this->id = obj.id;
 }
 
-Object::Object(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize, const char* vertShaderPath, const char* fragShaderPath)
-: vertices(vertices), vertSize(vertSize), indices(indices), indSize(indSize) {
-    create(vertShaderPath, fragShaderPath);
-    texture = nullptr;
+Object::Object(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize, ShaderIndices vertShader, ShaderIndices fragShader)
+:vertShader(vertShader), fragShader(fragShader) {
+    create(vertShader, fragShader);
+    meshes.push_back(std::make_shared<Mesh>(vertices, vertSize, indices, indSize));
 }
 
-Object::Object(const char* texPath, GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize, 
-const char* vertShaderPath, const char* fragShaderPath)
-: vertices(vertices), vertSize(vertSize), indices(indices), indSize(indSize) {
-    create(vertShaderPath, fragShaderPath);
-    texture = std::make_shared<Texture>(texPath, 0);
+Object::Object(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize, const std::vector<std::string>& texPaths,
+ShaderIndices vertShader, ShaderIndices fragShader)
+:vertShader(vertShader), fragShader(fragShader) {
+    create(vertShader, fragShader);
+    meshes.push_back(std::make_shared<Mesh>(vertices, vertSize, indices, indSize, texPaths));
+}
+
+Object::Object(const std::vector<Mesh>& meshes, ShaderIndices vertShader, ShaderIndices fragShader)
+:vertShader(vertShader), fragShader(fragShader) {
+    create(vertShader, fragShader);
+    for(auto& mesh: meshes)
+        this->meshes.push_back(std::make_shared<Mesh>(mesh));
+}
+
+void Object::create(ShaderIndices vertShader, ShaderIndices fragShader){
+    shader = std::make_shared<Shader>(SHADER_PATHS[vertShader], SHADER_PATHS[fragShader]);
     shader->setUniform("textureImg", 0);
-}
-
-void Object::create(const char* vertShaderPath, const char* fragShaderPath){
-    vao = std::make_shared<VAO>();
-    vao->bind();
-    vbo = std::make_shared<VBO>(vertices, vertSize, GL_STATIC_DRAW);
-    vbo->bind();
-    ebo = std::make_shared<EBO>(indices, indSize, GL_STATIC_DRAW);
-    ebo->bind();
-    vao->setAttrib(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0, *vbo.get());
-    vao->setAttrib(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)), *vbo.get());
-    vao->setAttrib(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)), *vbo.get());
-    vao->unbind();
-    vbo->unbind();
-    ebo->unbind();
-    shader = std::make_shared<Shader>(vertShaderPath, fragShaderPath);
     id = generateId();
     transform = std::make_shared<Transform>();
     name = "Object";
@@ -49,15 +39,8 @@ void Object::create(const char* vertShaderPath, const char* fragShaderPath){
 
 void Object::draw() {
     shader->use();
-    vao->bind();
-    if(!texture)
-        glDrawElements(GL_TRIANGLES, indSize / sizeof(GLsizei), GL_UNSIGNED_INT, (GLvoid*)0);
-    else{
-        texture->bind();
-        glDrawElements(GL_TRIANGLES, indSize / sizeof(GLsizei), GL_UNSIGNED_INT, (GLvoid*)0);
-        texture->unbind();
-    }
-    vao->unbind();
+    for(auto& mesh : meshes)
+        mesh->draw();
 }
 
 glm::mat4 Object::getModelMat() {
@@ -89,7 +72,7 @@ void Object::rotate(float angle, const glm::vec3& axis) {
     rotate.x = atan2f( m[1][2], m[2][2]);
     rotate.y = atan2f(-m[0][2], sqrtf(m[1][2] * m[1][2] + m[2][2] * m[2][2]));
     rotate.z = atan2f( m[0][1], m[0][0]);
-    transform->rotate = glm::degrees(rotate);
+    transform->rotation = glm::degrees(rotate);
     setTransMat(transform->model, TransformMatrixOptions::MODEL);
 }
 
@@ -107,6 +90,12 @@ void Object::setViewPos(const glm::vec3& pos) {
 
 void Object::setName(const char* name) {
     this->name = name;
+}
+
+void Object::setTexture(const char* texPath, GLuint texNum) {
+    shader = std::make_shared<Shader>(SHADER_PATHS[vertShader], SHADER_PATHS[ShaderIndices::TEXTURE_FRAG]);
+    for(auto& mesh : meshes)
+        mesh->setTexture(texPath, texNum);
 }
 
 uint32_t Object::generateId() {

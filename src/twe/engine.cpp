@@ -38,6 +38,8 @@ Engine::Engine(int wndWidth, int wndHeight, const char* title, GLFWmonitor* moni
     Engine::wndWidth = wndWidth;
     Engine::wndHeight = wndHeight;
     bDraw = true;
+    bFillLineMode = true;
+    bPreFillLineMode = bFillLineMode;
     setVSync(true);
 }
 
@@ -103,8 +105,20 @@ void Engine::mouseCallback(GLFWwindow* window, double xpos, double ypos) {
     camera.mouseInput(xOffset, yOffset);
 }
 
+void Engine::drawMode() {
+    if(bFillLineMode && bPreFillLineMode != bFillLineMode) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        bPreFillLineMode = bFillLineMode;
+    }
+    else if(bPreFillLineMode != bFillLineMode) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        bPreFillLineMode = bFillLineMode;
+    }
+}
+
 void Engine::start(){
     gui->addCheckbox("Draw", bDraw);
+    gui->addCheckbox("Fill", bFillLineMode);
     while(!glfwWindowShouldClose(window)){
         glfwPollEvents();
         glClearColor(0.25f, 0.25f, 0.25f, 0.f);
@@ -112,6 +126,7 @@ void Engine::start(){
         Time::calculateFPS();
         keyInput();
         update();
+        drawMode();
         if(bDraw)
             draw();
         gui->draw();

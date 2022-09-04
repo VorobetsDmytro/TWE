@@ -20,6 +20,7 @@
 #include "camera.hpp"
 #include "time.hpp"
 #include "gui.hpp"
+#include "modelloader.hpp"
 
 class Engine {
 public:
@@ -31,11 +32,14 @@ protected:
     void draw();
     void keyInput();
     void setVSync(GLboolean isOn);
+    void drawMode();
     GLboolean vSync;
     GLFWwindow* window;
     std::shared_ptr<Scene> curScene;
     std::unique_ptr<GUI> gui;
     bool bDraw;
+    bool bFillLineMode;
+    bool bPreFillLineMode;
     static int wndWidth;
     static int wndHeight;
     static Camera camera;

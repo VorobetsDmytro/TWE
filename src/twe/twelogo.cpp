@@ -89,12 +89,12 @@ TWELogo::TWELogo(): Object(TWELogo::vertArr, sizeof(TWELogo::vertArr),
                            TWELogo::indices, sizeof(TWELogo::indices)) {}
 
 void TWELogo::draw() {
-    shader->use();
-    vao->bind();
-    GLfloat timeVal = glfwGetTime();
-    GLfloat alphaVal = sin(timeVal) / 2 + 0.5f;
-    GLint vertColorLocation = glGetUniformLocation(shader->getId(), "alpha");
-    glUniform1f(vertColorLocation, alphaVal);
-    glDrawElements(GL_TRIANGLES, indSize / sizeof(GLsizei), GL_UNSIGNED_INT, (GLvoid*)0);
-    vao->unbind();
+    // shader->use();
+    // vao->bind();
+    // GLfloat timeVal = glfwGetTime();
+    // GLfloat alphaVal = sin(timeVal) / 2 + 0.5f;
+    // GLint vertColorLocation = glGetUniformLocation(shader->getId(), "alpha");
+    // glUniform1f(vertColorLocation, alphaVal);
+    // glDrawElements(GL_TRIANGLES, indSize / sizeof(GLsizei), GL_UNSIGNED_INT, (GLvoid*)0);
+    // vao->unbind();
 }

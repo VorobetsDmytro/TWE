@@ -3,6 +3,7 @@
 
 #include <glad.h>
 #include <stb_image.h>
+#include <string>
 
 #include "shader.hpp"
 
@@ -10,11 +11,12 @@ class Texture {
 public:
     Texture() = default;
     Texture(const Texture& texture);
-    Texture(const char* imgPath, GLuint texNum);
+    Texture(const std::string& imgPath, GLuint texNum);
     ~Texture();
     void bind();
     void unbind();
     void clean();
+    void setId(GLuint id);
     [[nodiscard]] GLuint getId();
 private:
     GLuint _id;

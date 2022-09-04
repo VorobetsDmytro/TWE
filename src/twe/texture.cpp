@@ -6,16 +6,15 @@ Texture::Texture(const Texture& texture) {
     this->_inOutTexFormat = texture._inOutTexFormat;
 }
 
-Texture::Texture(const char* imgPath, GLuint texNum) {
+Texture::Texture(const std::string& imgPath, GLuint texNum) {
     _texType = GL_TEXTURE_2D;
     _inOutTexFormat = GL_RGBA;
-    stbi_set_flip_vertically_on_load(true);
     int width, height, chanInFile;
-    auto imgBytes = stbi_load(imgPath, &width, &height, &chanInFile, 4);
+    auto imgBytes = stbi_load(imgPath.c_str(), &width, &height, &chanInFile, 4);
     if (stbi_failure_reason())
         std::cout << "STBI ERROR:\n" << stbi_failure_reason() << std::endl;
     glGenTextures(1, &_id);
-    glActiveTexture(GL_TEXTURE0);
+    glActiveTexture(GL_TEXTURE0 + texNum);
     glBindTexture(_texType, _id);
     glTexParameteri(_texType, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(_texType, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -39,6 +38,10 @@ void Texture::unbind(){
 }
 void Texture::clean(){
     glDeleteTextures(1, &_id);
+}
+
+void Texture::setId(GLuint id) {
+    _id = id;
 }
 
 GLuint Texture::getId() { return _id; }

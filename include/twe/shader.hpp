@@ -12,7 +12,17 @@ enum TransformMatrixOptions {
     PROJECTION
 };
 
+enum ShaderIndices {
+    DEFAULT_VERT,
+    DEFAULT_FRAG,
+    TEXTURE_FRAG,
+    LIGHT_VERT,
+    LIGHT_FRAG
+};
+
 extern const char* TRANS_MAT_OPTIONS[3];
+
+extern const char* SHADER_PATHS[5];
 
 class Shader {
 public:

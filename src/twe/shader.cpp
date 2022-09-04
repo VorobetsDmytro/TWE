@@ -116,3 +116,11 @@ const char* TRANS_MAT_OPTIONS[3] = {
     "view",
     "projection"
 };
+
+const char* SHADER_PATHS[5] = {
+    "../../src/shaders/default.vert",
+    "../../src/shaders/default.frag",
+    "../../src/shaders/texture.frag",
+    "../../src/shaders/light.vert",
+    "../../src/shaders/light.frag"
+};
