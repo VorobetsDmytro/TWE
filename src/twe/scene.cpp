@@ -2,9 +2,16 @@
 
 Scene::Scene() {
     _lightsCount = 0;
+    _collisionConfig = std::make_unique<btDefaultCollisionConfiguration>();
+    _dispatcher = std::make_unique<btCollisionDispatcher>(_collisionConfig.get());
+    _broadPhase = std::make_unique<btDbvtBroadphase>();
+    _solver = std::make_unique<btSequentialImpulseConstraintSolver>();
+    _world = std::make_unique<btDiscreteDynamicsWorld>(_dispatcher.get(), _broadPhase.get(), _solver.get(), _collisionConfig.get());
+    _world->setGravity({0.f, -9.81f, 0.f});
 }
 
 void Scene::addObject(Object* obj) {
+    _world->addRigidBody(obj->getPhysics().getRigidBody());
     if(Light* light = dynamic_cast<Light*>(obj)){
         _objects.insert({0, light});
         ++_lightsCount;
@@ -71,12 +78,64 @@ void Scene::updateView(const Camera& cam, int wndWidth, int wndHeight) {
     setViewPos(cam.getPosition());
 }
 
-void Scene::draw() {
+void Scene::updateView(const glm::mat4& view, const glm::mat4& projection, const glm::vec3& pos) {
+    setTransMat(view, TransformMatrixOptions::VIEW);
+    setTransMat(projection, TransformMatrixOptions::PROJECTION);
+    setViewPos(pos);
+}
+
+void Scene::generateShadows(uint32_t windowWidth, uint32_t windowHeight) {
+    glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 500.f);
+    int lightIndex = -1;
+    for(auto& obj : _objects) {
+        ++lightIndex;
+        if(Light* light = dynamic_cast<Light*>(obj.second)) {
+            if(light->type != "dir")
+                continue;
+            glm::mat4 lightView = glm::lookAt(light->getTransform().position, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f});
+            setShadows(light, lightProjection * lightView, lightIndex);
+            generateDepthMap(light, lightProjection, lightView);
+        } else
+            break;
+    }
+    glViewport(0, 0, windowWidth, windowHeight);
+}
+
+void Scene::setShadows(Light* light, const glm::mat4& lightSpaceMat, int index) {
+    for(auto& obj : _objects){
+        if(Light* light = dynamic_cast<Light*>(obj.second))
+            continue;
+        std::string lightIndex = "lights[]";
+        lightIndex.insert(lightIndex.length() - 1, std::to_string(index));
+        obj.second->getShader().setUniform((lightIndex + ".lightSpaceMat").c_str(), lightSpaceMat);
+        obj.second->getShader().setUniform((lightIndex + ".shadowMap").c_str(), 1);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, light->getDepthTextureId());
+    }
+}
+
+void Scene::generateDepthMap(Light* light, const glm::mat4& lightProjection, const glm::mat4& lightView) {
+    auto depthMapSize = light->getDepthMapSize();
+    FBO* fbo = light->getFBO();
+    glViewport(0, 0, depthMapSize.first, depthMapSize.second);
+    fbo->bind();
+    glClear(GL_DEPTH_BUFFER_BIT);
+    updateView(lightView, lightProjection, light->getTransform().position);
+    glCullFace(GL_FRONT);
+    draw(false);
+    glCullFace(GL_BACK);
+    fbo->unbind();
+}
+
+void Scene::draw(bool drawLightMeshes) {
     uint32_t lightIndex = 0;
     for(auto& obj : _objects){
-        obj.second->draw();
-        if(Light* light = dynamic_cast<Light*>(obj.second))
+        if(Light* light = dynamic_cast<Light*>(obj.second)){
             setLight(light, lightIndex++);
+            if(!drawLightMeshes)
+                continue;
+        }
+        obj.second->draw();
     }
 }
 
@@ -87,4 +146,10 @@ Object* Scene::getObjectByName(const char* name) {
     if(obj == _objects.end())
         return nullptr;
     return obj->second;
+}
+
+void Scene::updatePhysics() {
+    for(auto& obj : _objects)
+        obj.second->updatePhysics();
+    _world->stepSimulation(Time::deltaTime);
 }

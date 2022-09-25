@@ -5,6 +5,7 @@
 #include <glfw3.h>
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 #include <gtc/type_ptr.hpp>
 #include <vector>
 #include <string>
@@ -16,6 +17,7 @@
 #include "mesh.hpp"
 #include "shader.hpp"
 #include "transform.hpp"
+#include "physics.hpp"
 
 class Object {
 public:
@@ -27,10 +29,13 @@ public:
     Object(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize, const std::vector<std::string>& texPaths,
            ShaderIndices vertShader = ShaderIndices::DEFAULT_VERT, 
            ShaderIndices fragShader = ShaderIndices::TEXTURE_FRAG);
+    Object(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize, const std::vector<Texture*>& texs,
+           ShaderIndices vertShader = ShaderIndices::DEFAULT_VERT, 
+           ShaderIndices fragShader = ShaderIndices::TEXTURE_FRAG);
     Object(const std::vector<Mesh>& meshes,
            ShaderIndices vertShader = ShaderIndices::DEFAULT_VERT, 
            ShaderIndices fragShader = ShaderIndices::DEFAULT_FRAG);
-    virtual void draw();
+    void draw();
     void rotate(float angle, const glm::vec3& axis);
     void move(const glm::vec3& pos);
     void scale(const glm::vec3& size);
@@ -38,6 +43,9 @@ public:
     void setViewPos(const glm::vec3& pos);
     void setName(const char* name);
     void setTexture(const char* texPath, GLuint texNum);
+    void setPos(const glm::vec3& pos);
+    void setRotation(float angle, const glm::vec3& axis);
+    void updatePhysics();
     [[nodiscard]] Shader& getShader() const noexcept; 
     [[nodiscard]] uint32_t getId() const noexcept;
     [[nodiscard]] glm::mat4 getModelMat();
@@ -46,6 +54,7 @@ public:
     [[nodiscard]] glm::vec3 getRight() const noexcept;
     [[nodiscard]] glm::vec3 getUp() const noexcept;
     [[nodiscard]] std::string getName() const noexcept;
+    [[nodiscard]] Physics& getPhysics() const noexcept;
 protected:
     virtual void create(ShaderIndices vertShader, ShaderIndices fragShader);
     [[nodiscard]] uint32_t generateId();
@@ -54,6 +63,7 @@ protected:
     std::vector<std::shared_ptr<Mesh>> meshes;
     std::shared_ptr<Shader> shader;
     std::shared_ptr<Transform> transform;
+    std::shared_ptr<Physics> physics;
     ShaderIndices vertShader;
     ShaderIndices fragShader;
 };

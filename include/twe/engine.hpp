@@ -13,11 +13,8 @@
 #include <gtc/type_ptr.hpp>
 
 #include "math.h"
-#include "object.hpp"
-#include "light.hpp"
 #include "shape.hpp"
 #include "scene.hpp"
-#include "camera.hpp"
 #include "time.hpp"
 #include "gui.hpp"
 #include "modelloader.hpp"
@@ -37,7 +34,6 @@ protected:
     GLFWwindow* window;
     std::shared_ptr<Scene> curScene;
     std::unique_ptr<GUI> gui;
-    bool bDraw;
     bool bFillLineMode;
     bool bPreFillLineMode;
     static int wndWidth;

@@ -7,6 +7,7 @@ layout (location = 2) in vec2 textureCoord;
 out vec3 normal;
 out vec2 texCoord;
 out vec3 fragPos;
+out vec4 fragPosLightSpace;
 
 uniform mat4 model = mat4(1.0f);
 uniform mat4 view = mat4(1.0f);

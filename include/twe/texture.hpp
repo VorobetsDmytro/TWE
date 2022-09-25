@@ -6,20 +6,25 @@
 #include <string>
 
 #include "shader.hpp"
+#include "fbo.hpp"
 
 class Texture {
 public:
     Texture() = default;
     Texture(const Texture& texture);
     Texture(const std::string& imgPath, GLuint texNum);
+    Texture(const GLuint id, const GLenum type);
     ~Texture();
     void bind();
     void unbind();
     void clean();
     void setId(GLuint id);
-    [[nodiscard]] GLuint getId();
+    void setType(GLenum type);
+    [[nodiscard]] GLuint getId() const noexcept;
+    [[nodiscard]] static GLuint linkDepthTexture(uint32_t width, uint32_t height, FBO& fbo);
 private:
     GLuint _id;
+    GLuint _texNum;
     GLenum _texType;
     GLenum _inOutTexFormat;
 };

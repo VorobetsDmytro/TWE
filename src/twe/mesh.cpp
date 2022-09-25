@@ -13,6 +13,14 @@ Mesh::Mesh(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize
         textures.push_back(std::make_shared<Texture>(texPaths[i].c_str(), i));
 }
 
+Mesh::Mesh(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize, const std::vector<Texture*>& texs)
+:vertices(vertices), vertSize(vertSize), indices(indices), indSize(indSize) {
+    create();
+    int texsSize = texs.size();
+    for(int i = 0; i < texsSize; ++i)
+        textures.push_back(std::make_shared<Texture>(*texs[i]));
+}
+
 Mesh::Mesh(const Mesh& mesh) {
     this->vertices = mesh.vertices;
     this->vertSize = mesh.vertSize;

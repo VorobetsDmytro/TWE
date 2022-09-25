@@ -1,8 +1,16 @@
 cmake_minimum_required(VERSION 3.20)
 project(TWE)
 
-file(GLOB_RECURSE CPPFILES "src/*.cpp" "src/*.c")
-file(GLOB_RECURSE LIBFILES "lib/*.lib")
+file(GLOB_RECURSE CPPFILES 
+    "src/*.cpp" 
+    "src/*.c" 
+    "include/bullet3/*.cpp"
+)
+
+file(GLOB_RECURSE LIBFILES 
+    "lib/*.lib" 
+    "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.7/lib/*.lib" #Your OpenCL SDK lib path
+)
 file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/Debug" "${CMAKE_BINARY_DIR}/Release")
 
 add_executable(TWE ${CPPFILES})
@@ -16,6 +24,8 @@ target_include_directories(TWE PRIVATE
     "include/glm"
     "include/imgui"
     "include/assimp"
+    "include/bullet3"
+    "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.7/include" #Your OpenCL SDK include path
 )
 target_link_libraries(TWE PRIVATE ${LIBFILES})
 

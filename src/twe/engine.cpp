@@ -14,7 +14,7 @@ Engine::Engine(int wndWidth, int wndHeight, const char* title, GLFWmonitor* moni
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
     window = glfwCreateWindow(wndWidth, wndHeight, title, monitor, share);
     if(!window){
-        std::cout << "Error creating window.\n";
+        std::cout << "Error creating a window.\n";
         glfwTerminate();
         return;
     }
@@ -27,9 +27,10 @@ Engine::Engine(int wndWidth, int wndHeight, const char* title, GLFWmonitor* moni
     gladLoadGL();
     glViewport(0, 0, wndWidth, wndHeight);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_BLEND);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
     //imgui
     gui = std::make_unique<GUI>(window);
     //initialization vars
@@ -37,7 +38,6 @@ Engine::Engine(int wndWidth, int wndHeight, const char* title, GLFWmonitor* moni
     curScene = std::make_shared<Scene>();
     Engine::wndWidth = wndWidth;
     Engine::wndHeight = wndHeight;
-    bDraw = true;
     bFillLineMode = true;
     bPreFillLineMode = bFillLineMode;
     setVSync(true);
@@ -74,11 +74,7 @@ void Engine::keyInput(){
 
 void Engine::setVSync(GLboolean isOn) {
     vSync = isOn;
-    if(vSync){
-        glfwSwapInterval(1);
-        return;
-    }
-    glfwSwapInterval(0);
+    glfwSwapInterval(vSync ? 1 : 0);
 }
 
 void Engine::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
@@ -117,26 +113,26 @@ void Engine::drawMode() {
 }
 
 void Engine::start(){
-    gui->addCheckbox("Draw", bDraw);
     gui->addCheckbox("Fill", bFillLineMode);
     while(!glfwWindowShouldClose(window)){
         glfwPollEvents();
+        update();
+        curScene->updatePhysics();
         glClearColor(0.25f, 0.25f, 0.25f, 0.f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        Time::calculateFPS();
+        curScene->generateShadows(wndWidth, wndHeight);
         keyInput();
-        update();
         drawMode();
-        if(bDraw)
-            draw();
+        draw();
         gui->draw();
         glfwSwapBuffers(window);
+        Time::calculateFPS();
     }
 }
 
 void Engine::draw() {
     curScene->updateView(camera, wndWidth, wndHeight);
-    curScene->draw();
+    curScene->draw(true);
 }
 
 void Engine::update(){}

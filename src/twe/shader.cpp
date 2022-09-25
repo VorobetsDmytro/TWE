@@ -63,6 +63,12 @@ void Shader::clean() {
     glDeleteProgram(_id);
 }
 
+void Shader::setUniform(const char* name, const glm::mat4& mat) {
+    use();
+    GLuint loc = glGetUniformLocation(getId(), name);
+    glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(mat));
+}
+
 void Shader::setUniform(const char* name, const glm::vec3& vec) {
     use();
     GLuint loc = glGetUniformLocation(getId(), name);
@@ -94,12 +100,11 @@ void Shader::setUniform(const char* name, GLboolean value) {
 }
 
 void Shader::initMaterial() {
-    Material* material = _material.get();
-    setUniform("material.objColor", material->objColor);
-    setUniform("material.ambient", material->ambient);
-    setUniform("material.diffuse", material->diffuse);
-    setUniform("material.specular", material->specular);
-    setUniform("material.shininess", material->shininess);
+    setUniform("material.objColor", _material->objColor);
+    setUniform("material.ambient", _material->ambient);
+    setUniform("material.diffuse", _material->diffuse);
+    setUniform("material.specular", _material->specular);
+    setUniform("material.shininess", _material->shininess);
 }
 
 void Shader::setMaterial(const Material& material) {
@@ -117,10 +122,12 @@ const char* TRANS_MAT_OPTIONS[3] = {
     "projection"
 };
 
-const char* SHADER_PATHS[5] = {
+const char* SHADER_PATHS[7] = {
     "../../src/shaders/default.vert",
     "../../src/shaders/default.frag",
     "../../src/shaders/texture.frag",
     "../../src/shaders/light.vert",
-    "../../src/shaders/light.frag"
+    "../../src/shaders/light.frag",
+    "../../src/shaders/cubemap.vert",
+    "../../src/shaders/cubemap.frag",
 };

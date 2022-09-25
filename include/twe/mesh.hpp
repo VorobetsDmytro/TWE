@@ -15,6 +15,7 @@ class Mesh {
 public:
     Mesh(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize);
     Mesh(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize, const std::vector<std::string>& texPaths);
+    Mesh(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize, const std::vector<Texture*>& texs);
     Mesh(const Mesh& mesh);
     void draw();
     void setTexture(const char* texPath, GLuint texNum);

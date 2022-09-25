@@ -2,7 +2,7 @@
 
 Transform::Transform(){
     position = glm::vec3(0.f);
-    rotation = glm::vec3(0.f);
+    rotation = glm::quat(glm::vec3(0.f));
     scale = glm::vec3(1.f);
     model = glm::mat4(1.f);
 }
