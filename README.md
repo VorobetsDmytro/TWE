@@ -5,15 +5,15 @@ The game engine based on OpenGL
 ![123](https://user-images.githubusercontent.com/82779713/192134978-ffbefb96-0689-4a50-a98d-80d4dbf6b5cb.png)
 
 ## Requirements
-1. VS 2019 amd64
+1. Visual Studio 16 2019
 
 2. GNU Make: Recommended version - 3.81
 
 3. CMake: Recommended version - 3.20
 
-4. C++17
+4. OpenCL SDK
 
-5. OpenCL SDK
+5. External libs `(link: https://github.com/Parasik72/TWE-external-libs)`
 
 ## Downloading OpenCL SDK
 First of all you have to download OpenCl SDK for your graphics hardware`(example for Nvidia users is CUDA Toolkit)`.
