@@ -1,4 +1,4 @@
-#include "scene/components/physicsComponents.hpp"
+#include "scene/components/physics-components.hpp"
 
 namespace TWE {
     PhysicsComponent::PhysicsComponent(const glm::vec3& size, const glm::vec3& pos, float mass) {

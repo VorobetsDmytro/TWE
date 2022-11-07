@@ -1,4 +1,4 @@
-#include "scene/components/meshRendererComponent.hpp"
+#include "scene/components/mesh-renderer-component.hpp"
 
 namespace TWE {
     MeshRendererComponent::MeshRendererComponent(const char* vertexShaderPath, const char* fragmentShaderPath) {

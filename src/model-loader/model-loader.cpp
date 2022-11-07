@@ -1,4 +1,4 @@
-#include "model-loader/modelloader.hpp"
+#include "model-loader/model-loader.hpp"
 
 namespace TWE {
     void ModelLoader::clean() {

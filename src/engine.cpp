@@ -1,10 +1,11 @@
 #include "engine.hpp"
 
 namespace TWE {
-    bool Engine::pressedKeys[1024] = {};
-    Camera Engine::camera = Camera(glm::vec3(0.f, 0.f, 0.f), 90.f, 0.1f);
+    // bool Engine::pressedKeys[1024] = {};
     int Engine::wndWidth = 0.f;
     int Engine::wndHeight = 0.f;
+    std::shared_ptr<DebugCamera> Engine::debugCamera = std::make_shared<DebugCamera>(glm::vec3(0.f, 0.f, 0.f), 0.1f);
+    std::shared_ptr<Scene> Engine::curScene = std::make_shared<TWE::Scene>();
 
     Engine::Engine(int wndWidth, int wndHeight, const char* title, GLFWmonitor* monitor, GLFWwindow* share) {
         //glfw
@@ -34,13 +35,14 @@ namespace TWE {
         glEnable(GL_CULL_FACE);
         //imgui
         gui = std::make_unique<GUI>(window);
+        gui->setSize(200.f, 100.f);
         //initialization vars
         srand(static_cast<unsigned>(time(0)));
-        curScene = std::make_shared<TWE::Scene>();
         Engine::wndWidth = wndWidth;
         Engine::wndHeight = wndHeight;
         bFillLineMode = true;
         bPreFillLineMode = bFillLineMode;
+        debugCamera->setPerspective(90.f, wndWidth, wndHeight);
         setVSync(true);
     }
 
@@ -50,27 +52,24 @@ namespace TWE {
     }
 
     void Engine::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
-        if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+        Input::keyCallback(window, key, scancode, action, mode);
+        if(Input::isKeyPressed(Keyboard::KEY_ESCAPE) && action == Action::PRESS)
             glfwSetWindowShouldClose(window, GL_TRUE);
-        if(action == GLFW_PRESS)
-            pressedKeys[key] = true;
-        if(action == GLFW_RELEASE)
-            pressedKeys[key] = false;
     }
 
     void Engine::keyInput(){
-        if(!pressedKeys[GLFW_MOUSE_BUTTON_RIGHT])
+        if(!Input::isMouseButtonPressed(Mouse::MOUSE_BUTTON_RIGHT) || !curScene->getIsFocusedOnDebugCamera())
             return;
-        if(pressedKeys[GLFW_KEY_W])
-            camera.keyInput(CamMovement::FORWARD, Time::deltaTime);
-        if(pressedKeys[GLFW_KEY_S])
-            camera.keyInput(CamMovement::BACKWARD, Time::deltaTime);
-        if(pressedKeys[GLFW_KEY_D])
-        camera.keyInput(CamMovement::RIGHT, Time::deltaTime);
-        if(pressedKeys[GLFW_KEY_A])
-        camera.keyInput(CamMovement::LEFT, Time::deltaTime);
-        if(pressedKeys[GLFW_KEY_LEFT_SHIFT])
-            camera.keyInput(CamMovement::L_SHIFT, Time::deltaTime);
+        if(Input::isKeyPressed(Keyboard::KEY_W))
+            debugCamera->keyInput(CamMovement::FORWARD, Time::deltaTime);
+        if(Input::isKeyPressed(Keyboard::KEY_S))
+            debugCamera->keyInput(CamMovement::BACKWARD, Time::deltaTime);
+        if(Input::isKeyPressed(Keyboard::KEY_D))
+            debugCamera->keyInput(CamMovement::RIGHT, Time::deltaTime);
+        if(Input::isKeyPressed(Keyboard::KEY_A))
+            debugCamera->keyInput(CamMovement::LEFT, Time::deltaTime);
+        if(Input::isKeyPressed(Keyboard::KEY_LEFT_SHIFT))
+            debugCamera->keyInput(CamMovement::L_SHIFT, Time::deltaTime);
     }
 
     void Engine::setVSync(GLboolean isOn) {
@@ -79,27 +78,19 @@ namespace TWE {
     }
 
     void Engine::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-        if(button == GLFW_MOUSE_BUTTON_RIGHT){
+        if(button == GLFW_MOUSE_BUTTON_RIGHT && curScene->getIsFocusedOnDebugCamera()){
             glfwSetInputMode(window, GLFW_CURSOR, action == GLFW_PRESS ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
             if(action == GLFW_RELEASE)
                 glfwSetCursorPos(window, static_cast<GLfloat>(wndWidth / 2), static_cast<GLfloat>(wndHeight / 2));
         }
-        if(action == GLFW_PRESS)
-            pressedKeys[button] = true;
-        if(action == GLFW_RELEASE)
-            pressedKeys[button] = false;
+        Input::mouseButtonCallback(window, button, action, mods);
     }
 
     void Engine::mouseCallback(GLFWwindow* window, double xpos, double ypos) {
-        static GLfloat preViewX = static_cast<GLfloat>(wndWidth / 2);
-        static GLfloat preViewY = static_cast<GLfloat>(wndHeight / 2);
-        GLfloat xOffset = xpos - preViewX;
-        GLfloat yOffset = preViewY - ypos;
-        preViewX = xpos;
-        preViewY = ypos;
-        if(!pressedKeys[GLFW_MOUSE_BUTTON_RIGHT])
+        Input::mouseCallback(window, xpos, ypos);
+        if(!Input::isMouseButtonPressed(Mouse::MOUSE_BUTTON_RIGHT) || !curScene->getIsFocusedOnDebugCamera())
             return;
-        camera.mouseInput(xOffset, yOffset);
+        debugCamera->mouseInput(Input::xMouseOffset, Input::yMouseOffset);
     }
 
     void Engine::drawMode() {
@@ -114,26 +105,20 @@ namespace TWE {
     }
 
     void Engine::start(){
+        curScene->setDebugCamera(debugCamera.get());
         gui->addCheckbox("Fill", bFillLineMode);
+        gui->addCheckbox("Debug camera focus", curScene->getIsFocusedOnDebugCamera());
         while(!glfwWindowShouldClose(window)){
             Renderer::cleanScreen({0.25f, 0.25f, 0.25f, 0.f});
             glfwPollEvents();
-            update();
-            curScene->updatePhysics();
-            curScene->generateShadows(wndWidth, wndHeight);
             keyInput();
             drawMode();
-            draw();
-            gui->draw();
+            curScene->updatePhysics();
+            curScene->generateShadows(wndWidth, wndHeight);
+            curScene->update();
+            gui->update();
             glfwSwapBuffers(window);
             Time::calculateFPS();
         }
     }
-
-    void Engine::draw() {
-        curScene->updateView(camera, wndWidth, wndHeight);
-        curScene->draw(true);
-    }
-
-    void Engine::update(){}
 }

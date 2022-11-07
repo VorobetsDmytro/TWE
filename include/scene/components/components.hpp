@@ -1,10 +1,12 @@
 #ifndef COMPONENTS_INCLUDE_HPP
 #define COMPONENTS_INCLUDE_HPP
 
-#include "meshComponent.hpp"
-#include "meshRendererComponent.hpp"
-#include "transformComponent.hpp"
-#include "lightComponent.hpp"
-#include "physicsComponents.hpp"
+#include "mesh-component.hpp"
+#include "mesh-renderer-component.hpp"
+#include "transform-component.hpp"
+#include "light-component.hpp"
+#include "physics-components.hpp"
+#include "camera-component.hpp"
+#include "script-component.hpp"
 
 #endif

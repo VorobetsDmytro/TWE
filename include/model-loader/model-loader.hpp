@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "scene/components/components.hpp"
-#include "modelloaderdata.hpp"
+#include "model-loader-data.hpp"
 
 namespace TWE {
     class ModelLoader {

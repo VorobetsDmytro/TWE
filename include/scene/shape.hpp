@@ -6,7 +6,7 @@
 #include <entt/entt.hpp>
 
 #include "scene/scene.hpp"
-#include "model-loader/modelloaderdata.hpp"
+#include "model-loader/model-loader-data.hpp"
 #include "scene/components/components.hpp"
 #include "renderer/renderer.hpp"
 
@@ -20,6 +20,7 @@ namespace TWE {
         static Entity createSpotLightEntity(Scene* scene, GLfloat innerRadius = 15.f, GLfloat outerRadius = 20.f, GLfloat constant = 1.f, GLfloat linear = 0.045f, GLfloat quadratic = 0.0075f);
         static Entity createPointLightEntity(Scene* scene, GLfloat constant = 1.f, GLfloat linear = 0.045f, GLfloat quadratic = 0.0075f);
         static Entity createDirLightEntity(Scene* scene);
+        static Entity createCameraEntity(Scene* scene);
         static std::vector<Entity> createModelEntity(Scene* scene, ModelLoaderData* modelLoaderData);
     private:
         static GLfloat cubeVertices[];

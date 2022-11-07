@@ -1,4 +1,4 @@
-#include "scene/components/lightComponent.hpp"
+#include "scene/components/light-component.hpp"
 
 namespace TWE {
     LightComponent::LightComponent(GLfloat innerRadius, GLfloat outerRadius, GLfloat constant, GLfloat linear, GLfloat quadratic, const std::string& type)

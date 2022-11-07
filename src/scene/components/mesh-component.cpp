@@ -1,4 +1,4 @@
-#include "scene/components/meshComponent.hpp"
+#include "scene/components/mesh-component.hpp"
 
 namespace TWE {
     MeshComponent::MeshComponent(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize)

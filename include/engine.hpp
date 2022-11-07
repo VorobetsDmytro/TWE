@@ -17,8 +17,9 @@
 #include "scene/scene.hpp"
 #include "scene/time.hpp"
 #include "renderer/gui.hpp"
-#include "model-loader/modelloader.hpp"
+#include "model-loader/model-loader.hpp"
 #include "entity/entity.hpp"
+#include "input/input.hpp"
 
 namespace TWE {
     class Engine {
@@ -27,21 +28,18 @@ namespace TWE {
         ~Engine();
         void start();
     protected:
-        virtual void update();
-        void draw();
         void keyInput();
         void setVSync(GLboolean isOn);
         void drawMode();
         GLboolean vSync;
         GLFWwindow* window;
-        std::shared_ptr<TWE::Scene> curScene;
         std::unique_ptr<GUI> gui;
         bool bFillLineMode;
         bool bPreFillLineMode;
         static int wndWidth;
         static int wndHeight;
-        static Camera camera;
-        static bool pressedKeys[1024];
+        static std::shared_ptr<Scene> curScene;
+        static std::shared_ptr<DebugCamera> debugCamera;
     private:
         static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
         static void mouseCallback(GLFWwindow* window, double xpos, double ypos);

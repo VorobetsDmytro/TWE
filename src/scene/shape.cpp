@@ -164,6 +164,12 @@ namespace TWE {
         return entity;
     }
 
+    Entity Shape::createCameraEntity(Scene* scene) {
+        Entity entity = scene->createEntity();
+        entity.addComponent<CameraComponent>();
+        return entity;
+    }
+
     std::vector<Entity> Shape::createModelEntity(Scene* scene, ModelLoaderData* modelLoaderData) {
         std::vector<Entity> models;
         entt::registry* registry = scene->getRegistry();

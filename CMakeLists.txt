@@ -17,6 +17,7 @@ add_executable(TWE ${CPPFILES})
 target_compile_features(TWE PRIVATE cxx_std_17)
 target_include_directories(TWE PRIVATE
     "include"
+    "scripts" # Custom scripts
     "external"
     "external/GLFW"
     "external/glad"

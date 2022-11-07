@@ -8,6 +8,8 @@ namespace TWE {
         ImGui::StyleColorsDark();
         ImGui_ImplGlfw_InitForOpenGL(window, true);
         ImGui_ImplOpenGL3_Init("#version 330");
+        _width = 150.f;
+        _height = 100.f;
     }
 
     GUI::~GUI() {
@@ -16,15 +18,19 @@ namespace TWE {
         ImGui::DestroyContext();
     }
 
-    void GUI::draw() {
+    void GUI::update() {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
         ImGui::SetNextWindowPos({0.f, 0.f}, ImGuiCond_Once);
-        ImGui::SetNextWindowSize({150.f, 100.f}, ImGuiCond_Once);
+        ImGui::SetNextWindowSize({_width, _height}, ImGuiCond_Once);
 
-        ImGui::Begin("TWEUI");
-        ImGui::Text("TWE Version 0.0.3");
+        ImGui::Begin("Lab5");
+        for(auto inputText : _inputTextes)
+            ImGui::InputText(inputText.first, &inputText.second);
+        for(auto button : _buttons)
+            if(ImGui::Button(button.first))
+                button.second();
         for(auto checkbox : _checkBoxes)
             ImGui::Checkbox(checkbox.first, &checkbox.second);
         ImGui::End();
@@ -35,5 +41,18 @@ namespace TWE {
 
     void GUI::addCheckbox(const char* name, bool& var) {
         _checkBoxes.push_back({name, var});
+    }
+
+    void GUI::addInputText(const char* name, std::string& var) {
+        _inputTextes.push_back({name, var});
+    }
+
+    void GUI::addButton(const char* name, std::function<void()> func) {
+        _buttons.push_back({name, func});
+    }
+
+    void GUI::setSize(float width, float height) {
+        _width = width;
+        _height = height;
     }
 }

@@ -1,4 +1,4 @@
-#include "scene/components/transformComponent.hpp"
+#include "scene/components/transform-component.hpp"
 
 namespace TWE {
     TransformComponent::TransformComponent(){

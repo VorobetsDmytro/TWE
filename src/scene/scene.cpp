@@ -1,4 +1,5 @@
 #include "scene/scene.hpp"
+#include <iostream>
 
 namespace TWE {
     Scene::Scene() {
@@ -10,25 +11,35 @@ namespace TWE {
         _world = std::make_unique<btDiscreteDynamicsWorld>(_dispatcher.get(), _broadPhase.get(), _solver.get(), _collisionConfig.get());
         _world->setGravity({0.f, -9.81f, 0.f});
         _registry = std::make_unique<entt::registry>();
+        _debugCamera = nullptr;
+        _isFocusedOnDebugCamera = true;
+        _drawLightMeshes = true;
+    }
+
+    Scene::~Scene() {
+        _registry->view<ScriptComponent>().each([&](entt::entity entity, ScriptComponent& scriptComponent){
+            if(scriptComponent.instance)
+                scriptComponent.destroy();
+        });
     }
 
     void Scene::setTransMat(const glm::mat4& transform, TransformMatrixOptions option) {
-        auto& group = _registry->view<MeshRendererComponent>();
-        for(auto entity : group) {
-            auto& meshRendererComponent = group.get<MeshRendererComponent>(entity);
+        _registry->view<MeshRendererComponent>().each([&](entt::entity entity, MeshRendererComponent& meshRendererComponent){
             meshRendererComponent.shader->setUniform(TRANS_MAT_OPTIONS[option], transform);
-        }
+        });
+    }
+
+    void Scene::setDebugCamera(DebugCamera* debugCamera) {
+        _debugCamera = debugCamera;
     }
 
     void Scene::setLight(const LightComponent& light, const TransformComponent& transform, const MeshRendererComponent& meshRenderer, const  uint32_t index) {
         std::string lightIndex = "lights[]";
         lightIndex.insert(lightIndex.length() - 1, std::to_string(index));
         auto& lightEnteties = _registry->view<LightComponent>();
-        auto& group = _registry->view<MeshRendererComponent>();
-        for(auto entity : group) {
+        _registry->view<MeshRendererComponent>().each([&](entt::entity entity, MeshRendererComponent& meshRendererComponent){
             if(_registry->any_of<LightComponent>(entity))
-                continue;
-            auto& meshRendererComponent = group.get<MeshRendererComponent>(entity);
+                return;
             meshRendererComponent.shader->setUniform("lightCount", _lightsCount + (GLint)lightEnteties.size());
             meshRendererComponent.shader->setUniform((lightIndex + ".pos").c_str(), transform.position);
             meshRendererComponent.shader->setUniform((lightIndex + ".direction").c_str(), transform.getForward());
@@ -44,23 +55,13 @@ namespace TWE {
                 meshRendererComponent.shader->setUniform((lightIndex + ".type.point").c_str(), true);
             else
                 meshRendererComponent.shader->setUniform((lightIndex + ".type.dir").c_str(), true);
-        }
+        });
     }
 
     void Scene::setViewPos(const glm::vec3& pos) {
-        auto& group = _registry->view<MeshRendererComponent>();
-        for(auto entity : group) {
-            auto& meshRendererComponent = group.get<MeshRendererComponent>(entity);
+        _registry->view<MeshRendererComponent>().each([&](entt::entity entity, MeshRendererComponent& meshRendererComponent){
             meshRendererComponent.shader->setUniform("viewPos", pos);
-        }
-    }
-
-    void Scene::updateView(const Camera& cam, int wndWidth, int wndHeight) {
-        glm::mat4 view = cam.getViewMat();
-        glm::mat4 projection = cam.getProjectionMat(wndWidth, wndHeight);
-        setTransMat(view, TransformMatrixOptions::VIEW);
-        setTransMat(projection, TransformMatrixOptions::PROJECTION);
-        setViewPos(cam.getPosition());
+        });
     }
 
     void Scene::updateView(const glm::mat4& view, const glm::mat4& projection, const glm::vec3& pos) {
@@ -72,30 +73,27 @@ namespace TWE {
     void Scene::generateShadows(uint32_t windowWidth, uint32_t windowHeight) {
         glm::mat4& lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 500.f);
         int lightIndex = -1;
-        auto& group = _registry->view<LightComponent, TransformComponent>();
-        for(auto entity : group) {
+        _registry->view<LightComponent, TransformComponent>().each([&](entt::entity entity, LightComponent& lightComponent, TransformComponent& transformComponent){
             ++lightIndex;
-            auto& [lightComponent, transformComponent] = group.get<LightComponent, TransformComponent>(entity);
             if(lightComponent.type != "dir")
-                continue;
+                return;
             glm::mat4& lightView = glm::lookAt(transformComponent.position, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f});
             setShadows(lightComponent, lightProjection * lightView, lightIndex);
             generateDepthMap(lightComponent, transformComponent, lightProjection, lightView);
-        }
+        });
         Renderer::setViewport(0, 0, windowWidth, windowHeight);
     }
 
     void Scene::setShadows(const LightComponent& lightComponent, const glm::mat4& lightSpaceMat, int index) {
-        auto& view = _registry->view<MeshRendererComponent>();
-        for(auto entity : view) {
-            auto& meshRendererComponent = view.get<MeshRendererComponent>(entity);
+        std::string indexStr = std::to_string(index);
+        _registry->view<MeshRendererComponent>().each([&](entt::entity entity, MeshRendererComponent& meshRendererComponent){
             if(_registry->any_of<LightComponent>(entity))
-                continue;
+                return;
             std::string lightIndex = "lights[]";
-            lightIndex.insert(lightIndex.length() - 1, std::to_string(index));
+            lightIndex.insert(lightIndex.length() - 1, indexStr);
             meshRendererComponent.shader->setUniform((lightIndex + ".lightSpaceMat").c_str(), lightSpaceMat);
             meshRendererComponent.shader->setUniform((lightIndex + ".shadowMap").c_str(), 1);
-        }
+        });
     }
 
     void Scene::generateDepthMap(LightComponent& lightComponent, const TransformComponent& transformComponent, const glm::mat4& lightProjection, const glm::mat4& lightView) {
@@ -108,36 +106,77 @@ namespace TWE {
         glClear(GL_DEPTH_BUFFER_BIT);
         updateView(lightView, lightProjection, transformComponent.position);
         glCullFace(GL_FRONT);
-        draw(false);
+        setDrawLightMeshes(false);
+        draw();
         glCullFace(GL_BACK);
         fbo->unbind();
     }
 
-    void Scene::draw(bool drawLightMeshes) {
+    bool Scene::updateView() {
+        Camera* curCameraFocus = nullptr;
+        glm::vec3 cameraPosition(0.f);
+        glm::vec3 cameraForward(0.f);
+        glm::vec3 cameraUp(0.f);
+        if(_isFocusedOnDebugCamera && _debugCamera) {
+            curCameraFocus = _debugCamera;
+            cameraPosition = _debugCamera->getPosition();
+            cameraForward = _debugCamera->getForward();
+            cameraUp = _debugCamera->getUp();
+        }
+        else {
+            auto& camsView = _registry->view<CameraComponent, TransformComponent>();
+            for(auto camEntity : camsView) {
+                auto& [cameraComponent, transformComponent] = camsView.get<CameraComponent, TransformComponent>(camEntity);
+                if(cameraComponent.isFocusedOn()){
+                    curCameraFocus = cameraComponent.getSource();
+                    cameraPosition = transformComponent.position;
+                    cameraForward = -transformComponent.getForward();
+                    cameraUp = transformComponent.getUp();
+                    break;
+                }
+            }
+        }
+        if(!curCameraFocus)
+            return false;
+        updateView(curCameraFocus->getView(cameraPosition, cameraForward, cameraUp), curCameraFocus->getProjection(), cameraPosition);
+        return true;
+    }
+
+    void Scene::update() {
+        _registry->view<ScriptComponent>().each([&](entt::entity entity, ScriptComponent& sc){
+            if(!sc.instance) {
+                sc.initialize(entity, this);
+                sc.instance->start();
+            }
+            sc.instance->update();
+        });
+        if(!updateView())
+            return;
         uint32_t lightIndex = 0;
-        auto& lightsGroup = _registry->view<LightComponent, TransformComponent, MeshRendererComponent>();
-        for(auto lightEntity : lightsGroup) {
-            auto& [lightComponent, transformComponent, meshRendererComponent] = lightsGroup.get<LightComponent, TransformComponent, MeshRendererComponent>(lightEntity);
-            setLight(lightComponent, transformComponent, meshRendererComponent, lightIndex++);
-        }
-        auto& group = _registry->view<MeshComponent, MeshRendererComponent, TransformComponent>();
-        for(auto entity : group) {
-            auto& [meshComponent, meshRendererComponent, transformComponent] = group.get<MeshComponent, MeshRendererComponent, TransformComponent>(entity);
-            if(_registry->any_of<LightComponent>(entity))
-                if(!drawLightMeshes)
-                    continue;
-            Renderer::execute(&meshComponent, &meshRendererComponent, &transformComponent);
-        }
+        _registry->view<LightComponent, TransformComponent, MeshRendererComponent>()
+            .each([&](entt::entity entity, LightComponent& lightComponent, TransformComponent& transformComponent, MeshRendererComponent& meshRendererComponent){
+                setLight(lightComponent, transformComponent, meshRendererComponent, lightIndex++);
+            });
+        setDrawLightMeshes(true);
+        draw();
+    }
+
+    void Scene::draw() {
+        _registry->view<MeshComponent, MeshRendererComponent, TransformComponent>()
+            .each([&](entt::entity entity, MeshComponent& meshComponent, MeshRendererComponent& meshRendererComponent, TransformComponent& transformComponent){
+                if(_registry->any_of<LightComponent>(entity))
+                    if(!_drawLightMeshes)
+                        return;
+                Renderer::execute(&meshComponent, &meshRendererComponent, &transformComponent);
+            });
     }
 
     void Scene::updatePhysics() {
-        auto& view = _registry->view<PhysicsComponent, TransformComponent>();
-        for(auto entity : view) {
-            auto& [physicsComponent, transformComponent] = view.get<PhysicsComponent, TransformComponent>(entity);
+        _registry->view<PhysicsComponent, TransformComponent>().each([](entt::entity entity, PhysicsComponent& physicsComponent, TransformComponent& transformComponent){
             btRigidBody* rigidBody = physicsComponent.getRigidBody();
             rigidBody->activate();
             if(physicsComponent.getMass() == 0.f)
-                continue;
+                return;
             btTransform worldTransform;
             rigidBody->getMotionState()->getWorldTransform(worldTransform);
             btVector3 pos = worldTransform.getOrigin();
@@ -146,12 +185,20 @@ namespace TWE {
             btVector3 axis = quat.getAxis();
             transformComponent.setPos(glm::vec3(pos.getX(), pos.getY(), pos.getZ()));
             transformComponent.setRotation(glm::degrees(angle), {axis.getX(), axis.getY() ,axis.getZ()});
-        }
+        });
         _world->stepSimulation(Time::deltaTime);
     }
 
     void Scene::linkRigidBody(const PhysicsComponent& physicsComponent) {
         _world->addRigidBody(physicsComponent.getRigidBody());
+    }
+
+    void Scene::setFocusOnDebugCamera(bool isFocusedOnDebugCamera){
+        this->_isFocusedOnDebugCamera = isFocusedOnDebugCamera;
+    }
+
+    void Scene::setDrawLightMeshes(bool drawLightMeshes) {
+        this->_drawLightMeshes = drawLightMeshes;
     }
 
     Entity Scene::createEntity() {
@@ -160,6 +207,9 @@ namespace TWE {
         return { entity, this };
     }
 
+    bool& Scene::getIsFocusedOnDebugCamera() { return _isFocusedOnDebugCamera; }
+    bool Scene::getIsFocusedOnDebugCamera() const noexcept { return _isFocusedOnDebugCamera; }
+    bool Scene::getDrawLightMeshes() const noexcept { return _drawLightMeshes; }
     entt::registry* Scene::getRegistry() const noexcept { return _registry.get(); }
     btDynamicsWorld* Scene::getDynamicWorld() const noexcept { return _world.get(); }
 }

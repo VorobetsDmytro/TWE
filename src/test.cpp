@@ -1,9 +1,6 @@
 #include "test.hpp"
 
 namespace TWE {
-    Entity dirLightEntity;
-    Entity obj3Entity;
-
     Test::Test(int wndWidth, int wndHeight, const char* title, GLFWmonitor *monitor, GLFWwindow *share)
     :Engine(wndWidth, wndHeight, title, monitor, share){
         auto& objEntity = Shape::createCubeEntity(curScene.get(), {"../../textures/box.png"});
@@ -18,12 +15,13 @@ namespace TWE {
         physicsComponentObj2.setWorldTransform({0.9f, 10.f, 0.9f});
         physicsComponentObj2.setMass(curScene->getDynamicWorld(), 1.f);
 
-        obj3Entity = Shape::createCubeEntity(curScene.get());
+        auto& obj3Entity = Shape::createCubeEntity(curScene.get());
         auto& transformComponentObj3 = obj3Entity.getComponent<TransformComponent>();
         auto& physicsComponentObj3 = obj3Entity.getComponent<PhysicsComponent>();
         physicsComponentObj3.setWorldTransform({-1.5f, 1.f, 0.f});
         transformComponentObj3.move({-1.5f, 1.f, 0.f});
         transformComponentObj3.scale({0.5f, 0.5f, 0.5f});
+        obj3Entity.addComponent<ScriptComponent>().bind<RotateRGBCube>();
 
         auto& obj4Entity = Shape::createCubeEntity(curScene.get(), {"../../textures/ok.png"});
         auto& transformComponentObj4 = obj4Entity.getComponent<TransformComponent>();
@@ -53,10 +51,11 @@ namespace TWE {
         transformComponentPL.move({-2.5f, 0.25f, -1.f});
         meshRendererComponentPL.material->objColor = {0.f, 1.f, 1.f};
 
-        dirLightEntity = Shape::createDirLightEntity(curScene.get());
+        auto& dirLightEntity = Shape::createDirLightEntity(curScene.get());
         auto& transformComponentDL = dirLightEntity.getComponent<TransformComponent>();
         transformComponentDL.move({5.f, 5.f, 3.f});
         transformComponentDL.rotate(90.f, {1.f, 0.f, 0.f});
+        dirLightEntity.addComponent<ScriptComponent>().bind<DirBehavior>();
 
         ModelLoader mLoader;
         ModelLoaderData* model = mLoader.loadModel("../../models/tophat/TopHat.obj");
@@ -80,18 +79,14 @@ namespace TWE {
             }
         );
 
-        camera.setPosition({0.f, 1.f, 6.f});
-    }
+        auto& cameraEntity = Shape::createCameraEntity(curScene.get());
+        auto& transformComponentCam = cameraEntity.getComponent<TransformComponent>();
+        auto& cameraComponentCam = cameraEntity.getComponent<CameraComponent>();
+        cameraEntity.addComponent<ScriptComponent>().bind<CameraController>();
+        transformComponentCam.move({0.f, 1.f, 8.f});
+        cameraComponentCam.getSource()->setPerspective(90.f, wndWidth, wndHeight);
+        // cameraComponentCam.getSource()->setOrthographic(-5.f, 5.f, -5.f, 5.f);
 
-    void Test::update() {
-        auto& transformComponentObj3 = obj3Entity.getComponent<TransformComponent>();
-        auto& meshRendererComponentObj3 = obj3Entity.getComponent<MeshRendererComponent>();
-        transformComponentObj3.rotate(100.f * Time::deltaTime, {0.f, 0.f, 1.f});
-        meshRendererComponentObj3.material->objColor = {cos(glfwGetTime()) / 2 + 0.5f, sin(glfwGetTime()) / 2 + 0.5f, -cos(glfwGetTime()) / 2 + 0.5f};
-
-        auto& transformComponentDL = dirLightEntity.getComponent<TransformComponent>();
-        transformComponentDL.rotate(10.f * Time::deltaTime, {1.f, 0.f, 0.f});
-        transformComponentDL.rotate(5.f * Time::deltaTime, {0.f, 1.f, 0.f});
-        transformComponentDL.setPos({-transformComponentDL.getForward().x * 20.f, -transformComponentDL.getForward().y * 20.f, -transformComponentDL.getForward().z * 20.f});
+        debugCamera->setPosition({0.f, 1.f, 6.f});
     }
 }
