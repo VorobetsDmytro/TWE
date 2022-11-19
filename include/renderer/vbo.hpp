@@ -1,6 +1,7 @@
 #ifndef VBO_HPP
 #define VBO_HPP
 
+#include <integer.hpp>
 #include <glad.h>
 
 namespace TWE {
@@ -8,14 +9,14 @@ namespace TWE {
     public:
         VBO() = default;
         VBO(const VBO& vbo);
-        VBO(GLfloat* vertices, GLsizeiptr size, GLenum drawType);
+        VBO(float* vertices, long int size, uint32_t drawType);
         ~VBO();
         void bind();
         void unbind();
         void clean();
-        [[nodiscard]] GLuint getId();
+        [[nodiscard]] uint32_t getId();
     private:
-        GLuint _id;
+        uint32_t _id;
     };
 }
 

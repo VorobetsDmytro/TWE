@@ -50,7 +50,7 @@ namespace TWE {
 
     void MeshComponent::setTexture(const char* texPath, GLuint texNum) {
         if(textures.size() <= texNum)
-            textures.resize(texNum + 1);
+            textures.resize(textures.size() + 1);
         textures[texNum] = std::make_shared<Texture>(texPath, texNum);
     }
 }

@@ -30,10 +30,35 @@ namespace TWE {
     }
 
     void PhysicsComponent::setWorldTransform(const glm::vec3& pos) {
+        btTransform oldTransform = _rigidBody->getWorldTransform();
+        btQuaternion oldBodyRotation = oldTransform.getRotation();
         btTransform transform;
         transform.setIdentity();
+        transform.setRotation(oldBodyRotation);
         transform.setOrigin({pos.x, pos.y, pos.z});
         _rigidBody->setWorldTransform(transform);
+    }
+
+    void PhysicsComponent::setRotation(const glm::vec3& rotation) {
+        btQuaternion deltaLocalRotation(rotation.y, rotation.x, rotation.z);
+        btTransform transform = _rigidBody->getWorldTransform();
+        btQuaternion oldBodyRotation = transform.getRotation();
+        btQuaternion newBodyRotation;
+        if(rotation == glm::vec3(0.f))
+            newBodyRotation = {0.f, 0.f, 0.f};
+        else if(_mass == 0.f)
+            newBodyRotation = oldBodyRotation + deltaLocalRotation;
+        else
+            newBodyRotation = oldBodyRotation * deltaLocalRotation;
+        transform.setRotation(newBodyRotation);
+        _rigidBody->setWorldTransform(transform);
+    }
+
+    void PhysicsComponent::setSize(btDynamicsWorld* dynamicsWorldfloat, const glm::vec3& size) {
+        dynamicsWorldfloat->removeRigidBody(_rigidBody.get());
+        btCollisionShape* shape = _rigidBody->getCollisionShape();
+        shape->setLocalScaling({size.x, size.y, size.z});
+        dynamicsWorldfloat->addRigidBody(_rigidBody.get());
     }
 
     btRigidBody* PhysicsComponent::getRigidBody() const noexcept { return _rigidBody.get(); }

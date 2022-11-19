@@ -13,7 +13,7 @@ namespace TWE {
         clean();
     }
 
-    void VAO::setAttrib(GLuint layout, GLint size, GLenum type, GLboolean normalized, GLsizei step, const void* offset, VBO& vbo) {
+    void VAO::setAttrib(uint32_t layout, int size, uint32_t type, bool normalized, int step, const void* offset, VBO& vbo) {
         vbo.bind();
         glVertexAttribPointer(layout, size, type, normalized, step, offset);
         glEnableVertexAttribArray(layout);
@@ -32,5 +32,5 @@ namespace TWE {
         glDeleteVertexArrays(1, &_id);
     }
 
-    GLuint VAO::getId() { return _id; }
+    uint32_t VAO::getId() { return _id; }
 }

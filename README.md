@@ -2,7 +2,7 @@
 
 The game engine based on OpenGL
 
-![123](https://user-images.githubusercontent.com/82779713/192134978-ffbefb96-0689-4a50-a98d-80d4dbf6b5cb.png)
+![image](https://user-images.githubusercontent.com/82779713/202850236-c5bcea15-d724-4844-a05c-278e392465ed.png)
 
 ## Requirements
 1. Visual Studio 16 2019

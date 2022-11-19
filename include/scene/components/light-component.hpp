@@ -5,31 +5,41 @@
 #include <glm.hpp>
 #include <string>
 #include <memory>
+#include <vector>
 
 #include "renderer/fbo.hpp"
 #include "renderer/texture.hpp"
 
 namespace TWE {
+    enum LightType {
+        DIR,
+        POINT,
+        SPOT
+    };
+
+    extern std::vector<std::string> lightTypes;
+
     class LightComponent {
     public:
-        LightComponent(GLfloat innerRadius = 15.f, GLfloat outerRadius = 25.f, GLfloat constant = 1.f, GLfloat linear = 0.045f, GLfloat quadratic = 0.0075f, const std::string& type = "dir");
+        LightComponent(const glm::vec3& color = {1.f, 1.f, 1.f}, float innerRadius = 15.f, float outerRadius = 25.f, float constant = 1.f, 
+                       float linear = 0.045f, float quadratic = 0.0075f, LightType type = LightType::DIR);
         LightComponent(const LightComponent& light);
+        void setType(LightType type);
+        void setCastShadows(bool castShadows);
         [[nodiscard]] std::pair<uint32_t, uint32_t> getDepthMapSize();
         [[nodiscard]] FBO* getFBO();
-        [[nodiscard]] GLuint getDepthTextureId() const noexcept;
-        GLfloat innerRadius;
-        GLfloat outerRadius;
-        GLfloat constant;
-        GLfloat linear; 
-        GLfloat quadratic;
-        std::string type;
+        [[nodiscard]] uint32_t getDepthTextureId() const noexcept;
+        float innerRadius;
+        float outerRadius;
+        float constant;
+        float linear; 
+        float quadratic;
+        glm::vec3 color;
+        LightType type;
         bool castShadows;
     private:
         void createDepthMap();
         std::shared_ptr<FBO> _fbo;
-        GLuint _depthTexId;
-        uint32_t _depthMapWidth;
-        uint32_t _depthMapHeight;
     };
 }
 

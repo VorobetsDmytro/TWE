@@ -17,6 +17,6 @@ public:
     void update() override {
         transform->rotate(10.f * Time::deltaTime, {1.f, 0.f, 0.f});
         transform->rotate(5.f * Time::deltaTime, {0.f, 1.f, 0.f});
-        transform->setPos({-transform->getForward().x * 20.f, -transform->getForward().y * 20.f, -transform->getForward().z * 20.f});
+        transform->setPosition({-transform->getForward().x * 300.f, -transform->getForward().y * 300.f, -transform->getForward().z * 300.f});
     }
 };

@@ -24,6 +24,7 @@ target_include_directories(TWE PRIVATE
     "external/stb"
     "external/glm"
     "external/imgui"
+    "external/imgui-filedialog"
     "external/assimp"
     "external/bullet3"
     "external/entt"

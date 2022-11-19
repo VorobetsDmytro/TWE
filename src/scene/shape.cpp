@@ -1,7 +1,7 @@
 #include "scene/shape.hpp"
 
 namespace TWE {
-    GLfloat Shape::cubeVertices[] = {
+    float Shape::cubeVertices[] = {
         //front
         -0.5f, -0.5f, 0.5f,   0.0f,  0.0f, 1.0f,      0.f, 1.f, //left down     0
         0.5f,  -0.5f, 0.5f,   0.0f,  0.0f, 1.0f,      1.f, 1.f, //right down    1
@@ -33,7 +33,7 @@ namespace TWE {
         0.5f,  -0.5f, 0.5f,   0.0f, -1.0f,  0.0f,     1.f, 0.f, //right up      22
         -0.5f, -0.5f, 0.5f,   0.0f, -1.0f,  0.0f,     0.f, 0.f, //left up       23
     };
-    GLuint Shape::cubeIndices[] = {
+    uint32_t Shape::cubeIndices[] = {
         //front
         0, 1, 2,
         0, 2, 3,
@@ -53,17 +53,17 @@ namespace TWE {
         20, 21, 22,
         20, 22, 23
     };
-    GLfloat Shape::plateVertices[] = {
-        -5.f, -0.5f,  5.f,    0.0f,  1.0f,  0.0f,     0.f, 1.f,
-        5.f,  -0.5f,  5.f,    0.0f,  1.0f,  0.0f,     1.f, 1.f,
-        5.f,  -0.5f, -5.f,    0.0f,  1.0f,  0.0f,     1.f, 0.f,
-        -5.f, -0.5f, -5.f,    0.0f,  1.0f,  0.0f,     0.f, 0.f,
+    float Shape::plateVertices[] = {
+        -5.f, 0.f,  5.f,    0.0f,  1.0f,  0.0f,     0.f, 1.f,
+        5.f,  0.f,  5.f,    0.0f,  1.0f,  0.0f,     1.f, 1.f,
+        5.f,  0.f, -5.f,    0.0f,  1.0f,  0.0f,     1.f, 0.f,
+        -5.f, 0.f, -5.f,    0.0f,  1.0f,  0.0f,     0.f, 0.f,
     };
-    GLuint Shape::plateIndices[] = {
+    uint32_t Shape::plateIndices[] = {
         0, 1, 2,
         0, 2, 3
     };
-    GLuint Shape::cubemapIndices[] = {
+    uint32_t Shape::cubemapIndices[] = {
         //front
         0, 2, 1,
         0, 3, 2,
@@ -86,87 +86,97 @@ namespace TWE {
 
     Entity Shape::createCubeEntity(Scene* scene, const std::vector<std::string>& texPaths) {
         Entity entity = scene->createEntity();
-        if(!texPaths.size()) {
+        if(!texPaths.size())
             entity.addComponent<MeshComponent>(Shape::cubeVertices, sizeof(Shape::cubeVertices), Shape::cubeIndices, sizeof(Shape::cubeIndices));
-            entity.addComponent<MeshRendererComponent>(SHADER_PATHS[ShaderIndices::DEFAULT_VERT], SHADER_PATHS[ShaderIndices::DEFAULT_FRAG]);
-        } else {
+        else 
             entity.addComponent<MeshComponent>(Shape::cubeVertices, sizeof(Shape::cubeVertices), Shape::cubeIndices, sizeof(Shape::cubeIndices), texPaths);
-            entity.addComponent<MeshRendererComponent>(SHADER_PATHS[ShaderIndices::DEFAULT_VERT], SHADER_PATHS[ShaderIndices::TEXTURE_FRAG]);
-        }
+        entity.addComponent<MeshRendererComponent>(SHADER_PATHS[ShaderIndices::DEFAULT_VERT], SHADER_PATHS[ShaderIndices::DEFAULT_FRAG]);
         auto& transformComponent = entity.getComponent<TransformComponent>();
         auto& physicsComponent = entity.addComponent<PhysicsComponent>(transformComponent.size, transformComponent.position, 0.f);
+        auto& nameComponent = entity.getComponent<NameComponent>();
+        nameComponent.setName("Cube");
         scene->linkRigidBody(physicsComponent);
         return entity;
     }
 
     Entity Shape::createPlateEntity(Scene* scene, const std::vector<std::string>& texPaths) {
         Entity entity = scene->createEntity();
-        if(!texPaths.size()) {
+        if(!texPaths.size())
             entity.addComponent<MeshComponent>(Shape::plateVertices, sizeof(Shape::plateVertices), Shape::plateIndices, sizeof(Shape::plateIndices));
-            entity.addComponent<MeshRendererComponent>(SHADER_PATHS[ShaderIndices::DEFAULT_VERT], SHADER_PATHS[ShaderIndices::DEFAULT_FRAG]);
-        } else {
+        else
             entity.addComponent<MeshComponent>(Shape::plateVertices, sizeof(Shape::plateVertices), Shape::plateIndices, sizeof(Shape::plateIndices), texPaths);
-            entity.addComponent<MeshRendererComponent>(SHADER_PATHS[ShaderIndices::DEFAULT_VERT], SHADER_PATHS[ShaderIndices::TEXTURE_FRAG]);
-        }
+        entity.addComponent<MeshRendererComponent>(SHADER_PATHS[ShaderIndices::DEFAULT_VERT], SHADER_PATHS[ShaderIndices::DEFAULT_FRAG]);
         auto& transformComponent = entity.getComponent<TransformComponent>();
         auto& physicsComponent = entity.addComponent<PhysicsComponent>(
             glm::vec3{10.f * transformComponent.size.x, 0.0001f * transformComponent.size.y, 10.f * transformComponent.size.z}, 
-            glm::vec3{transformComponent.position.x, transformComponent.position.y - 0.5f, transformComponent.position.z}, 
+            glm::vec3{transformComponent.position.x, transformComponent.position.y, transformComponent.position.z}, 
             0.f
         );
+        auto& nameComponent = entity.getComponent<NameComponent>();
+        nameComponent.setName("Plate");
         scene->linkRigidBody(physicsComponent);
         return entity;
     }
 
     Entity Shape::createCubemapEntity(Scene* scene, const std::vector<std::string>& texPaths) {
-        GLuint texId = Renderer::generateCubemapTexture(texPaths);
+        uint32_t texId = Renderer::generateCubemapTexture(texPaths);
         if(!texId)
             return {};
-        Texture* texture = new Texture(texId, GL_TEXTURE_CUBE_MAP);
+        Texture* texture = new Texture(texId, GL_TEXTURE_CUBE_MAP, GL_RGBA, 0);
         Entity entity = scene->createEntity();
         auto& transformComponent = entity.getComponent<TransformComponent>();
         entity.addComponent<MeshComponent>(Shape::cubeVertices, sizeof(Shape::cubeVertices), Shape::cubemapIndices, sizeof(Shape::cubemapIndices), std::vector<Texture*>{texture});
         entity.addComponent<MeshRendererComponent>(SHADER_PATHS[ShaderIndices::CUBEMAP_VERT], SHADER_PATHS[ShaderIndices::CUBEMAP_FRAG]);
         transformComponent.scale({1000.f, 1000.f, 1000.f});
+        auto& nameComponent = entity.getComponent<NameComponent>();
+        nameComponent.setName("Cubemap");
         return entity;
     }
 
-    Entity Shape::createSpotLightEntity(Scene* scene, GLfloat innerRadius, GLfloat outerRadius, GLfloat constant, GLfloat linear, GLfloat quadratic) {
+    Entity Shape::createSpotLightEntity(Scene* scene, const glm::vec3& color, float innerRadius, float outerRadius, float constant, float linear, float quadratic) {
         Entity entity = scene->createEntity();
         auto& transformComponent = entity.getComponent<TransformComponent>();
         entity.addComponent<MeshComponent>(Shape::cubeVertices, sizeof(Shape::cubeVertices), Shape::cubeIndices, sizeof(Shape::cubeIndices));
         auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(SHADER_PATHS[ShaderIndices::LIGHT_VERT], SHADER_PATHS[ShaderIndices::LIGHT_FRAG]);
-        entity.addComponent<LightComponent>(innerRadius, outerRadius, constant, linear, quadratic, "spot");
+        entity.addComponent<LightComponent>(color, innerRadius, outerRadius, constant, linear, quadratic, LightType::SPOT);
         transformComponent.scale({0.5f, 0.5f, 0.5f});
-        meshRendererComponent.shader->setUniform("type.spot", true);
+        meshRendererComponent.shader->setUniform(("type." + lightTypes[LightType::SPOT]).c_str(), true);
+        auto& nameComponent = entity.getComponent<NameComponent>();
+        nameComponent.setName("Spot light");
         return entity;
     }
 
-    Entity Shape::createPointLightEntity(Scene* scene, GLfloat constant, GLfloat linear, GLfloat quadratic) {
+    Entity Shape::createPointLightEntity(Scene* scene, const glm::vec3& color, float constant, float linear, float quadratic) {
         Entity entity = scene->createEntity();
         auto& transformComponent = entity.getComponent<TransformComponent>();
         entity.addComponent<MeshComponent>(Shape::cubeVertices, sizeof(Shape::cubeVertices), Shape::cubeIndices, sizeof(Shape::cubeIndices));
         auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(SHADER_PATHS[ShaderIndices::LIGHT_VERT], SHADER_PATHS[ShaderIndices::LIGHT_FRAG]);
-        entity.addComponent<LightComponent>(-1.f, -1.f, constant, linear, quadratic, "point");
+        entity.addComponent<LightComponent>(color, 15.f, 20.f, constant, linear, quadratic, LightType::POINT);
         transformComponent.scale({0.5f, 0.5f, 0.5f});
-        meshRendererComponent.shader->setUniform("type.point", true);
+        meshRendererComponent.shader->setUniform(("type." + lightTypes[LightType::POINT]).c_str(), true);
+        auto& nameComponent = entity.getComponent<NameComponent>();
+        nameComponent.setName("Point light");
         return entity;
     }
 
-    Entity Shape::createDirLightEntity(Scene* scene) {
+    Entity Shape::createDirLightEntity(Scene* scene, const glm::vec3& color) {
         Entity entity = scene->createEntity();
         auto& transformComponent = entity.getComponent<TransformComponent>();
         entity.addComponent<MeshComponent>(Shape::cubeVertices, sizeof(Shape::cubeVertices), Shape::cubeIndices, sizeof(Shape::cubeIndices));
         auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(SHADER_PATHS[ShaderIndices::LIGHT_VERT], SHADER_PATHS[ShaderIndices::LIGHT_FRAG]);
-        entity.addComponent<LightComponent>(-1.f, -1.f, -1.f, -1.f, -1.f, "dir");
+        entity.addComponent<LightComponent>(color, 15.f, 20.f, 1.f, 0.045f, 0.0075f, LightType::DIR);
         transformComponent.scale({0.5f, 0.5f, 0.5f});
-        meshRendererComponent.shader->setUniform("type.dir", true);
+        meshRendererComponent.shader->setUniform(("type." + lightTypes[LightType::DIR]).c_str(), true);
+        auto& nameComponent = entity.getComponent<NameComponent>();
+        nameComponent.setName("Dir light");
         return entity;
     }
 
     Entity Shape::createCameraEntity(Scene* scene) {
         Entity entity = scene->createEntity();
         entity.addComponent<CameraComponent>();
+        auto& nameComponent = entity.getComponent<NameComponent>();
+        nameComponent.setName("Camera");
         return entity;
     }
 
@@ -177,6 +187,8 @@ namespace TWE {
             Entity entity = scene->createEntity();
             entity.addComponent<MeshComponent>(mesh);
             entity.addComponent<MeshRendererComponent>(SHADER_PATHS[modelLoaderData->vert], SHADER_PATHS[modelLoaderData->frag]);
+            auto& nameComponent = entity.getComponent<NameComponent>();
+            nameComponent.setName("Model");
             models.push_back(entity);
         }
         return models;

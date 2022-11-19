@@ -1,7 +1,7 @@
 #include "renderer/vbo.hpp"
 
 namespace TWE {
-    VBO::VBO(GLfloat* vertices, GLsizeiptr size, GLenum drawType) {
+    VBO::VBO(float* vertices, long int size, uint32_t drawType) {
         glGenBuffers(1, &_id);
         glBindBuffer(GL_ARRAY_BUFFER, _id);
         glBufferData(GL_ARRAY_BUFFER, size, vertices, drawType);
@@ -28,5 +28,5 @@ namespace TWE {
         glDeleteBuffers(1, &_id);
     }
 
-    GLuint VBO::getId() { return _id; }
+    uint32_t VBO::getId() { return _id; }
 }

@@ -1,11 +1,10 @@
 #include "scene/components/light-component.hpp"
 
 namespace TWE {
-    LightComponent::LightComponent(GLfloat innerRadius, GLfloat outerRadius, GLfloat constant, GLfloat linear, GLfloat quadratic, const std::string& type)
-    : innerRadius(innerRadius), outerRadius(outerRadius), constant(constant), linear(linear), quadratic(quadratic), type(type){
-        castShadows = type == "dir";
-        if(castShadows)
-            createDepthMap();
+    LightComponent::LightComponent(const glm::vec3& color, float innerRadius, float outerRadius, float constant, float linear, float quadratic, LightType type)
+    : color(color), innerRadius(innerRadius), outerRadius(outerRadius), constant(constant), linear(linear), quadratic(quadratic), type(type){
+        castShadows = type == LightType::DIR;
+        createDepthMap();
     }
 
     LightComponent::LightComponent(const LightComponent& light) {
@@ -16,19 +15,34 @@ namespace TWE {
         this->quadratic = light.quadratic;
         this->type = light.type;
         this->_fbo = light._fbo;
-        this->_depthTexId = light._depthTexId;
+        this->color = light.color;
+        this->castShadows = light.castShadows;
+    }
+
+    void LightComponent::setType(LightType type) {
+        this->type = type;
+        castShadows = false;
+    }
+
+    void LightComponent::setCastShadows(bool castShadows) {
+        this->castShadows = castShadows;
     }
 
     void LightComponent::createDepthMap() {
-        _fbo = std::make_shared<FBO>();
-        _depthMapWidth = 4096;
-        _depthMapHeight = 4096;
-        _depthTexId = Texture::linkDepthTexture(_depthMapWidth, _depthMapHeight, *_fbo.get());
+        _fbo = std::make_shared<FBO>(4096, 4096);
+        auto mapSize = _fbo->getSize();
+        _fbo->createDepthMapTexture();
     }
 
-    std::pair<uint32_t, uint32_t> LightComponent::getDepthMapSize() { return {_depthMapWidth, _depthMapHeight}; }
+    std::pair<uint32_t, uint32_t> LightComponent::getDepthMapSize() { return _fbo->getSize(); }
 
     FBO* LightComponent::getFBO() { return _fbo.get(); }
 
-    GLuint LightComponent::getDepthTextureId() const noexcept { return _depthTexId; }
+    uint32_t LightComponent::getDepthTextureId() const noexcept { return _fbo->getDepthId(); }
+
+    std::vector<std::string> lightTypes = {
+        "dir",
+        "point",
+        "spot"
+    };
 }

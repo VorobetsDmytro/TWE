@@ -5,7 +5,11 @@
 #include <gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <iostream>
+#include <glm/gtx/matrix_decompose.hpp>
 #include <glad.h>
+
+#include "twe-math/twe-math.hpp"
 
 namespace TWE {
     class TransformComponent {
@@ -15,13 +19,16 @@ namespace TWE {
         void rotate(float angle, const glm::vec3& axis);
         void move(const glm::vec3& pos);
         void scale(const glm::vec3& size);
-        void setPos(const glm::vec3& pos);
+        void setPosition(const glm::vec3& pos);
         void setRotation(float angle, const glm::vec3& axis);
+        void setRotation(const glm::quat& quat);
+        void setRotation(const glm::vec3& angles);
+        void setSize(const glm::vec3& size);
         [[nodiscard]] glm::vec3 getForward() const noexcept;
         [[nodiscard]] glm::vec3 getRight() const noexcept;
         [[nodiscard]] glm::vec3 getUp() const noexcept;
         glm::vec3 position;
-        glm::quat rotation;
+        glm::vec3 rotation;
         glm::vec3 size;
         glm::mat4 model;
     };

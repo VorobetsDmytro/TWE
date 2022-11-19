@@ -12,19 +12,21 @@ namespace TWE {
         template<typename T>
         void bind();
         std::function<void(entt::entity entity, Scene* scene)> initialize; 
-        std::function<void()> destroy; 
-        Behavior* instance;
+        std::function<void()> destroy;
+    private:
+        Behavior* _instance;
+        friend class Scene;
     };
 
     template<typename T>
     void ScriptComponent::bind() {
         initialize = [&](entt::entity entity, Scene* scene){ 
-            instance = static_cast<Behavior*>(new T); 
-            instance->gameObject = { entity, scene };
+            _instance = static_cast<Behavior*>(new T); 
+            _instance->gameObject = { entity, scene };
         };
         destroy = [&](){ 
-            delete instance;
-            instance = nullptr;
+            delete _instance;
+            _instance = nullptr;
         };
     }
 }

@@ -17,7 +17,7 @@ namespace TWE {
         }
         fileDir = path.substr(0, path.find_last_of('/'));
         procNode(scene->mRootNode, scene);
-        return new ModelLoaderData(meshes, ShaderIndices::DEFAULT_VERT, hasTextures ? ShaderIndices::TEXTURE_FRAG : ShaderIndices::DEFAULT_FRAG);
+        return new ModelLoaderData(meshes, ShaderIndices::DEFAULT_VERT, ShaderIndices::DEFAULT_FRAG);
     }
 
     std::vector<std::string> ModelLoader::loadMatText(aiMaterial* mat, aiTextureType type) {

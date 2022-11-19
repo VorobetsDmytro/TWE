@@ -19,6 +19,7 @@ namespace TWE {
         static float xMouseOffset;
         static float yMouseOffset;
         friend class Engine;
+        friend class Scene;
     };
 }
 

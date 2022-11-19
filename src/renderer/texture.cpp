@@ -8,7 +8,7 @@ namespace TWE {
         this->_texNum = texture._texNum;
     }
 
-    Texture::Texture(const std::string& imgPath, GLuint texNum) {
+    Texture::Texture(const std::string& imgPath, uint32_t texNum) {
         _texType = GL_TEXTURE_2D;
         _inOutTexFormat = GL_RGBA;
         _texNum = texNum;
@@ -27,11 +27,11 @@ namespace TWE {
         glBindTexture(_texType, 0);
     }
 
-    Texture::Texture(const GLuint id, const GLenum type) {
+    Texture::Texture(uint32_t id, uint32_t type, uint32_t inOutTexFormat, uint32_t texNum) {
         _id = id;
         _texType = type;
-        _inOutTexFormat = GL_RGBA;
-        _texNum = 0;
+        _inOutTexFormat = inOutTexFormat;
+        _texNum = texNum;
     }
 
     Texture::~Texture() {
@@ -49,32 +49,13 @@ namespace TWE {
         glDeleteTextures(1, &_id);
     }
 
-    void Texture::setId(GLuint id) {
+    void Texture::setId(uint32_t id) {
         _id = id;
     }
 
-    void Texture::setType(GLenum type) {
+    void Texture::setType(uint32_t type) {
         _texType = type;
     }
 
-    GLuint Texture::getId() const noexcept { return _id; }
-
-    GLuint Texture::linkDepthTexture(uint32_t width, uint32_t height, FBO& fbo) {
-        unsigned int depthMap;
-        glGenTextures(1, &depthMap);
-        glBindTexture(GL_TEXTURE_2D, depthMap);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-        fbo.bind();
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
-        glDrawBuffer(GL_NONE);
-        glReadBuffer(GL_NONE);
-        fbo.unbind();
-        return depthMap;
-    }
+    uint32_t Texture::getId() const noexcept { return _id; }
 }

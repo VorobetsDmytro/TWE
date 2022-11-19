@@ -1,6 +1,7 @@
 #ifndef VAO_HPP
 #define VAO_HPP
 
+#include <integer.hpp>
 #include <glad.h>
 
 #include "vbo.hpp"
@@ -14,10 +15,10 @@ namespace TWE {
         void bind();
         void unbind();
         void clean();
-        void setAttrib(GLuint layout, GLint size, GLenum type, GLboolean normalized, GLsizei step, const void* offset, VBO& vbo);
-        [[nodiscard]] GLuint getId();
+        void setAttrib(uint32_t layout, int size, uint32_t type, bool normalized, int step, const void* offset, VBO& vbo);
+        [[nodiscard]] uint32_t getId();
     private:
-        GLuint _id;
+        uint32_t _id;
     };
 }
 

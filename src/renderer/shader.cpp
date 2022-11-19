@@ -6,10 +6,10 @@ namespace TWE {
         std::string fragBody = File::getBody(fragPath);
         const char* vertex = vertBody.c_str();
         const char* fragment = fragBody.c_str();
-        GLuint vertexShader = create(vertex, GL_VERTEX_SHADER);
-        GLuint fragmentShader = create(fragment, GL_FRAGMENT_SHADER);
+        uint32_t vertexShader = create(vertex, GL_VERTEX_SHADER);
+        uint32_t fragmentShader = create(fragment, GL_FRAGMENT_SHADER);
         _id = glCreateProgram();
-        GLuint shaders[2] = {
+        uint32_t shaders[2] = {
             vertexShader,
             fragmentShader
         };
@@ -26,28 +26,28 @@ namespace TWE {
         clean();
     }
 
-    GLuint Shader::create(const char* fileContent, GLenum shaderType) {
-        GLuint shader = glCreateShader(shaderType);
+    uint32_t Shader::create(const char* fileContent, uint32_t shaderType) {
+        uint32_t shader = glCreateShader(shaderType);
         glShaderSource(shader, 1, &fileContent, nullptr);
         glCompileShader(shader);
-        GLint status;
+        int status;
         glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
         if(!status) {
-            GLchar errorInfo[512];
+            char errorInfo[512];
             glGetShaderInfoLog(shader, sizeof(errorInfo), NULL, errorInfo);
             std::cout << "Error compilation a shader.\n" << errorInfo << std::endl;
         };
         return shader;
     }
 
-    void Shader::linkShaders(GLuint* shaders, GLuint size) {
+    void Shader::linkShaders(uint32_t* shaders, uint32_t size) {
         for(int i = 0; i < size; ++i)
             glAttachShader(_id, shaders[i]);
         glLinkProgram(_id);
-        GLint status;
+        int status;
         glGetProgramiv(_id, GL_COMPILE_STATUS, &status);
         if(!status) {
-            GLchar errorInfo[512];
+            char errorInfo[512];
             glGetProgramInfoLog(_id, sizeof(errorInfo), NULL, errorInfo);
             std::cout << "Error link a shader.\n" << errorInfo << std::endl;
         };
@@ -63,41 +63,41 @@ namespace TWE {
 
     void Shader::setUniform(const char* name, const glm::mat4& mat) {
         use();
-        GLuint loc = glGetUniformLocation(getId(), name);
+        uint32_t loc = glGetUniformLocation(getId(), name);
         glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(mat));
     }
 
     void Shader::setUniform(const char* name, const glm::vec3& vec) {
         use();
-        GLuint loc = glGetUniformLocation(getId(), name);
+        uint32_t loc = glGetUniformLocation(getId(), name);
         glUniform3f(loc, vec.x, vec.y, vec.z);
     }
 
-    void Shader::setUniform(const char* name, GLfloat value) {
+    void Shader::setUniform(const char* name, float value) {
         use();
-        GLuint loc = glGetUniformLocation(getId(), name);
+        uint32_t loc = glGetUniformLocation(getId(), name);
         glUniform1f(loc, value);
     }
 
-    void Shader::setUniform(const char* name, GLuint value) {
+    void Shader::setUniform(const char* name, uint32_t value) {
         use();
-        GLuint loc = glGetUniformLocation(getId(), name);
+        uint32_t loc = glGetUniformLocation(getId(), name);
         glUniform1ui(loc, value);
     }
 
-    void Shader::setUniform(const char* name, GLint value) {
+    void Shader::setUniform(const char* name, int value) {
         use();
-        GLuint loc = glGetUniformLocation(getId(), name);
+        uint32_t loc = glGetUniformLocation(getId(), name);
         glUniform1i(loc, value);
     }
 
-    void Shader::setUniform(const char* name, GLboolean value) {
+    void Shader::setUniform(const char* name, bool value) {
         use();
-        GLuint loc = glGetUniformLocation(getId(), name);
+        uint32_t loc = glGetUniformLocation(getId(), name);
         glUniform1i(loc, value);    
     }
 
-    GLuint Shader::getId() const noexcept { return _id; }
+    uint32_t Shader::getId() const noexcept { return _id; }
 
     const char* TRANS_MAT_OPTIONS[3] = {
         "model",
@@ -105,10 +105,9 @@ namespace TWE {
         "projection"
     };
 
-    const char* SHADER_PATHS[7] = {
+    const char* SHADER_PATHS[6] = {
         "../../shaders/default.vert",
         "../../shaders/default.frag",
-        "../../shaders/texture.frag",
         "../../shaders/light.vert",
         "../../shaders/light.frag",
         "../../shaders/cubemap.vert",

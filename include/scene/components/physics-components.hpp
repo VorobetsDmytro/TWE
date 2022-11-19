@@ -14,6 +14,8 @@ namespace TWE {
         PhysicsComponent(const PhysicsComponent& physics);
         void setMass(btDynamicsWorld* dynamicsWorldfloat, float mass);
         void setWorldTransform(const glm::vec3& pos);
+        void setRotation(const glm::vec3& rotation);
+        void setSize(btDynamicsWorld* dynamicsWorldfloat, const glm::vec3& size);
         [[nodiscard]] float getMass() const noexcept;
         [[nodiscard]] btRigidBody* getRigidBody() const noexcept;
     private:

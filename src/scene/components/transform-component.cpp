@@ -3,7 +3,7 @@
 namespace TWE {
     TransformComponent::TransformComponent(){
         position = glm::vec3(0.f);
-        rotation = glm::quat(glm::vec3(0.f));
+        rotation = glm::vec3(0.f);
         size = glm::vec3(1.f);
         model = glm::mat4(1.f);
     }
@@ -21,8 +21,7 @@ namespace TWE {
     }
 
     void TransformComponent::rotate(float angle, const glm::vec3& axis) {
-        model = glm::rotate(model, glm::radians<GLfloat>(angle), axis);
-        rotation = glm::angleAxis(angle, axis);
+        setRotation({ rotation.x + (axis.x * (angle * PI / 180.f)), rotation.y + (axis.y * (angle * PI / 180.f)), rotation.z + (axis.z * (angle * PI / 180.f)) });
     }
 
     void TransformComponent::scale(const glm::vec3& size) {
@@ -32,7 +31,7 @@ namespace TWE {
         this->size.z = glm::length(model[2]);
     }
 
-    void TransformComponent::setPos(const glm::vec3& pos) {
+    void TransformComponent::setPosition(const glm::vec3& pos) {
         model[3].x = pos.x;
         model[3].y = pos.y;
         model[3].z = pos.z;
@@ -44,7 +43,37 @@ namespace TWE {
         glm::mat4 rotation = glm::rotate(translation, glm::radians<GLfloat>(angle), axis);
         glm::mat4 scaleMat = glm::scale(rotation, size);
         model = scaleMat;
-        this->rotation = glm::angleAxis(angle, axis);
+        this->rotation = glm::eulerAngles(glm::angleAxis(angle, axis)) * PI / 180.f;
+    }
+
+    void TransformComponent::setRotation(const glm::quat& quat) {
+        glm::mat4 translation = glm::translate(glm::mat4(1.f), position);
+        float angle = Math::getAngle(quat);
+        glm::vec3 axis = Math::getAxis(quat);
+        glm::mat4 rotation = glm::rotate(translation, glm::radians<GLfloat>(angle), axis);
+        glm::mat4 scaleMat = glm::scale(rotation, size);
+        model = scaleMat;
+        this->rotation = glm::eulerAngles(glm::angleAxis(angle, axis)) * PI / 180.f;
+    }
+
+    void TransformComponent::setRotation(const glm::vec3& angles) {
+        glm::mat4 translation = glm::translate(glm::mat4(1.f), position);
+        glm::mat4 rotation = glm::rotate(glm::mat4(1.f), angles.y, {0.f, 1.f, 0.f}) 
+                           * glm::rotate(glm::mat4(1.f), angles.x, {1.f, 0.f, 0.f})
+                           * glm::rotate(glm::mat4(1.f), angles.z, {0.f, 0.f, 1.f});
+        glm::mat4 scaleMat = glm::scale(translation * rotation, size);
+        model = scaleMat;
+        this->rotation = angles;
+    }
+
+    void TransformComponent::setSize(const glm::vec3& size) {
+        glm::mat4 translation = glm::translate(glm::mat4(1.f), position);
+        glm::mat4 rotation = glm::rotate(glm::mat4(1.f), this->rotation.y, {0.f, 1.f, 0.f}) 
+                           * glm::rotate(glm::mat4(1.f), this->rotation.x, {1.f, 0.f, 0.f})
+                           * glm::rotate(glm::mat4(1.f), this->rotation.z, {0.f, 0.f, 1.f});
+        glm::mat4 scaleMat = glm::scale(translation * rotation, size);
+        model = scaleMat;
+        this->size = size;
     }
 
     glm::vec3 TransformComponent::getForward() const noexcept { return glm::normalize(glm::vec3(model[2])); }

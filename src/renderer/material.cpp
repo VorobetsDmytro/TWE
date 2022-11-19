@@ -1,7 +1,7 @@
 #include "renderer/material.hpp"
 
 namespace TWE {
-    Material::Material(const glm::vec3& objColor, GLfloat ambient, GLfloat diffuse, GLfloat specular, GLfloat shininess)
+    Material::Material(const glm::vec3& objColor, float ambient, float diffuse, float specular, float shininess)
     : objColor(objColor), ambient(ambient), diffuse(diffuse), specular(specular), shininess(shininess){}
 
     Material::Material(const Material& material) {

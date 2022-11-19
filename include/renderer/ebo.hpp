@@ -1,6 +1,7 @@
 #ifndef EBO_HPP
 #define EBO_HPP
 
+#include <integer.hpp>
 #include <glad.h>
 
 namespace TWE {
@@ -8,14 +9,14 @@ namespace TWE {
     public:
         EBO() = default;
         EBO(const EBO& ebo);
-        EBO(GLuint* indices, GLsizeiptr size, GLenum drawType);
+        EBO(uint32_t* indices, long int size, uint32_t drawType);
         ~EBO();
         void bind();
         void unbind();
         void clean();
-        [[nodiscard]] GLuint getId();
+        [[nodiscard]] uint32_t getId();
     private:
-        GLuint _id;
+        uint32_t _id;
     };
 }
 

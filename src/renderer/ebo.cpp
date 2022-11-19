@@ -1,7 +1,7 @@
 #include "renderer/ebo.hpp"
 
 namespace TWE {
-    EBO::EBO(GLuint* indices, GLsizeiptr size, GLenum drawType) {
+    EBO::EBO(uint32_t* indices, long int size, uint32_t drawType) {
         glGenBuffers(1, &_id);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _id);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, indices, drawType);
@@ -28,5 +28,5 @@ namespace TWE {
         glDeleteBuffers(1, &_id);
     }
 
-    GLuint EBO::getId() { return _id; }
+    uint32_t EBO::getId() { return _id; }
 }

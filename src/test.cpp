@@ -29,7 +29,9 @@ namespace TWE {
         physicsComponentObj4.setWorldTransform({1.7f, 11.f, 0.9f});
         physicsComponentObj4.setMass(curScene->getDynamicWorld(), 1.f);
 
-        Shape::createPlateEntity(curScene.get());
+        auto& plateEntity = Shape::createPlateEntity(curScene.get());
+        plateEntity.getComponent<TransformComponent>().move({0.f, -0.5f, 0.f});
+        plateEntity.getComponent<PhysicsComponent>().setWorldTransform({0.f, -0.5f, 0.f});
 
         auto& spotLightEntity = Shape::createSpotLightEntity(curScene.get());
         auto& transformComponentSL = spotLightEntity.getComponent<TransformComponent>();
@@ -37,7 +39,7 @@ namespace TWE {
         transformComponentSL.move({6.5f, 2.f, -4.5f});
         transformComponentSL.rotate(45.f, {0.f, -1.f, 0.f});
         transformComponentSL.rotate(15.f, {1.f, 0.f, 0.f});
-        meshRendererComponentSL.material->objColor = {0.8f, 0.25f, 0.25f};
+        spotLightEntity.getComponent<LightComponent>().color = {0.8f, 0.25f, 0.25f};
 
         auto& spotLight2Entity = Shape::createSpotLightEntity(curScene.get());
         auto& transformComponent2SL = spotLight2Entity.getComponent<TransformComponent>();
@@ -49,7 +51,7 @@ namespace TWE {
         auto& transformComponentPL = pointLightEntity.getComponent<TransformComponent>();
         auto& meshRendererComponentPL = pointLightEntity.getComponent<MeshRendererComponent>();
         transformComponentPL.move({-2.5f, 0.25f, -1.f});
-        meshRendererComponentPL.material->objColor = {0.f, 1.f, 1.f};
+        pointLightEntity.getComponent<LightComponent>().color = {0.f, 1.f, 1.f};
 
         auto& dirLightEntity = Shape::createDirLightEntity(curScene.get());
         auto& transformComponentDL = dirLightEntity.getComponent<TransformComponent>();
@@ -66,6 +68,18 @@ namespace TWE {
                 transformComponentM.scale({0.2f, 0.2f, 0.2f});
             }
         }
+
+        // model = mLoader.loadModel("../../models/mountain/Mountain_Final_fbx_.fbx");
+        // if(model) {
+        //     auto& modelEntities = Shape::createModelEntity(curScene.get(), model);
+        //     for(auto& modelEntitie : modelEntities) {
+        //         auto& transformComponentM = modelEntitie.getComponent<TransformComponent>();
+        //         auto& meshComponentM = modelEntitie.getComponent<MeshComponent>();
+        //         transformComponentM.scale({0.1f, 0.1f, 0.1f});
+        //         transformComponentM.rotate(-90.f, {1.f, 0.f, 0.f});
+        //         meshComponentM.setTexture("../../models/mountain/internal_ground_ao_texture.jpeg", 0);
+        //     }
+        // }
 
         auto& cubemapEntity = Shape::createCubemapEntity(
             curScene.get(),
@@ -85,7 +99,6 @@ namespace TWE {
         cameraEntity.addComponent<ScriptComponent>().bind<CameraController>();
         transformComponentCam.move({0.f, 1.f, 8.f});
         cameraComponentCam.getSource()->setPerspective(90.f, wndWidth, wndHeight);
-        // cameraComponentCam.getSource()->setOrthographic(-5.f, 5.f, -5.f, 5.f);
 
         debugCamera->setPosition({0.f, 1.f, 6.f});
     }

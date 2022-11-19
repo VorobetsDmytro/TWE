@@ -17,7 +17,6 @@ namespace TWE {
     enum ShaderIndices {
         DEFAULT_VERT,
         DEFAULT_FRAG,
-        TEXTURE_FRAG,
         LIGHT_VERT,
         LIGHT_FRAG,
         CUBEMAP_VERT,
@@ -26,7 +25,7 @@ namespace TWE {
 
     extern const char* TRANS_MAT_OPTIONS[3];
 
-    extern const char* SHADER_PATHS[7];
+    extern const char* SHADER_PATHS[6];
 
     class Shader {
     public:
@@ -39,15 +38,15 @@ namespace TWE {
         void setMaterial(const Material& material);
         void setUniform(const char* name, const glm::mat4& mat);
         void setUniform(const char* name, const glm::vec3& vec);
-        void setUniform(const char* name, GLfloat value);
-        void setUniform(const char* name, GLuint value);
-        void setUniform(const char* name, GLint value);
-        void setUniform(const char* name, GLboolean value);
-        [[nodiscard]] GLuint getId() const noexcept;
+        void setUniform(const char* name, float value);
+        void setUniform(const char* name, uint32_t value);
+        void setUniform(const char* name, int value);
+        void setUniform(const char* name, bool value);
+        [[nodiscard]] uint32_t getId() const noexcept;
     private:
-        [[nodiscard]] GLuint create(const char* fileContent, GLenum shaderType);
-        void linkShaders(GLuint* shaders, GLuint size);
-        GLuint _id;
+        [[nodiscard]] uint32_t create(const char* fileContent, uint32_t shaderType);
+        void linkShaders(uint32_t* shaders, uint32_t size);
+        uint32_t _id;
     };
 }
 

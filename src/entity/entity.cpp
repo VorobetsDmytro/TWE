@@ -9,4 +9,14 @@ namespace TWE {
         this->entity = entity.entity;
         this->scene = entity.scene;
     }
+
+    bool Entity::operator==(const Entity& other) {
+        return this->entity == other.entity && this->scene == other.scene;
+    }
+
+    bool Entity::operator!=(const Entity& other) {
+        return !(*this == other);
+    }
+
+    entt::entity Entity::getSource() const noexcept { return entity; }
 }

@@ -8,5 +8,6 @@
 #include "physics-components.hpp"
 #include "camera-component.hpp"
 #include "script-component.hpp"
+#include "name-component.hpp"
 
 #endif

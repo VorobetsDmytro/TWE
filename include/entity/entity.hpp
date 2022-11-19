@@ -18,6 +18,9 @@ namespace TWE {
         T& addComponent(Args&&... args);
         template<typename T>
         void removeComponent();
+        bool operator==(const Entity& other);
+        bool operator!=(const Entity& other);
+        [[nodiscard]] entt::entity getSource() const noexcept;
     private:
         entt::entity entity;
         Scene* scene;

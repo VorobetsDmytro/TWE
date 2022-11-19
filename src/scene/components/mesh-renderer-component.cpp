@@ -10,4 +10,12 @@ namespace TWE {
         this->material = meshRendererComponent.material;
         this->shader = meshRendererComponent.shader;
     }
+
+    void MeshRendererComponent::updateMaterialUniform() {
+        shader->setUniform("material.objColor", material->objColor);
+        shader->setUniform("material.ambient", material->ambient);
+        shader->setUniform("material.diffuse", material->diffuse);
+        shader->setUniform("material.specular", material->specular);
+        shader->setUniform("material.shininess", material->shininess);
+    }
 }

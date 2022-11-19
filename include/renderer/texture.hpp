@@ -13,21 +13,20 @@ namespace TWE {
     public:
         Texture() = default;
         Texture(const Texture& texture);
-        Texture(const std::string& imgPath, GLuint texNum);
-        Texture(const GLuint id, const GLenum type);
+        Texture(const std::string& imgPath, uint32_t texNum);
+        Texture(uint32_t id, uint32_t type, uint32_t inOutTexFormat, uint32_t texNum);
         ~Texture();
         void bind();
         void unbind();
         void clean();
-        void setId(GLuint id);
-        void setType(GLenum type);
-        [[nodiscard]] GLuint getId() const noexcept;
-        [[nodiscard]] static GLuint linkDepthTexture(uint32_t width, uint32_t height, FBO& fbo);
+        void setId(uint32_t id);
+        void setType(uint32_t type);
+        [[nodiscard]] uint32_t getId() const noexcept;
     private:
-        GLuint _id;
-        GLuint _texNum;
-        GLenum _texType;
-        GLenum _inOutTexFormat;
+        uint32_t _id;
+        uint32_t _texNum;
+        uint32_t _texType;
+        uint32_t _inOutTexFormat;
     };
 }
 

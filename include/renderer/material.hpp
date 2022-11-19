@@ -8,17 +8,17 @@ namespace TWE {
     class Material {
     public:
         Material(const glm::vec3& objColor = {1.f, 1.f, 1.f},
-                GLfloat ambient = 0.01f, 
-                GLfloat diffuse = 0.5f, 
-                GLfloat specular = 1.f,
-                GLfloat shininess = 64.f);
+                float ambient = 0.01f, 
+                float diffuse = 0.5f, 
+                float specular = 1.f,
+                float shininess = 64.f);
         Material(const Material& material);
         Material& operator=(const Material& material);
         glm::vec3 objColor;
-        GLfloat ambient;
-        GLfloat diffuse;
-        GLfloat specular;
-        GLfloat shininess;
+        float ambient;
+        float diffuse;
+        float specular;
+        float shininess;
     };
 }
 
