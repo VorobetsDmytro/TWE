@@ -1,4 +1,4 @@
-#include "renderer/gui.hpp"
+#include "gui/gui.hpp"
 
 namespace TWE {
     GUI::GUI(GLFWwindow *window) {
@@ -10,7 +10,9 @@ namespace TWE {
         ImGui::StyleColorsDark();
         ImGui_ImplGlfw_InitForOpenGL(window, true);
         ImGui_ImplOpenGL3_Init("#version 330");
-        _scene = nullptr;
+        _specification._scene = nullptr;
+        _specification._gizmoOperation = GizmoOperation::Translate;
+        _specification.isFileDialogOpen = false;
     }
 
     GUI::~GUI() {
@@ -23,7 +25,12 @@ namespace TWE {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        showDockSpace();       
+        ImGuizmo::BeginFrame();
+
+        showDockSpace();
+        processInput();
+        showFileDialog();
+
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
@@ -52,15 +59,14 @@ namespace TWE {
         }
         if (ImGui::BeginMenuBar()) {
             if (ImGui::BeginMenu("Options")) {
-                if (ImGui::MenuItem("Flag: NoSplit",                "", (dockspace_flags & ImGuiDockNodeFlags_NoSplit) != 0))
+                if(ImGui::MenuItem("Flag: NoSplit",                "", (dockspace_flags & ImGuiDockNodeFlags_NoSplit) != 0))
                     dockspace_flags ^= ImGuiDockNodeFlags_NoSplit; 
-                if (ImGui::MenuItem("Flag: NoResize",               "", (dockspace_flags & ImGuiDockNodeFlags_NoResize) != 0))
+                if(ImGui::MenuItem("Flag: NoResize",               "", (dockspace_flags & ImGuiDockNodeFlags_NoResize) != 0))
                     dockspace_flags ^= ImGuiDockNodeFlags_NoResize;
-                if (ImGui::MenuItem("Flag: NoDockingInCentralNode", "", (dockspace_flags & ImGuiDockNodeFlags_NoDockingInCentralNode) != 0))
+                if(ImGui::MenuItem("Flag: NoDockingInCentralNode", "", (dockspace_flags & ImGuiDockNodeFlags_NoDockingInCentralNode) != 0))
                     dockspace_flags ^= ImGuiDockNodeFlags_NoDockingInCentralNode;
-                if (ImGui::MenuItem("Flag: AutoHideTabBar",         "", (dockspace_flags & ImGuiDockNodeFlags_AutoHideTabBar) != 0))
+                if(ImGui::MenuItem("Flag: AutoHideTabBar",         "", (dockspace_flags & ImGuiDockNodeFlags_AutoHideTabBar) != 0))
                     dockspace_flags ^= ImGuiDockNodeFlags_AutoHideTabBar;
-                ImGui::EndMenu();
             }
             ImGui::EndMenuBar();
         }
@@ -69,21 +75,22 @@ namespace TWE {
         showDirectoryPanel();
         showViewportPanel();
         showComponentPanel();
+        // _components.showComponentPanel(_specification._selectedEntity);
         ImGui::End();
     }
 
     void GUI::showScenePanel() {
         ImGui::Begin("Scene");
         if(ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered())
-            _selectedEntity = {};
-        if(_scene) {
-            _scene->_registry->view<NameComponent>().each([&](entt::entity entity, NameComponent& nameComponent){
+            _specification._selectedEntity = {};
+        if(_specification._scene) {
+            _specification._scene->_registry->view<NameComponent>().each([&](entt::entity entity, NameComponent& nameComponent){
                 auto id = (void*)entity;
-                Entity entityInstance = {entity, _scene};
-                ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | (_selectedEntity == entityInstance ? ImGuiTreeNodeFlags_Selected : 0);
+                Entity entityInstance = {entity, _specification._scene};
+                ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | (_specification._selectedEntity == entityInstance ? ImGuiTreeNodeFlags_Selected : 0);
                 bool isOpened = ImGui::TreeNodeEx(id, flags, nameComponent.getName().c_str());
                 if(ImGui::IsItemClicked())
-                    _selectedEntity = entityInstance;
+                    _specification._selectedEntity = entityInstance;
                 if(isOpened)
                     ImGui::TreePop();
             });
@@ -105,21 +112,113 @@ namespace TWE {
 
     void GUI::showViewportPanel() {
         ImGui::Begin("Viewport");
-        _scene->setFocusOnViewport(ImGui::IsWindowFocused());
+        
+        auto& cursorPos = ImGui::GetCursorPos();
+        _specification._scene->setFocusOnViewport(ImGui::IsWindowFocused());
         ImVec2 viewPortSize = ImGui::GetContentRegionAvail();
-        auto frameSize = _scene->_frameBuffer->getSize();
-        if(viewPortSize.x != frameSize.first || viewPortSize.y != frameSize.second) {
-            _scene->_frameBuffer->resize(viewPortSize.x, viewPortSize.y);
-            _scene->_frameBuffer->createFrameTexture();
-        }
-        auto frameId = (void*)(uint64_t)_scene->_frameBuffer->getColorId();
+        auto frameSize = _specification._scene->_frameBuffer->getSize();
+        if(viewPortSize.x != frameSize.first || viewPortSize.y != frameSize.second)
+            _specification._scene->_frameBuffer->resize(viewPortSize.x, viewPortSize.y);
+        auto frameId = (void*)(uint64_t)_specification._scene->_frameBuffer->getColorAttachment(0);
         ImGui::Image(frameId, viewPortSize, {0, 1}, {1, 0});
+
+        auto& windowSize = ImGui::GetWindowSize();
+        auto& minBound = ImGui::GetWindowPos();
+        minBound.x += cursorPos.x;
+        minBound.y += cursorPos.y;
+
+        auto& mousePos = ImGui::GetMousePos();
+        mousePos.x -= minBound.x;
+        mousePos.y -= minBound.y;
+        mousePos.y = viewPortSize.y - mousePos.y;
+        if(_specification._scene->getIsFocusedOnDebugCamera() && !_specification.isFileDialogOpen) {
+            bool isUsing = showGizmo();
+            if(!isUsing && ImGui::IsMouseClicked(0)) {
+                if(mousePos.x >= 0.f && mousePos.y >= 0.f && mousePos.x < viewPortSize.x && mousePos.y < viewPortSize.y) {
+                    int data = _specification._scene->_frameBuffer->readPixel(1, (int)mousePos.x, (int)mousePos.y);
+                    _specification._selectedEntity = data == -1 || data < 0 || data >= _specification._scene->_registry->size() 
+                        ? Entity() 
+                        : Entity{ (entt::entity)data, _specification._scene };
+                }
+            }
+        }
         ImGui::End();
+    }
+
+    void GUI::showDirectoryPanel() {
+        ImGui::Begin("Directory");
+        ImGui::End();
+    }
+
+    void GUI::showFileDialog() {
+        if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey"))  {
+            if (ImGuiFileDialog::Instance()->IsOk()) {
+                std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+                std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
+            }
+            _specification.isFileDialogOpen = false;
+            ImGuiFileDialog::Instance()->Close();
+        }
+    }
+
+    bool GUI::showGizmo() {
+        if(_specification._gizmoOperation == GizmoOperation::None || _specification._selectedEntity.getSource() == entt::null)
+            return false;
+        Camera* camera = _specification._scene->_sceneCameraSpecification.camera;
+        if(!camera)
+            return false;
+        ImGuizmo::SetOrthographic(false);
+        ImGuizmo::SetDrawlist();
+        auto& windowPos = ImGui::GetWindowPos();
+        auto& windowSize = ImGui::GetWindowSize();
+        ImGuizmo::SetRect(windowPos.x, windowPos.y, windowSize.x, windowSize.y);
+
+        const glm::mat4& cameraProjection = camera->getProjection();
+        glm::mat4 cameraView = camera->getView(_specification._scene->_sceneCameraSpecification.position, 
+            _specification._scene->_sceneCameraSpecification.forward, _specification._scene->_sceneCameraSpecification.up);
+        auto& selectedEntityTransform = _specification._selectedEntity.getComponent<TransformComponent>();
+        auto selectedEntityModel = selectedEntityTransform.model;
+
+        ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), static_cast<ImGuizmo::OPERATION>(_specification._gizmoOperation),
+                             ImGuizmo::LOCAL, glm::value_ptr(selectedEntityModel));
+
+        bool isUsing = ImGuizmo::IsUsing();
+
+        if(isUsing) {
+            glm::vec3 position, rotation, size;
+            Math::decomposeTransform(selectedEntityModel, position, rotation, size);
+            bool hasPhysics = _specification._selectedEntity.hasComponent<PhysicsComponent>();
+            selectedEntityTransform.setPosition(position);
+            if(hasPhysics)
+                _specification._selectedEntity.getComponent<PhysicsComponent>().setPosition(position);
+            selectedEntityTransform.setRotation(rotation);
+            if(hasPhysics)
+                _specification._selectedEntity.getComponent<PhysicsComponent>().setRotation(glm::quat(rotation));
+            selectedEntityTransform.setSize(size);
+            if(hasPhysics)
+                _specification._selectedEntity.getComponent<PhysicsComponent>().setSize(_specification._scene->getDynamicWorld(), size);
+        }
+
+        return isUsing;
+    }
+
+    void GUI::processInput() {
+        if(_specification._scene->getIsFocusedOnViewport() && !Input::isMouseButtonPressed(Mouse::MOUSE_BUTTON_RIGHT) 
+        && _specification._selectedEntity.getSource() != entt::null) {
+            if(Input::isKeyPressed(Keyboard::KEY_Q))
+                _specification._gizmoOperation = GizmoOperation::None;
+            if(Input::isKeyPressed(Keyboard::KEY_W))
+                _specification._gizmoOperation = GizmoOperation::Translate;
+            if(Input::isKeyPressed(Keyboard::KEY_E))
+                _specification._gizmoOperation = GizmoOperation::Rotate;
+            if(Input::isKeyPressed(Keyboard::KEY_R))
+                _specification._gizmoOperation = GizmoOperation::Scale;
+        }
     }
 
     void GUI::showComponentPanel() {
         ImGui::Begin("Components");
-        if(_selectedEntity.getSource() != entt::null) {
+        if(_specification._selectedEntity.getSource() != entt::null) {
             showNameComponent();
             showTransformComponent();
             showMeshComponent();
@@ -127,13 +226,14 @@ namespace TWE {
             showCameraComponent();
             showLightComponent();
             showPhysicsComponent();
+            showScriptComponent();
         }
         ImGui::End();
     }
 
     void GUI::showNameComponent() {
-        if(_selectedEntity.hasComponent<NameComponent>()) {
-            auto& nameComponent = _selectedEntity.getComponent<NameComponent>();
+        if(_specification._selectedEntity.hasComponent<NameComponent>()) {
+            auto& nameComponent = _specification._selectedEntity.getComponent<NameComponent>();
             auto& name = nameComponent.getName();
             ImGui::Text("Name");
             ImGui::SameLine();
@@ -143,27 +243,29 @@ namespace TWE {
     }
 
     void GUI::showTransformComponent() {
-        if(_selectedEntity.hasComponent<TransformComponent>()) {
+        if(_specification._selectedEntity.hasComponent<TransformComponent>()) {
             auto id = (void*)(typeid(TransformComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Transform")) {
-                auto& transformComponent = _selectedEntity.getComponent<TransformComponent>();
+                auto& transformComponent = _specification._selectedEntity.getComponent<TransformComponent>();
+                bool hasPhysics = _specification._selectedEntity.hasComponent<PhysicsComponent>();
                 if(dragFloat3("Position", transformComponent.position, 0.05f, 0.f)) {
                     transformComponent.setPosition(transformComponent.position);
-                    if(_selectedEntity.hasComponent<PhysicsComponent>())
-                        _selectedEntity.getComponent<PhysicsComponent>().setWorldTransform(transformComponent.position);
+                    if(hasPhysics)
+                        _specification._selectedEntity.getComponent<PhysicsComponent>().setPosition(transformComponent.position);
                 }
                 auto rotation = transformComponent.rotation * 180.f / PI;
-                if(dragFloat3("Rotation", rotation, 0.5f, 0.f)) {
+                if(dragFloat3("Rotation", rotation, hasPhysics ? 1.5f : 0.5f, 0.f)) {
                     rotation *= PI / 180.f;
                     transformComponent.setRotation(rotation);
-                    if(_selectedEntity.hasComponent<PhysicsComponent>())
-                        _selectedEntity.getComponent<PhysicsComponent>().setRotation(rotation);
+                    if(hasPhysics)
+                        _specification._selectedEntity.getComponent<PhysicsComponent>().setRotation(rotation);
                 }
                 if(dragFloat3("Scale", transformComponent.size, 0.01f, 1.f, 0.01f, 999999.f)) {
                     transformComponent.setSize(transformComponent.size);
-                    if(_selectedEntity.hasComponent<PhysicsComponent>())
-                        _selectedEntity.getComponent<PhysicsComponent>().setSize(_scene->getDynamicWorld(), transformComponent.size);
+                    if(hasPhysics)
+                        _specification._selectedEntity.getComponent<PhysicsComponent>()
+                            .setSize(_specification._scene->getDynamicWorld(), transformComponent.size);
                 }
                 ImGui::TreePop();
             }
@@ -171,35 +273,28 @@ namespace TWE {
     }
 
     void GUI::showMeshComponent() {
-        if(_selectedEntity.hasComponent<MeshComponent>()) {
+        if(_specification._selectedEntity.hasComponent<MeshComponent>()) {
             auto id = (void*)(typeid(MeshComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Mesh")) {
-                auto& meshComponent = _selectedEntity.getComponent<MeshComponent>();
+                auto& meshComponent = _specification._selectedEntity.getComponent<MeshComponent>();
                 if(!meshComponent.textures.empty())
                     ImGui::Image((void*)(uint64_t)meshComponent.textures[0]->getId(), {30.f, 30.f});
-                
-                if (ImGui::Button("Open File Dialog"))
-                    ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".png,.jpeg,.jpg", ".");
-                if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey"))  {
-                    if (ImGuiFileDialog::Instance()->IsOk()) {
-                        std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-                        std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
-                    }
-                    ImGuiFileDialog::Instance()->Close();
-                }
-
+                // if (ImGui::Button("Open File Dialog")) {
+                //     ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".png, .jpeg, .jpg", ".");
+                //     _specification.isFileDialogOpen = true;
+                // }
                 ImGui::TreePop();
             }
         }
     }
 
     void GUI::showMeshRendererComponent() {
-        if(_selectedEntity.hasComponent<MeshRendererComponent>()) {
+        if(_specification._selectedEntity.hasComponent<MeshRendererComponent>()) {
             auto id = (void*)(typeid(MeshRendererComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Mesh Renderer")) {
-                auto& meshRendererComponent = _selectedEntity.getComponent<MeshRendererComponent>();
+                auto& meshRendererComponent = _specification._selectedEntity.getComponent<MeshRendererComponent>();
                 if(ImGui::TreeNodeEx(id, flags, "Material")) {
                     colorEdit3("Color", meshRendererComponent.material->objColor);
                     dragFloat("Ambient", meshRendererComponent.material->ambient, 0.01f);
@@ -214,11 +309,11 @@ namespace TWE {
     }
 
     void GUI::showCameraComponent() {
-        if(_selectedEntity.hasComponent<CameraComponent>()) {
+        if(_specification._selectedEntity.hasComponent<CameraComponent>()) {
             auto id = (void*)(typeid(CameraComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Camera")) {
-                auto& cameraComponent = _selectedEntity.getComponent<CameraComponent>();
+                auto& cameraComponent = _specification._selectedEntity.getComponent<CameraComponent>();
                 auto* cameraSource = cameraComponent.getSource();
                 int typeIndex = combo("Projection", cameraProjectionTypes[cameraSource->getType()], cameraProjectionTypes, 105.f);
                 if(typeIndex == CameraProjectionType::Perspective) {
@@ -251,11 +346,11 @@ namespace TWE {
     }
 
     void GUI::showLightComponent() {
-        if(_selectedEntity.hasComponent<LightComponent>()) {
+        if(_specification._selectedEntity.hasComponent<LightComponent>()) {
             auto id = (void*)(typeid(LightComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Light")) {
-                auto& lightComponent = _selectedEntity.getComponent<LightComponent>();
+                auto& lightComponent = _specification._selectedEntity.getComponent<LightComponent>();
                 std::string selectedType = lightTypes[lightComponent.type];
                 int typeIndex = combo("Type", lightTypes[lightComponent.type], lightTypes, 100.f);
                 if(typeIndex > -1)
@@ -280,17 +375,45 @@ namespace TWE {
     }
 
     void GUI::showPhysicsComponent() {
-        if(_selectedEntity.hasComponent<PhysicsComponent>()) {
-           auto id = (void*)(typeid(PhysicsComponent).hash_code());
+        if(_specification._selectedEntity.hasComponent<PhysicsComponent>()) {
+            auto id = (void*)(typeid(PhysicsComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Physics")) {
-                auto& physicsComponent = _selectedEntity.getComponent<PhysicsComponent>();
+                auto& physicsComponent = _specification._selectedEntity.getComponent<PhysicsComponent>();
                 auto mass = physicsComponent.getMass();
                 if(dragFloat("Mass", mass, 0.01f, 0.f, 999999.f))
-                    physicsComponent.setMass(_scene->getDynamicWorld(), mass);
+                    physicsComponent.setMass(_specification._scene->getDynamicWorld(), mass);
                 ImGui::TreePop();
             }
         }
+    }
+
+    void GUI::showScriptComponent() {
+        if(_specification._selectedEntity.hasComponent<ScriptComponent>()) {
+            auto id = (void*)(typeid(ScriptComponent).hash_code());
+            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
+            if(ImGui::TreeNodeEx(id, flags, "Script")) {
+                auto& scriptComponent = _specification._selectedEntity.getComponent<ScriptComponent>();
+                text("Name", scriptComponent.getBehaviorClassName());
+                ImGui::TreePop();
+            }
+        }
+    }
+
+    void GUI::text(const std::string& label, const std::string& value, float labelColumnWidth) {
+        ImGui::PushID(label.c_str());
+
+        ImGui::Columns(2);
+        ImGui::SetColumnWidth(0, labelColumnWidth);
+        ImGui::Text(label.c_str());
+
+        ImGui::NextColumn();
+        ImGui::PushItemWidth(ImGui::CalcItemWidth());
+        ImGui::Text(value.c_str());
+        ImGui::PopItemWidth();
+
+        ImGui::Columns(1);
+        ImGui::PopID();
     }
 
     bool GUI::checkBox(const std::string& label, bool& value, float labelColumnWidth) {
@@ -428,11 +551,6 @@ namespace TWE {
         return isInteracted;
     }
 
-    void GUI::showDirectoryPanel() {
-        ImGui::Begin("Directory");
-        ImGui::End();
-    }
-
     void GUI::addCheckbox(const char* name, bool& var) {
         _checkBoxes.push_back({name, var});
     }
@@ -446,6 +564,6 @@ namespace TWE {
     }
 
     void GUI::setScene(Scene* scene) {
-        _scene = scene;
+        _specification._scene = scene;
     }
 }

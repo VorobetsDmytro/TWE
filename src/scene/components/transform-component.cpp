@@ -58,9 +58,7 @@ namespace TWE {
 
     void TransformComponent::setRotation(const glm::vec3& angles) {
         glm::mat4 translation = glm::translate(glm::mat4(1.f), position);
-        glm::mat4 rotation = glm::rotate(glm::mat4(1.f), angles.y, {0.f, 1.f, 0.f}) 
-                           * glm::rotate(glm::mat4(1.f), angles.x, {1.f, 0.f, 0.f})
-                           * glm::rotate(glm::mat4(1.f), angles.z, {0.f, 0.f, 1.f});
+        glm::mat4 rotation = glm::toMat4(glm::quat(angles));
         glm::mat4 scaleMat = glm::scale(translation * rotation, size);
         model = scaleMat;
         this->rotation = angles;
@@ -68,9 +66,7 @@ namespace TWE {
 
     void TransformComponent::setSize(const glm::vec3& size) {
         glm::mat4 translation = glm::translate(glm::mat4(1.f), position);
-        glm::mat4 rotation = glm::rotate(glm::mat4(1.f), this->rotation.y, {0.f, 1.f, 0.f}) 
-                           * glm::rotate(glm::mat4(1.f), this->rotation.x, {1.f, 0.f, 0.f})
-                           * glm::rotate(glm::mat4(1.f), this->rotation.z, {0.f, 0.f, 1.f});
+        glm::mat4 rotation = glm::toMat4(glm::quat(this->rotation));
         glm::mat4 scaleMat = glm::scale(translation * rotation, size);
         model = scaleMat;
         this->size = size;

@@ -25,9 +25,11 @@ target_include_directories(TWE PRIVATE
     "external/glm"
     "external/imgui"
     "external/imgui-filedialog"
+    "external/ImGuizmo"
     "external/assimp"
     "external/bullet3"
     "external/entt"
+    "external/json"
     "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.7/include" #Your OpenCL SDK include path
 )
 target_link_libraries(TWE PRIVATE ${LIBFILES})

@@ -36,11 +36,12 @@ struct Light {
 };
 
 
+layout (location = 0) out vec4 color;
+layout (location = 1) out int outId;
+
 in vec3 fragPos;
 in vec3 normal;
 in vec2 texCoord;
-
-out vec4 color;
 
 uniform bool hasTexture = false;
 uniform sampler2D textureImg;
@@ -49,6 +50,7 @@ uniform Light lights[MAX_LIGHTS];
 uniform float alpha = 1.f;
 uniform vec3 viewPos = vec3(0.f, 0.f, 0.f);
 uniform Material material;
+uniform int id = -1;
 
 vec3 calculateDiffuse(Light light, vec3 lightDir, vec3 normalNormlz) {
     float dotProduct = dot(normalNormlz, lightDir);
@@ -142,4 +144,5 @@ void main() {
         color = texture(textureImg, texCoord) * vec4(lightColor * material.objColor, alpha);
     else
         color = vec4(lightColor * material.objColor, alpha);
+    outId = id;
 }

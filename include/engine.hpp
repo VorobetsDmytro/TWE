@@ -16,10 +16,11 @@
 #include "scene/shape.hpp"
 #include "scene/scene.hpp"
 #include "scene/time.hpp"
-#include "renderer/gui.hpp"
+#include "gui/gui.hpp"
 #include "model-loader/model-loader.hpp"
 #include "entity/entity.hpp"
 #include "input/input.hpp"
+#include "registry/registry.hpp"
 
 namespace TWE {
     class Engine {
@@ -40,6 +41,7 @@ namespace TWE {
         static int wndHeight;
         static std::shared_ptr<Scene> curScene;
         static std::shared_ptr<DebugCamera> debugCamera;
+        static Registry<Behavior> scriptRegistry;
     private:
         static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
         static void mouseCallback(GLFWwindow* window, double xpos, double ypos);

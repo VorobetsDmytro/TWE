@@ -10,8 +10,11 @@ namespace TWE {
     :vertices(vertices), vertSize(vertSize), indices(indices), indSize(indSize) {
         create();
         int texPathsSize = texPaths.size();
-        for(int i = 0; i < texPathsSize; ++i)
-            textures.push_back(std::make_shared<Texture>(texPaths[i].c_str(), i));
+        for(uint32_t i = 0; i < texPathsSize; ++i) {
+            TextureAttachmentSpecification attachments;
+            attachments.textureSpecifications.push_back({texPaths[i], GL_TEXTURE_2D, i, GL_RGBA});
+            textures.push_back(std::make_shared<Texture>(attachments));
+        }
     }
 
     MeshComponent::MeshComponent(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize, const std::vector<Texture*>& texs)
@@ -46,11 +49,5 @@ namespace TWE {
         vao->unbind();
         vbo->unbind();
         ebo->unbind();
-    }
-
-    void MeshComponent::setTexture(const char* texPath, GLuint texNum) {
-        if(textures.size() <= texNum)
-            textures.resize(textures.size() + 1);
-        textures[texNum] = std::make_shared<Texture>(texPath, texNum);
     }
 }

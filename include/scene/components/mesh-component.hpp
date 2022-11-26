@@ -18,7 +18,6 @@ namespace TWE {
         MeshComponent(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize, const std::vector<std::string>& texPaths);
         MeshComponent(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize, const std::vector<Texture*>& texs);
         MeshComponent(const MeshComponent& mesh);
-        void setTexture(const char* texPath, GLuint texNum);
         GLfloat* vertices;
         GLsizei vertSize;
         GLuint* indices;
@@ -27,6 +26,7 @@ namespace TWE {
         std::shared_ptr<VBO> vbo;
         std::shared_ptr<EBO> ebo;
         std::vector<std::shared_ptr<Texture>> textures;
+        std::string modelPath;
     private:
         void create();
     };

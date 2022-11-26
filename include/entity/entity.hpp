@@ -12,38 +12,42 @@ namespace TWE {
         Entity(const Entity& entity);
         template<typename T>
         bool hasComponent();
+
         template<typename T>
         T& getComponent();
+
         template<typename T, typename ...Args>
         T& addComponent(Args&&... args);
+
         template<typename T>
         void removeComponent();
+
         bool operator==(const Entity& other);
         bool operator!=(const Entity& other);
         [[nodiscard]] entt::entity getSource() const noexcept;
     private:
-        entt::entity entity;
-        Scene* scene;
+        entt::entity _entity;
+        Scene* _scene;
     };
 
     template<typename T>
     bool Entity::hasComponent() {
-        return scene->_registry->any_of<T>(entity);
+        return _scene->_registry->any_of<T>(_entity);
     }
 
     template<typename T>
     T& Entity::getComponent() {
-        return scene->_registry->get<T>(entity);
+        return _scene->_registry->get<T>(_entity);
     }
 
     template<typename T, typename ...Args>
     T& Entity::addComponent(Args&&... args) {
-        return scene->_registry->emplace<T>(entity, std::forward<Args>(args)...);
+        return _scene->_registry->emplace<T>(_entity, std::forward<Args>(args)...);
     }
 
     template<typename T>
     void Entity::removeComponent() {
-        scene->_registry->remove<T>(entity);
+        _scene->_registry->remove<T>(_entity);
     }
 }
 

@@ -18,10 +18,10 @@ namespace TWE {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
-    uint32_t Renderer::generateCubemapTexture(const std::vector<std::string>& texPaths) {
+    Texture* Renderer::generateCubemapTexture(const std::vector<std::string>& texPaths) {
         if(texPaths.size() != 6) {
             std::cout << "Error loading a cubemap texture.\nTexture paths size has to be 6." << std::endl;
-            return 0;
+            return nullptr;
         }
         uint32_t id;
         glGenTextures(1, &id);
@@ -34,13 +34,16 @@ namespace TWE {
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
         int width, height, chanInFile;
         int i = 0;
+        TextureAttachmentSpecification attachments;
         for(auto& texPath : texPaths){
             auto imgBytes = stbi_load(texPath.c_str(), &width, &height, &chanInFile, 4);
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i++, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imgBytes);
             stbi_image_free(imgBytes);
+            attachments.textureSpecifications.push_back({texPath, GL_TEXTURE_CUBE_MAP, 0, GL_RGBA});
         }
         glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-        return id;
+        Texture* texture = new Texture(id, attachments);
+        return texture;
     }
 
     void Renderer::setViewport(int startX, int startY, int endX, int endY) {

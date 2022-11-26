@@ -13,4 +13,11 @@ namespace TWE {
         is.close();
         return ss.str();
     }
+
+    void File::save(const char* filePath, const std::string& data) {
+        std::fstream fs;
+        fs.open(filePath, std::ios::out | std::ios::trunc);
+        fs << data;
+        fs.close();
+    }
 }

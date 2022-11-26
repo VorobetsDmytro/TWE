@@ -10,12 +10,13 @@ namespace TWE {
         _world = std::make_unique<btDiscreteDynamicsWorld>(_dispatcher.get(), _broadPhase.get(), _solver.get(), _collisionConfig.get());
         _world->setGravity({0.f, -9.81f, 0.f});
         _registry = std::make_unique<entt::registry>();
-        _frameBuffer = std::make_unique<FBO>(windowWidth, windowHeight);
-        _frameBuffer->createFrameTexture();
+        FBOAttachmentSpecification attachments = { FBOTextureFormat::RGBA8, FBOTextureFormat::R32I, FBOTextureFormat::DEPTH24STENCIL8 };
+        _frameBuffer = std::make_unique<FBO>(windowWidth, windowHeight, attachments);
         _debugCamera = nullptr;
         _isFocusedOnDebugCamera = true;
         _isFocusedOnViewport = false;
         _drawLightMeshes = true;
+        _name = "Unnamed";
     }
 
     Scene::~Scene() {
@@ -33,6 +34,10 @@ namespace TWE {
 
     void Scene::setDebugCamera(DebugCamera* debugCamera) {
         _debugCamera = debugCamera;
+    }
+
+    void Scene::setName(const std::string& name) {
+        _name = name;
     }
 
     bool Scene::proccesKeyInput(GLFWwindow* window, int key, int scancode, int action, int mode) {
@@ -109,32 +114,33 @@ namespace TWE {
     }
 
     bool Scene::updateView() {
-        Camera* curCameraFocus = nullptr;
-        glm::vec3 cameraPosition(0.f);
-        glm::vec3 cameraForward(0.f);
-        glm::vec3 cameraUp(0.f);
+        _sceneCameraSpecification.camera = nullptr;
+        _sceneCameraSpecification.position = glm::vec3(0.f);
+        _sceneCameraSpecification.forward = glm::vec3(0.f);
+        _sceneCameraSpecification.up = glm::vec3(0.f);
         if(_isFocusedOnDebugCamera && _debugCamera) {
-            curCameraFocus = _debugCamera;
-            cameraPosition = _debugCamera->getPosition();
-            cameraForward = _debugCamera->getForward();
-            cameraUp = _debugCamera->getUp();
+            _sceneCameraSpecification.camera = _debugCamera;
+            _sceneCameraSpecification.position = _debugCamera->getPosition();
+            _sceneCameraSpecification.forward = _debugCamera->getForward();
+            _sceneCameraSpecification.up = _debugCamera->getUp();
         }
         else {
             auto& camsView = _registry->view<CameraComponent, TransformComponent>();
             for(auto camEntity : camsView) {
                 auto& [cameraComponent, transformComponent] = camsView.get<CameraComponent, TransformComponent>(camEntity);
                 if(cameraComponent.isFocusedOn()){
-                    curCameraFocus = cameraComponent.getSource();
-                    cameraPosition = transformComponent.position;
-                    cameraForward = -transformComponent.getForward();
-                    cameraUp = transformComponent.getUp();
+                    _sceneCameraSpecification.camera = cameraComponent.getSource();
+                    _sceneCameraSpecification.position = transformComponent.position;
+                    _sceneCameraSpecification.forward = -transformComponent.getForward();
+                    _sceneCameraSpecification.up = transformComponent.getUp();
                     break;
                 }
             }
         }
-        if(!curCameraFocus)
+        if(!_sceneCameraSpecification.camera)
             return false;
-        updateView(curCameraFocus->getView(cameraPosition, cameraForward, cameraUp), curCameraFocus->getProjection(), cameraPosition);
+        updateView(_sceneCameraSpecification.camera->getView(_sceneCameraSpecification.position, _sceneCameraSpecification.forward, _sceneCameraSpecification.up),
+                   _sceneCameraSpecification.camera->getProjection(), _sceneCameraSpecification.position);
         return true;
     }
 
@@ -217,7 +223,9 @@ namespace TWE {
 
     bool& Scene::getIsFocusedOnDebugCamera() { return _isFocusedOnDebugCamera; }
     bool Scene::getIsFocusedOnDebugCamera() const noexcept { return _isFocusedOnDebugCamera; }
+    bool Scene::getIsFocusedOnViewport() const noexcept { return _isFocusedOnViewport; };
     bool Scene::getDrawLightMeshes() const noexcept { return _drawLightMeshes; }
     entt::registry* Scene::getRegistry() const noexcept { return _registry.get(); }
     btDynamicsWorld* Scene::getDynamicWorld() const noexcept { return _world.get(); }
+    std::string Scene::getName() const noexcept { return _name; }
 }

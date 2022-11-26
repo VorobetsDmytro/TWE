@@ -5,7 +5,6 @@
 #include <gtc/type_ptr.hpp>
 
 #include "stream/file.hpp"
-#include "material.hpp"
 
 namespace TWE {
     enum TransformMatrixOptions {
@@ -35,7 +34,6 @@ namespace TWE {
         ~Shader();
         void use();
         void clean();
-        void setMaterial(const Material& material);
         void setUniform(const char* name, const glm::mat4& mat);
         void setUniform(const char* name, const glm::vec3& vec);
         void setUniform(const char* name, float value);

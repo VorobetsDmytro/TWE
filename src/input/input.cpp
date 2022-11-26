@@ -5,6 +5,7 @@ namespace TWE {
     bool Input::mousePressedButtons[24];
     float Input::xMouseOffset;
     float Input::yMouseOffset;
+    
     bool Input::isKeyPressed(Keyboard key) {
         return keyboardPressedKeys[key];
     }

@@ -8,7 +8,7 @@
 #include "camera.hpp"
 
 namespace TWE {
-    enum CamMovement{
+    enum class CamMovement{
         FORWARD,
         BACKWARD,
         RIGHT,

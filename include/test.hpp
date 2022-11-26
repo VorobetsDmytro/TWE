@@ -2,9 +2,9 @@
 #define TEST_HPP
 
 #include "engine.hpp"
-#include "camera-controller.hpp"
-#include "rotate-rgb-cube.hpp"
-#include "dir-behavior.hpp"
+#include "scene/scene-serializer.hpp"
+#include "registry/registry-loader.hpp"
+#include "stream/registry-recorder.hpp"
 
 namespace TWE {
     class Test final: public Engine {

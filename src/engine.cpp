@@ -5,6 +5,7 @@ namespace TWE {
     int Engine::wndHeight = 0.f;
     std::shared_ptr<DebugCamera> Engine::debugCamera = std::make_shared<DebugCamera>(glm::vec3(0.f, 0.f, 0.f), 0.1f);
     std::shared_ptr<Scene> Engine::curScene;
+    Registry<Behavior> Engine::scriptRegistry;
 
     Engine::Engine(int wndWidth, int wndHeight, const char* title, GLFWmonitor* monitor, GLFWwindow* share) {
         //glfw

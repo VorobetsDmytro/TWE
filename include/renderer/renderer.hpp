@@ -3,6 +3,7 @@
 
 #include "scene/components/components.hpp"
 #include "scene/scene.hpp"
+#include "renderer/texture.hpp"
 
 namespace TWE {
     class Renderer {
@@ -16,7 +17,7 @@ namespace TWE {
         static void setShadows(MeshRendererComponent& meshRendererComponent, const glm::mat4& lightSpaceMat, const std::string& lightIndex);
         static void generateDepthMap(LightComponent& lightComponent, const TransformComponent& transformComponent, const glm::mat4& lightProjection, 
                                      const glm::mat4& lightView, Scene* scene);
-        [[nodiscard]] static uint32_t generateCubemapTexture(const std::vector<std::string>& texPaths);
+        [[nodiscard]] static Texture* generateCubemapTexture(const std::vector<std::string>& texPaths);
     };
 }
 

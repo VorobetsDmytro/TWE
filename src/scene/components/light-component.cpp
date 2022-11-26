@@ -29,16 +29,16 @@ namespace TWE {
     }
 
     void LightComponent::createDepthMap() {
-        _fbo = std::make_shared<FBO>(4096, 4096);
+        FBOAttachmentSpecification attachments = { FBOTextureFormat::DEPTH24STENCIL8 };
+        _fbo = std::make_shared<FBO>(4096, 4096, attachments);
         auto mapSize = _fbo->getSize();
-        _fbo->createDepthMapTexture();
     }
 
     std::pair<uint32_t, uint32_t> LightComponent::getDepthMapSize() { return _fbo->getSize(); }
 
     FBO* LightComponent::getFBO() { return _fbo.get(); }
 
-    uint32_t LightComponent::getDepthTextureId() const noexcept { return _fbo->getDepthId(); }
+    uint32_t LightComponent::getDepthTextureId() const noexcept { return _fbo->getDepthAttachment(); }
 
     std::vector<std::string> lightTypes = {
         "dir",

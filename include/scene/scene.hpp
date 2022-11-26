@@ -6,8 +6,7 @@
 #include <gtc/matrix_transform.hpp>
 #include <gtc/type_ptr.hpp>
 #include <memory>
-#include <algorithm>
-#include <iterator>
+#include <string>
 #include <btBulletDynamicsCommon.h>
 #include <LinearMath/btTransform.h>
 #include <LinearMath/btVector3.h>
@@ -21,6 +20,13 @@
 #include "input/input.hpp"
 
 namespace TWE {
+    struct SceneCameraSpecification {
+        Camera* camera = nullptr;
+        glm::vec3 position = glm::vec3(0.f);
+        glm::vec3 forward = glm::vec3(0.f);
+        glm::vec3 up = glm::vec3(0.f);
+    };
+
     class Scene {
     public:
         Scene(uint32_t windowWidth, uint32_t windowHeight);
@@ -41,12 +47,15 @@ namespace TWE {
         void setFocusOnViewport(bool isFocusedOnViewport);
         void setDrawLightMeshes(bool drawLightMeshes);
         void setDebugCamera(DebugCamera* debugCamera);
+        void setName(const std::string& name);
         Entity createEntity(const std::string& name = "Entity");
         [[nodiscard]] bool& getIsFocusedOnDebugCamera();
+        [[nodiscard]] bool getIsFocusedOnViewport() const noexcept;
         [[nodiscard]] bool getIsFocusedOnDebugCamera() const noexcept;
         [[nodiscard]] bool getDrawLightMeshes() const noexcept;
         [[nodiscard]] entt::registry* getRegistry() const noexcept;
         [[nodiscard]] btDynamicsWorld* getDynamicWorld() const noexcept;
+        [[nodiscard]] std::string getName() const noexcept;
     private:
         bool updateView();
         void setShadows(const LightComponent& lightComponent, const glm::mat4& lightSpaceMat, int index);
@@ -58,11 +67,14 @@ namespace TWE {
         std::unique_ptr<entt::registry> _registry;
         std::unique_ptr<FBO> _frameBuffer;
         DebugCamera* _debugCamera;
+        SceneCameraSpecification _sceneCameraSpecification;
         bool _isFocusedOnDebugCamera;
         bool _isFocusedOnViewport;
         bool _drawLightMeshes;
+        std::string _name;
         friend class Entity;
         friend class GUI;
+        friend class SceneSerializer;
     };
 }
 

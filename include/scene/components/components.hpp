@@ -9,5 +9,6 @@
 #include "camera-component.hpp"
 #include "script-component.hpp"
 #include "name-component.hpp"
+#include "creation-type-component.hpp"
 
 #endif

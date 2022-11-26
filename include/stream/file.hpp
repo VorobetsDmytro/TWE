@@ -10,6 +10,7 @@ namespace TWE {
     class File {
     public:
         static std::string getBody(const char* filePath);
+        static void save(const char* filePath, const std::string& data);
     };
 }
 
