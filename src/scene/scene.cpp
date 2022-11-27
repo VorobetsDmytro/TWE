@@ -20,9 +20,12 @@ namespace TWE {
     }
 
     Scene::~Scene() {
-        _registry->view<ScriptComponent>().each([&](entt::entity entity, ScriptComponent& scriptComponent){
-            if(scriptComponent._instance)
-                scriptComponent.destroy();
+        _registry->each([&](entt::entity entity){
+            Entity instance = { entity, this };
+            if(instance.hasComponent<ScriptComponent>())
+                instance.getComponent<ScriptComponent>().destroy();
+            if(instance.hasComponent<PhysicsComponent>())
+                _world->removeRigidBody(instance.getComponent<PhysicsComponent>().getRigidBody());
         });
     }
 

@@ -5,6 +5,7 @@ file(GLOB_RECURSE CPPFILES
     "src/*.cpp" 
     "external/*.cpp" 
     "external/*.c"
+    "test/*.cpp"
 )
 
 file(GLOB_RECURSE LIBFILES 
@@ -17,7 +18,6 @@ add_executable(TWE ${CPPFILES})
 target_compile_features(TWE PRIVATE cxx_std_17)
 target_include_directories(TWE PRIVATE
     "include"
-    "scripts" # Custom scripts
     "external"
     "external/GLFW"
     "external/glad"
@@ -31,6 +31,7 @@ target_include_directories(TWE PRIVATE
     "external/entt"
     "external/json"
     "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.7/include" #Your OpenCL SDK include path
+    "test"
 )
 target_link_libraries(TWE PRIVATE ${LIBFILES})
 

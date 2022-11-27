@@ -2,7 +2,7 @@
 
 namespace TWE {
     DebugCamera::DebugCamera(const glm::vec3& pos, float sensitivity, float speed)
-    : sensitivity(sensitivity), speed(speed) {
+    : sensitivity(sensitivity), speed(speed), pos(glm::vec3(0.f)) {
         forward = glm::vec3(0.f, 0.f, 1.f);
         worldUp = glm::vec3(0.f, 1.f, 0.f);
         pitch = 0.f;

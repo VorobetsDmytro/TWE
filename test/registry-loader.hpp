@@ -2,13 +2,14 @@
 #define REGISTRY_LOADER_HPP
 
 #include "registry/registry.hpp"
+#include "entity/behavior.hpp"
 
 //DirBehavior
-#include "D:\labs\cpp\TWE\scripts\DirBehavior.hpp"
+#include "../../test/scripts/DirBehavior.hpp"
 //RotateRGBCube
-#include "D:\labs\cpp\TWE\scripts\RotateRGBCube.hpp"
+#include "../../test/scripts/RotateRGBCube.hpp"
 //CameraController
-#include "D:\labs\cpp\TWE\scripts\CameraController.hpp"
+#include "../../test/scripts/CameraController.hpp"
 //IncludeTail
 
 namespace TWE {

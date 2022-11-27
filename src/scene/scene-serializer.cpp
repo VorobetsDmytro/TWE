@@ -13,7 +13,7 @@ namespace TWE {
         File::save(path.c_str(), jsonMain.dump());
     }
 
-    void SceneSerializer::deserialize(Scene* scene, const std::string& path, Registry<Behavior>& registry) {
+    void SceneSerializer::deserialize(Scene* scene, const std::string& path, Registry<Behavior>& registry, std::function<void(Registry<Behavior>&)> registryLoader) {
         std::string jsonBodyStr = File::getBody(path.c_str());
         nlohmann::json jsonMain = nlohmann::json::parse(jsonBodyStr);
         auto& items = jsonMain.items();
@@ -24,7 +24,7 @@ namespace TWE {
                 auto& entities = value.items();
                 for(auto& [index, components] : entities) {        
                     Entity instance = deserializeCreationTypeComponent(scene, components);
-                    deserializeEntity(scene, instance, components, registry);
+                    deserializeEntity(scene, instance, components, registry, registryLoader);
                 }
             }
         }
@@ -45,7 +45,7 @@ namespace TWE {
         jsonEntities.push_back(jsonEntity);
     }
 
-    void SceneSerializer::deserializeEntity(Scene* scene, Entity& entity, nlohmann::json& jsonComponents, Registry<Behavior>& registry) {
+    void SceneSerializer::deserializeEntity(Scene* scene, Entity& entity, nlohmann::json& jsonComponents, Registry<Behavior>& registry, std::function<void(Registry<Behavior>&)> registryLoader) {
         auto& components = jsonComponents.items();
         for(auto& [key, value] : components) {
             deserializeNameComponent(entity, key, value);
@@ -54,7 +54,7 @@ namespace TWE {
             deserializeCameraComponent(entity, key, value);
             deserializeLightComponent(entity, key, value);
             deserializePhysicsComponent(scene, entity, key, value);
-            deserializeScriptComponent( entity, key, value, registry);
+            deserializeScriptComponent( entity, key, value, registry, registryLoader);
         }
     }
 
@@ -422,7 +422,8 @@ namespace TWE {
         jsonEntity["ScriptComponent"] = jsonScriptComponent;
     }
 
-    void SceneSerializer::deserializeScriptComponent(Entity& entity, const std::string& key, nlohmann::json& jsonComponent, Registry<Behavior>& registry) {
+    void SceneSerializer::deserializeScriptComponent(Entity& entity, const std::string& key, nlohmann::json& jsonComponent, 
+    Registry<Behavior>& registry, std::function<void(Registry<Behavior>&)> registryLoader) {
         if(key != "ScriptComponent")
             return;
         if(!entity.hasComponent<ScriptComponent>())
@@ -434,7 +435,7 @@ namespace TWE {
         if(behavior) {
             scriptComponent.bind(behavior, behaviorName);
             registry.erase(behaviorName);
-            RegistryLoader::load(registry);
+            registryLoader(registry);
         } else
             scriptComponent.bind<Behavior>();
     }

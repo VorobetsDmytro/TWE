@@ -18,7 +18,7 @@ namespace TWE {
             std::string trimLine = trim(line);
             if(trimLine == "//IncludeTail") {
                 os << "//" << className << '\n';
-                os << "#include \"" << scriptDirectoryPath << "\\" << className << ".hpp\"\n";
+                os << "#include \"" << scriptDirectoryPath << "/" << className << ".hpp\"\n";
                 os << "//IncludeTail\n";
                 continue;
             }

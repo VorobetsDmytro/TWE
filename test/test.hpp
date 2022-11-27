@@ -3,8 +3,8 @@
 
 #include "engine.hpp"
 #include "scene/scene-serializer.hpp"
-#include "registry/registry-loader.hpp"
 #include "stream/registry-recorder.hpp"
+#include "registry-loader.hpp"
 
 namespace TWE {
     class Test final: public Engine {

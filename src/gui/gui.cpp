@@ -67,6 +67,7 @@ namespace TWE {
                     dockspace_flags ^= ImGuiDockNodeFlags_NoDockingInCentralNode;
                 if(ImGui::MenuItem("Flag: AutoHideTabBar",         "", (dockspace_flags & ImGuiDockNodeFlags_AutoHideTabBar) != 0))
                     dockspace_flags ^= ImGuiDockNodeFlags_AutoHideTabBar;
+                ImGui::EndMenu();
             }
             ImGui::EndMenuBar();
         }
@@ -75,7 +76,6 @@ namespace TWE {
         showDirectoryPanel();
         showViewportPanel();
         showComponentPanel();
-        // _components.showComponentPanel(_specification._selectedEntity);
         ImGui::End();
     }
 

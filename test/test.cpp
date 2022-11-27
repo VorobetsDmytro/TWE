@@ -4,17 +4,17 @@ namespace TWE {
     Test::Test(int wndWidth, int wndHeight, const char* title, GLFWmonitor *monitor, GLFWwindow *share)
     :Engine(wndWidth, wndHeight, title, monitor, share){
         RegistryLoader::load(scriptRegistry);
-        // RegistryRecorder::recordScript("D:\\labs\\cpp\\TWE\\include\\registry\\registry-loader.hpp", "DirBehavior", "D:\\labs\\cpp\\TWE\\scripts");
-        // RegistryRecorder::recordScript("D:\\labs\\cpp\\TWE\\include\\registry\\registry-loader.hpp", "RotateRGBCube", "D:\\labs\\cpp\\TWE\\scripts");
-        // RegistryRecorder::recordScript("D:\\labs\\cpp\\TWE\\include\\registry\\registry-loader.hpp", "CameraController", "D:\\labs\\cpp\\TWE\\scripts");
+        RegistryRecorder::recordScript("../../test/registry-loader.hpp", "DirBehavior", "../../test/scripts");
+        RegistryRecorder::recordScript("../../test/registry-loader.hpp", "RotateRGBCube", "../../test/scripts");
+        RegistryRecorder::recordScript("../../test/registry-loader.hpp", "CameraController", "../../test/scripts");
 
-        // auto& objEntity = Shape::createCubeEntity(curScene.get(), {"../../textures/box.png"});
+        // auto& objEntity = Shape::createCubeEntity(curScene.get(), {"../../test/textures/box.png"});
         // auto& transformComponentObj = objEntity.getComponent<TransformComponent>();
         // auto& physicsComponentObj = objEntity.getComponent<PhysicsComponent>();
         // transformComponentObj.move({0.f, 0.01f, 3.f});
         // physicsComponentObj.setPosition({0.f, 0.01f, 3.f});
 
-        // auto& obj2Entity = Shape::createCubeEntity(curScene.get(), {"../../textures/ok.png"});
+        // auto& obj2Entity = Shape::createCubeEntity(curScene.get(), {"../../test/textures/ok.png"});
         // auto& transformComponentObj2 = obj2Entity.getComponent<TransformComponent>();
         // auto& physicsComponentObj2 = obj2Entity.getComponent<PhysicsComponent>();
         // physicsComponentObj2.setPosition({0.9f, 10.f, 0.9f});
@@ -31,7 +31,7 @@ namespace TWE {
         // RegistryLoader::load(scriptRegistry);
         // objEntity.addComponent<ScriptComponent>().bind(scriptRegistry.get("RotateRGBCube"), "RotateRGBCube");
 
-        // auto& obj4Entity = Shape::createCubeEntity(curScene.get(), {"../../textures/ok.png"});
+        // auto& obj4Entity = Shape::createCubeEntity(curScene.get(), {"../../test/textures/ok.png"});
         // auto& transformComponentObj4 = obj4Entity.getComponent<TransformComponent>();
         // auto& physicsComponentObj4 = obj4Entity.getComponent<PhysicsComponent>();
         // physicsComponentObj4.setPosition({1.7f, 11.f, 0.9f});
@@ -70,7 +70,7 @@ namespace TWE {
         // RegistryLoader::load(scriptRegistry);
 
         // ModelLoader mLoader;
-        // ModelLoaderData* model = mLoader.loadModel("../../models/tophat/TopHat.obj");
+        // ModelLoaderData* model = mLoader.loadModel("../../test/models/tophat/TopHat.obj");
         // if(model){
         //     auto& modelEntities = Shape::createModelEntity(curScene.get(), model);
         //     for(auto& modelEntitie : modelEntities) {
@@ -79,7 +79,7 @@ namespace TWE {
         //     }
         // }
 
-        // // model = mLoader.loadModel("../../models/mountain/Mountain_Final_fbx_.fbx");
+        // // model = mLoader.loadModel("../../test/models/mountain/Mountain_Final_fbx_.fbx");
         // // if(model) {
         // //     auto& modelEntities = Shape::createModelEntity(curScene.get(), model);
         // //     for(auto& modelEntitie : modelEntities) {
@@ -87,19 +87,19 @@ namespace TWE {
         // //         auto& meshComponentM = modelEntitie.getComponent<MeshComponent>();
         // //         transformComponentM.scale({0.1f, 0.1f, 0.1f});
         // //         transformComponentM.rotate(-90.f, {1.f, 0.f, 0.f});
-        // //         meshComponentM.setTexture("../../models/mountain/internal_ground_ao_texture.jpeg", 0);
+        // //         meshComponentM.setTexture("../../test/models/mountain/internal_ground_ao_texture.jpeg", 0);
         // //     }
         // // }
 
         // auto& cubemapEntity = Shape::createCubemapEntity(
         //     curScene.get(),
         //     {
-        //         "../../textures/cubemap/posx.jpg",
-        //         "../../textures/cubemap/negx.jpg",
-        //         "../../textures/cubemap/posy.jpg",
-        //         "../../textures/cubemap/negy.jpg",
-        //         "../../textures/cubemap/posz.jpg",
-        //         "../../textures/cubemap/negz.jpg",
+        //         "../../test/textures/cubemap/posx.jpg",
+        //         "../../test/textures/cubemap/negx.jpg",
+        //         "../../test/textures/cubemap/posy.jpg",
+        //         "../../test/textures/cubemap/negy.jpg",
+        //         "../../test/textures/cubemap/posz.jpg",
+        //         "../../test/textures/cubemap/negz.jpg",
         //     }
         // );
 
@@ -114,7 +114,7 @@ namespace TWE {
 
         debugCamera->setPosition({0.f, 1.f, 6.f});
 
-        // SceneSerializer::serialize(curScene.get(), "../../scenes/testscene.json");
-        SceneSerializer::deserialize(curScene.get(), "../../scenes/testscene.json", scriptRegistry);
+        // SceneSerializer::serialize(curScene.get(), "../../test/scenes/testscene.json");
+        SceneSerializer::deserialize(curScene.get(), "../../test/scenes/testscene.json", scriptRegistry, &RegistryLoader::load);
     }
 }
