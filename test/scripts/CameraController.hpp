@@ -1,35 +1,34 @@
 #pragma once
 
 #include "entity/behavior.hpp"
-#include "scene/time.hpp"
+#include "scene/scene.hpp"
 #include "scene/components/components.hpp"
-#include "input/input.hpp"
 
 using namespace TWE;
 
 class CameraController : public Behavior {
 private:
     TransformComponent* transform = nullptr;
-    CameraComponent* camera = nullptr;
     float speed = 5.f;
 public:
     void start() override {
         transform = &getComponent<TransformComponent>();
-        camera = &getComponent<CameraComponent>();
     }
 
-    void update() override {
-        move();
+    void update(float deltaTime) override {
+        move(deltaTime);
     }
 
-    void move() {
+    void move(float deltaTime) {
         if(Input::isKeyPressed(Keyboard::KEY_W))
-            transform->move({0.f, 0.f, -speed * Time::deltaTime});
+            transform->move({0.f, 0.f, -speed * deltaTime});
         if(Input::isKeyPressed(Keyboard::KEY_S))
-            transform->move({0.f, 0.f, speed * Time::deltaTime});
+            transform->move({0.f, 0.f, speed * deltaTime});
         if(Input::isKeyPressed(Keyboard::KEY_D))
-            transform->move({speed * Time::deltaTime, 0.f, 0.f});
+            transform->move({speed * deltaTime, 0.f, 0.f});
         if(Input::isKeyPressed(Keyboard::KEY_A))
-            transform->move({-speed * Time::deltaTime, 0.f, 0.f});
+            transform->move({-speed * deltaTime, 0.f, 0.f});
     }
 };
+
+extern "C" __declspec(dllexport) Behavior* createCameraController();

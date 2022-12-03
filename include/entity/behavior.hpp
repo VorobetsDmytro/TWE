@@ -7,7 +7,7 @@ namespace TWE {
     class Behavior {
     public:
         virtual void start() {}
-        virtual void update() {}
+        virtual void update(float deltaTime) {}
         virtual void destroy() {}
     protected:
         template<typename T>

@@ -1,5 +1,4 @@
 #include "scene/scene.hpp"
-#include <iostream>
 
 namespace TWE {
     Scene::Scene(uint32_t windowWidth, uint32_t windowHeight) {
@@ -41,6 +40,18 @@ namespace TWE {
 
     void Scene::setName(const std::string& name) {
         _name = name;
+    }
+
+    void Scene::reset() {
+        _registry->each([&](entt::entity entity){
+            Entity instance = { entity, this };
+            if(instance.hasComponent<ScriptComponent>())
+                instance.getComponent<ScriptComponent>().destroy();
+            if(instance.hasComponent<PhysicsComponent>())
+                _world->removeRigidBody(instance.getComponent<PhysicsComponent>().getRigidBody());
+        });
+        _registry->clear();
+        _registry = std::make_unique<entt::registry>();
     }
 
     bool Scene::proccesKeyInput(GLFWwindow* window, int key, int scancode, int action, int mode) {
@@ -153,7 +164,7 @@ namespace TWE {
                 sc.initialize(entity, this);
                 sc._instance->start();
             }
-            sc._instance->update();
+            sc._instance->update(Time::deltaTime);
         });
         if(!updateView()) {
             _frameBuffer->bind();
@@ -231,4 +242,5 @@ namespace TWE {
     entt::registry* Scene::getRegistry() const noexcept { return _registry.get(); }
     btDynamicsWorld* Scene::getDynamicWorld() const noexcept { return _world.get(); }
     std::string Scene::getName() const noexcept { return _name; }
+    FBO* Scene::getFrameBuffer() const noexcept { return _frameBuffer.get(); }
 }

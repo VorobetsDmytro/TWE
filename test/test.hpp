@@ -5,6 +5,7 @@
 #include "scene/scene-serializer.hpp"
 #include "stream/registry-recorder.hpp"
 #include "registry-loader.hpp"
+#include "stream/dll-creator.hpp"
 
 namespace TWE {
     class Test final: public Engine {

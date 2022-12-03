@@ -16,8 +16,8 @@ namespace TWE {
         float fov;
         int wndWidth;
         int wndHeight;
-        float near;
-        float far;
+        float nearDepth;
+        float farDepth;
     };
 
     struct OrthographicSpecification {
@@ -25,8 +25,8 @@ namespace TWE {
         float right;
         float bottom;
         float top;
-        float near;
-        float far;
+        float nearDepth;
+        float farDepth;
     };
 
     extern std::vector<std::string> cameraProjectionTypes;
@@ -35,8 +35,8 @@ namespace TWE {
     public:
         Camera();
         Camera(const Camera& camera);
-        void setPerspective(float fov, int wndWidth, int wndHeight, float near = 0.1f, float far = 1000.f);
-        void setOrthographic(float left, float right, float bottom, float top, float near = -1.f, float far = 1000.f);
+        void setPerspective(float fov, int wndWidth, int wndHeight, float near = 0.1f, float farDepth = 1000.f);
+        void setOrthographic(float left, float right, float bottom, float top, float near = -1.f, float farDepth = 1000.f);
         [[nodiscard]] glm::mat4 getView(const glm::vec3& pos, const glm::vec3& forward, const glm::vec3& up);
         [[nodiscard]] glm::mat4 getProjection() noexcept;
         [[nodiscard]] const glm::mat4& getProjection() const noexcept;

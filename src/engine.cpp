@@ -13,7 +13,6 @@ namespace TWE {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
         window = glfwCreateWindow(wndWidth, wndHeight, title, monitor, share);
         if(!window){
             std::cout << "Error creating a window.\n";
@@ -25,6 +24,7 @@ namespace TWE {
         glfwSetMouseButtonCallback(window, &Engine::mouseButtonCallback);
         glfwSetCursorPos(window, static_cast<GLfloat>(wndWidth / 2), static_cast<GLfloat>(wndHeight / 2));
         glfwSetCursorPosCallback(window, &Engine::mouseCallback);
+        glfwSetFramebufferSizeCallback(window, &Engine::framebufferSizeCallback);
         //glad
         gladLoadGL();
         glViewport(0, 0, wndWidth, wndHeight);
@@ -92,6 +92,11 @@ namespace TWE {
         debugCamera->mouseInput(Input::xMouseOffset, Input::yMouseOffset);
     }
 
+    void Engine::framebufferSizeCallback(GLFWwindow* window, int width, int height) {
+        Renderer::setViewport(0, 0, width, height);
+        curScene->getFrameBuffer()->resize(width, height);
+    }
+
     void Engine::drawMode() {
         if(bFillLineMode && bPreFillLineMode != bFillLineMode) {
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -118,7 +123,7 @@ namespace TWE {
             curScene->update();
             gui->update();
             glfwSwapBuffers(window);
-            Time::calculateFPS();
+            Time::calculate();
         }
     }
 }

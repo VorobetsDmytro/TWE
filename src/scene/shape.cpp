@@ -145,9 +145,9 @@ namespace TWE {
         auto& transformComponent = entity.getComponent<TransformComponent>();
         entity.addComponent<MeshComponent>(Shape::cubeVertices, sizeof(Shape::cubeVertices), Shape::cubeIndices, sizeof(Shape::cubeIndices));
         auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(SHADER_PATHS[ShaderIndices::LIGHT_VERT], SHADER_PATHS[ShaderIndices::LIGHT_FRAG]);
-        entity.addComponent<LightComponent>(color, innerRadius, outerRadius, constant, linear, quadratic, LightType::SPOT);
+        entity.addComponent<LightComponent>(color, innerRadius, outerRadius, constant, linear, quadratic, LightType::Spot);
         transformComponent.scale({0.5f, 0.5f, 0.5f});
-        meshRendererComponent.shader->setUniform(("type." + lightTypes[LightType::SPOT]).c_str(), true);
+        meshRendererComponent.shader->setUniform(("type." + lightTypes[LightType::Spot]).c_str(), true);
         meshRendererComponent.shader->setUniform("id", (int)entity.getSource());
         auto& nameComponent = entity.getComponent<NameComponent>();
         nameComponent.setName("Spot light");
@@ -160,9 +160,9 @@ namespace TWE {
         auto& transformComponent = entity.getComponent<TransformComponent>();
         entity.addComponent<MeshComponent>(Shape::cubeVertices, sizeof(Shape::cubeVertices), Shape::cubeIndices, sizeof(Shape::cubeIndices));
         auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(SHADER_PATHS[ShaderIndices::LIGHT_VERT], SHADER_PATHS[ShaderIndices::LIGHT_FRAG]);
-        entity.addComponent<LightComponent>(color, 15.f, 20.f, constant, linear, quadratic, LightType::POINT);
+        entity.addComponent<LightComponent>(color, 15.f, 20.f, constant, linear, quadratic, LightType::Point);
         transformComponent.scale({0.5f, 0.5f, 0.5f});
-        meshRendererComponent.shader->setUniform(("type." + lightTypes[LightType::POINT]).c_str(), true);
+        meshRendererComponent.shader->setUniform(("type." + lightTypes[LightType::Point]).c_str(), true);
         meshRendererComponent.shader->setUniform("id", (int)entity.getSource());
         auto& nameComponent = entity.getComponent<NameComponent>();
         nameComponent.setName("Point light");
@@ -175,9 +175,9 @@ namespace TWE {
         auto& transformComponent = entity.getComponent<TransformComponent>();
         entity.addComponent<MeshComponent>(Shape::cubeVertices, sizeof(Shape::cubeVertices), Shape::cubeIndices, sizeof(Shape::cubeIndices));
         auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(SHADER_PATHS[ShaderIndices::LIGHT_VERT], SHADER_PATHS[ShaderIndices::LIGHT_FRAG]);
-        entity.addComponent<LightComponent>(color, 15.f, 20.f, 1.f, 0.045f, 0.0075f, LightType::DIR);
+        entity.addComponent<LightComponent>(color, 15.f, 20.f, 1.f, 0.045f, 0.0075f, LightType::Dir);
         transformComponent.scale({0.5f, 0.5f, 0.5f});
-        meshRendererComponent.shader->setUniform(("type." + lightTypes[LightType::DIR]).c_str(), true);
+        meshRendererComponent.shader->setUniform(("type." + lightTypes[LightType::Dir]).c_str(), true);
         meshRendererComponent.shader->setUniform("id", (int)entity.getSource());
         auto& nameComponent = entity.getComponent<NameComponent>();
         nameComponent.setName("Dir light");

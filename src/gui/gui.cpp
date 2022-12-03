@@ -4,6 +4,10 @@ namespace TWE {
     GUI::GUI(GLFWwindow *window) {
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
+        // io.Fonts->AddFontDefault();
+        // static const ImWchar icons_ranges[] = { ICON_MIN_IGFS, ICON_MAX_IGFS, 0 };
+        // ImFontConfig icons_config; icons_config.MergeMode = true; icons_config.PixelSnapH = true;
+        // ImGui::GetIO().Fonts->AddFontFromFileTTF(FONT_ICON_FILE_NAME_IGFS, 15.0f, &icons_config, icons_ranges);
         io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
         io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -13,6 +17,8 @@ namespace TWE {
         _specification._scene = nullptr;
         _specification._gizmoOperation = GizmoOperation::Translate;
         _specification.isFileDialogOpen = false;
+        
+        ImGuiFileDialog::Instance()->SetFileStyle(IGFD_FileStyleByExtention, ".json", ImVec4(1.0f, 1.0f, 0.0f, 1.f));
     }
 
     GUI::~GUI() {
@@ -58,6 +64,11 @@ namespace TWE {
             ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
         }
         if (ImGui::BeginMenuBar()) {
+            if (ImGui::BeginMenu("File")) {
+                if(ImGui::MenuItem("Load scene"))
+                    ImGuiFileDialog::Instance()->OpenDialog("LoadScene", "Choose File", ".json", ".", 1, nullptr);
+                ImGui::EndMenu();
+            }
             if (ImGui::BeginMenu("Options")) {
                 if(ImGui::MenuItem("Flag: NoSplit",                "", (dockspace_flags & ImGuiDockNodeFlags_NoSplit) != 0))
                     dockspace_flags ^= ImGuiDockNodeFlags_NoSplit; 
@@ -71,11 +82,21 @@ namespace TWE {
             }
             ImGui::EndMenuBar();
         }
+        if (ImGuiFileDialog::Instance()->Display("LoadScene"))  {
+            if (ImGuiFileDialog::Instance()->IsOk()) {
+                std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+                _specification._selectedEntity = {};
+                _specification._scene->reset();
+                SceneSerializer::deserialize(_specification._scene, filePathName, 
+                    *_specification.scriptRegistry, _specification.registryLoader);
+            }
+            ImGuiFileDialog::Instance()->Close();
+        }
         showScenePanel();
         showTestPanel();
         showDirectoryPanel();
         showViewportPanel();
-        showComponentPanel();
+        _components.showComponentPanel(_specification._selectedEntity);
         ImGui::End();
     }
 
@@ -216,341 +237,6 @@ namespace TWE {
         }
     }
 
-    void GUI::showComponentPanel() {
-        ImGui::Begin("Components");
-        if(_specification._selectedEntity.getSource() != entt::null) {
-            showNameComponent();
-            showTransformComponent();
-            showMeshComponent();
-            showMeshRendererComponent();
-            showCameraComponent();
-            showLightComponent();
-            showPhysicsComponent();
-            showScriptComponent();
-        }
-        ImGui::End();
-    }
-
-    void GUI::showNameComponent() {
-        if(_specification._selectedEntity.hasComponent<NameComponent>()) {
-            auto& nameComponent = _specification._selectedEntity.getComponent<NameComponent>();
-            auto& name = nameComponent.getName();
-            ImGui::Text("Name");
-            ImGui::SameLine();
-            if(ImGui::InputText("##Name", &name))
-                nameComponent.setName(name);
-        }
-    }
-
-    void GUI::showTransformComponent() {
-        if(_specification._selectedEntity.hasComponent<TransformComponent>()) {
-            auto id = (void*)(typeid(TransformComponent).hash_code());
-            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
-            if(ImGui::TreeNodeEx(id, flags, "Transform")) {
-                auto& transformComponent = _specification._selectedEntity.getComponent<TransformComponent>();
-                bool hasPhysics = _specification._selectedEntity.hasComponent<PhysicsComponent>();
-                if(dragFloat3("Position", transformComponent.position, 0.05f, 0.f)) {
-                    transformComponent.setPosition(transformComponent.position);
-                    if(hasPhysics)
-                        _specification._selectedEntity.getComponent<PhysicsComponent>().setPosition(transformComponent.position);
-                }
-                auto rotation = transformComponent.rotation * 180.f / PI;
-                if(dragFloat3("Rotation", rotation, hasPhysics ? 1.5f : 0.5f, 0.f)) {
-                    rotation *= PI / 180.f;
-                    transformComponent.setRotation(rotation);
-                    if(hasPhysics)
-                        _specification._selectedEntity.getComponent<PhysicsComponent>().setRotation(rotation);
-                }
-                if(dragFloat3("Scale", transformComponent.size, 0.01f, 1.f, 0.01f, 999999.f)) {
-                    transformComponent.setSize(transformComponent.size);
-                    if(hasPhysics)
-                        _specification._selectedEntity.getComponent<PhysicsComponent>()
-                            .setSize(_specification._scene->getDynamicWorld(), transformComponent.size);
-                }
-                ImGui::TreePop();
-            }
-        }
-    }
-
-    void GUI::showMeshComponent() {
-        if(_specification._selectedEntity.hasComponent<MeshComponent>()) {
-            auto id = (void*)(typeid(MeshComponent).hash_code());
-            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
-            if(ImGui::TreeNodeEx(id, flags, "Mesh")) {
-                auto& meshComponent = _specification._selectedEntity.getComponent<MeshComponent>();
-                if(!meshComponent.textures.empty())
-                    ImGui::Image((void*)(uint64_t)meshComponent.textures[0]->getId(), {30.f, 30.f});
-                // if (ImGui::Button("Open File Dialog")) {
-                //     ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".png, .jpeg, .jpg", ".");
-                //     _specification.isFileDialogOpen = true;
-                // }
-                ImGui::TreePop();
-            }
-        }
-    }
-
-    void GUI::showMeshRendererComponent() {
-        if(_specification._selectedEntity.hasComponent<MeshRendererComponent>()) {
-            auto id = (void*)(typeid(MeshRendererComponent).hash_code());
-            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
-            if(ImGui::TreeNodeEx(id, flags, "Mesh Renderer")) {
-                auto& meshRendererComponent = _specification._selectedEntity.getComponent<MeshRendererComponent>();
-                if(ImGui::TreeNodeEx(id, flags, "Material")) {
-                    colorEdit3("Color", meshRendererComponent.material->objColor);
-                    dragFloat("Ambient", meshRendererComponent.material->ambient, 0.01f);
-                    dragFloat("Diffuse", meshRendererComponent.material->diffuse, 0.1f, 0.1f, 999999.f);
-                    dragFloat("Specular", meshRendererComponent.material->specular, 0.1f, 0.f, 999999.f);
-                    dragFloat("Shininess", meshRendererComponent.material->shininess, 1.f, 12.f, 999999.f);
-                    ImGui::TreePop();
-                }
-                ImGui::TreePop();
-            }
-        }
-    }
-
-    void GUI::showCameraComponent() {
-        if(_specification._selectedEntity.hasComponent<CameraComponent>()) {
-            auto id = (void*)(typeid(CameraComponent).hash_code());
-            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
-            if(ImGui::TreeNodeEx(id, flags, "Camera")) {
-                auto& cameraComponent = _specification._selectedEntity.getComponent<CameraComponent>();
-                auto* cameraSource = cameraComponent.getSource();
-                int typeIndex = combo("Projection", cameraProjectionTypes[cameraSource->getType()], cameraProjectionTypes, 105.f);
-                if(typeIndex == CameraProjectionType::Perspective) {
-                    auto& perspectiveSpecification = cameraSource->getPerspectiveSpecification();
-                    cameraSource->setPerspective(perspectiveSpecification.fov, perspectiveSpecification.wndWidth, 
-                        perspectiveSpecification.wndHeight, perspectiveSpecification.near, perspectiveSpecification.far);
-                } else if(typeIndex == CameraProjectionType::Orthographic) {
-                    auto& orthographicSpecification = cameraSource->getOrthographicSpecification();
-                    cameraSource->setOrthographic(orthographicSpecification.left, orthographicSpecification.right, 
-                        orthographicSpecification.bottom, orthographicSpecification.top, orthographicSpecification.near, orthographicSpecification.far);
-                }
-                auto isFocusedOn = cameraComponent.isFocusedOn();
-                if(checkBox("Is focused on", isFocusedOn, 105.f))
-                    cameraComponent.setFocuse(isFocusedOn);
-                if(cameraSource->getType() == CameraProjectionType::Perspective) {
-                    auto& perspectiveSpecification = cameraSource->getPerspectiveSpecification();
-                    if(dragFloat("FOV", perspectiveSpecification.fov, 1.f, 1.f, 140.f, 105.f))
-                        cameraSource->setPerspective(perspectiveSpecification.fov, perspectiveSpecification.wndWidth, 
-                            perspectiveSpecification.wndHeight, perspectiveSpecification.near, perspectiveSpecification.far);
-                } else if(cameraSource->getType() == CameraProjectionType::Orthographic) {
-                    auto& orthographicSpecification = cameraSource->getOrthographicSpecification();
-                    auto aspect = orthographicSpecification.right;
-                    if(dragFloat("Aspect", aspect, 0.2f, 0.2f, 100.f, 105.f))
-                        cameraSource->setOrthographic(-aspect, aspect, -aspect, aspect, 
-                            orthographicSpecification.near, orthographicSpecification.far);
-                }
-                ImGui::TreePop();
-            }
-        }
-    }
-
-    void GUI::showLightComponent() {
-        if(_specification._selectedEntity.hasComponent<LightComponent>()) {
-            auto id = (void*)(typeid(LightComponent).hash_code());
-            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
-            if(ImGui::TreeNodeEx(id, flags, "Light")) {
-                auto& lightComponent = _specification._selectedEntity.getComponent<LightComponent>();
-                std::string selectedType = lightTypes[lightComponent.type];
-                int typeIndex = combo("Type", lightTypes[lightComponent.type], lightTypes, 100.f);
-                if(typeIndex > -1)
-                    lightComponent.setType(static_cast<LightType>(typeIndex));
-                colorEdit3("Color", lightComponent.color, 100.f);
-                if(lightComponent.type == LightType::SPOT) {
-                    dragFloat("Inner radius", lightComponent.innerRadius, 0.2f, 0.f, 999999.f, 100.f);
-                    dragFloat("Outer radius", lightComponent.outerRadius, 0.2f, 0.f, 999999.f, 100.f);
-                }
-                if(lightComponent.type == LightType::SPOT || lightComponent.type == LightType::POINT) {
-                    dragFloat("Constant", lightComponent.constant, 0.05f, 0.01f, 999999.f, 100.f);
-                    dragFloat("Linear", lightComponent.linear, 0.01f, 0.01f, 999999.f, 100.f);
-                    dragFloat("Quadratic", lightComponent.quadratic, 0.001f, 0.001f, 999999.f, 100.f);
-                }
-                if(lightComponent.type == LightType::DIR) {
-                    if(checkBox("Cast shadows", lightComponent.castShadows, 100.f))
-                        lightComponent.setCastShadows(lightComponent.castShadows);
-                }
-                ImGui::TreePop();
-            }
-        }
-    }
-
-    void GUI::showPhysicsComponent() {
-        if(_specification._selectedEntity.hasComponent<PhysicsComponent>()) {
-            auto id = (void*)(typeid(PhysicsComponent).hash_code());
-            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
-            if(ImGui::TreeNodeEx(id, flags, "Physics")) {
-                auto& physicsComponent = _specification._selectedEntity.getComponent<PhysicsComponent>();
-                auto mass = physicsComponent.getMass();
-                if(dragFloat("Mass", mass, 0.01f, 0.f, 999999.f))
-                    physicsComponent.setMass(_specification._scene->getDynamicWorld(), mass);
-                ImGui::TreePop();
-            }
-        }
-    }
-
-    void GUI::showScriptComponent() {
-        if(_specification._selectedEntity.hasComponent<ScriptComponent>()) {
-            auto id = (void*)(typeid(ScriptComponent).hash_code());
-            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
-            if(ImGui::TreeNodeEx(id, flags, "Script")) {
-                auto& scriptComponent = _specification._selectedEntity.getComponent<ScriptComponent>();
-                text("Name", scriptComponent.getBehaviorClassName());
-                ImGui::TreePop();
-            }
-        }
-    }
-
-    void GUI::text(const std::string& label, const std::string& value, float labelColumnWidth) {
-        ImGui::PushID(label.c_str());
-
-        ImGui::Columns(2);
-        ImGui::SetColumnWidth(0, labelColumnWidth);
-        ImGui::Text(label.c_str());
-
-        ImGui::NextColumn();
-        ImGui::PushItemWidth(ImGui::CalcItemWidth());
-        ImGui::Text(value.c_str());
-        ImGui::PopItemWidth();
-
-        ImGui::Columns(1);
-        ImGui::PopID();
-    }
-
-    bool GUI::checkBox(const std::string& label, bool& value, float labelColumnWidth) {
-        bool isInteracted = false;
-        ImGui::PushID(label.c_str());
-
-        ImGui::Columns(2);
-        ImGui::SetColumnWidth(0, labelColumnWidth);
-        ImGui::Text(label.c_str());
-        
-        ImGui::NextColumn();
-        ImGui::PushItemWidth(ImGui::CalcItemWidth());
-        if(ImGui::Checkbox("##Checkbox", &value))
-            isInteracted = true;
-        ImGui::PopItemWidth();
-
-        ImGui::Columns(1);
-        ImGui::PopID();
-        return isInteracted;
-    }
-
-    int GUI::combo(const std::string& label, std::string& selected, std::vector<std::string>& options, float labelColumnWidth) {
-        int res = -1;
-        ImGui::PushID(label.c_str());
-
-        ImGui::Columns(2);
-        ImGui::SetColumnWidth(0, labelColumnWidth);
-        ImGui::Text(label.c_str());
-
-        ImGui::NextColumn();
-        ImGui::PushItemWidth(ImGui::CalcItemWidth());
-        int size = options.size();
-        if(ImGui::BeginCombo("##Combo", selected.c_str())) {
-            for(int i = 0; i < size; ++i) {
-                bool isSelected = options[i] == selected;
-                if(ImGui::Selectable(options[i].c_str(), isSelected))
-                    res = i;
-                if(isSelected)
-                    ImGui::SetItemDefaultFocus();
-            }
-            ImGui::EndCombo();
-        }
-        ImGui::PopItemWidth();
-
-        ImGui::Columns(1);
-        ImGui::PopID();
-        return res;
-    }
-
-    bool GUI::colorEdit3(const std::string& label, glm::vec3& values, float labelColumnWidth) {
-        bool isInteracted = false;
-        ImGui::PushID(label.c_str());
-
-        ImGui::Columns(2);
-        ImGui::SetColumnWidth(0, labelColumnWidth);
-        ImGui::Text(label.c_str());
-
-        ImGui::NextColumn();
-        ImGui::PushItemWidth(ImGui::CalcItemWidth());
-        if(ImGui::ColorEdit3("##ColorEdit3", glm::value_ptr(values)))
-            isInteracted = true;
-        ImGui::PopItemWidth();
-
-        ImGui::Columns(1);
-        ImGui::PopID();
-        return isInteracted;
-    }
-
-    bool GUI::dragFloat(const std::string& label, float& value, float step, float min, float max, float labelColumnWidth) {
-        bool isInteracted = false;
-        ImGui::PushID(label.c_str());
-
-        ImGui::Columns(2);
-        ImGui::SetColumnWidth(0, labelColumnWidth);
-        ImGui::Text(label.c_str());
-
-        ImGui::NextColumn();
-        ImGui::PushItemWidth(ImGui::CalcItemWidth());
-        if(ImGui::DragFloat("##Value", &value, step, min, max, "%.3f"))
-            isInteracted = true;
-        ImGui::PopItemWidth();
-
-        ImGui::Columns(1);
-        ImGui::PopID();
-        return isInteracted;
-    }
-
-    bool GUI::dragFloat3(const std::string& label, glm::vec3& values, float step, float resetValue, float min, float max, float labelColumnWidth) {
-        bool isInteracted = false;
-        ImGuiButtonFlags btnFlags = ImGuiButtonFlags_PressedOnDoubleClick;
-        ImGui::PushID(label.c_str());
-
-        ImGui::Columns(2);
-        ImGui::SetColumnWidth(0, labelColumnWidth);
-        ImGui::Text(label.c_str());
-
-        ImGui::NextColumn();
-        ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0.f, 3.f });
-        float height = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.f;
-        ImVec2 size = { height + 3.f, height };
-
-        if(ImGui::ButtonEx("X", size, btnFlags)) {
-            isInteracted = true;
-            values.x = resetValue;
-        }
-        ImGui::SameLine();
-        if(ImGui::DragFloat("##X", &values.x, step, min, max, "%.2f"))
-            isInteracted = true;
-        ImGui::PopItemWidth();
-
-        ImGui::SameLine();
-        if(ImGui::ButtonEx("Y", size, btnFlags)) {
-            isInteracted = true;
-            values.y = resetValue;
-        }
-        ImGui::SameLine();
-        if(ImGui::DragFloat("##Y", &values.y, step, min, max, "%.2f"))
-            isInteracted = true;
-        ImGui::PopItemWidth();
-
-        ImGui::SameLine();
-        if(ImGui::ButtonEx("Z", size, btnFlags)) {
-            isInteracted = true;
-            values.z = resetValue;
-        }
-        ImGui::SameLine();
-        if(ImGui::DragFloat("##Z", &values.z, step, min, max, "%.2f"))
-            isInteracted = true;
-        ImGui::PopItemWidth();
-        ImGui::PopStyleVar();
-
-        ImGui::Columns(1);
-        ImGui::PopID();
-        return isInteracted;
-    }
-
     void GUI::addCheckbox(const char* name, bool& var) {
         _checkBoxes.push_back({name, var});
     }
@@ -565,5 +251,14 @@ namespace TWE {
 
     void GUI::setScene(Scene* scene) {
         _specification._scene = scene;
+        _components.setScene(scene);
+    }
+
+    void GUI::setScriptRegistry(Registry<Behavior>* scriptRegistry) {
+        _specification.scriptRegistry = scriptRegistry;
+    }
+
+    void GUI::setRegistryLoader(std::function<void(Registry<Behavior>&)> registryLoader) {
+        _specification.registryLoader = registryLoader;
     }
 }

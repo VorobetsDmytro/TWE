@@ -8,11 +8,21 @@ namespace TWE {
         RegistryRecorder::recordScript("../../test/registry-loader.hpp", "RotateRGBCube", "../../test/scripts");
         RegistryRecorder::recordScript("../../test/registry-loader.hpp", "CameraController", "../../test/scripts");
 
+        auto data = DLLCreator::compileScript("../../temp", "RotateRGBCube", "../../test/scripts", "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.7");
+        auto data2 = DLLCreator::compileScript("../../temp", "DirBehavior", "../../test/scripts", "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.7");
+        auto data3 = DLLCreator::compileScript("../../temp", "CameraController", "../../test/scripts", "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.7");
+
+        // auto factoryScriptFunc = DLLCreator::loadDLLFunc(data);
+
+        // Behavior* beh = (Behavior*)factoryScriptFunc();
+        
         // auto& objEntity = Shape::createCubeEntity(curScene.get(), {"../../test/textures/box.png"});
         // auto& transformComponentObj = objEntity.getComponent<TransformComponent>();
         // auto& physicsComponentObj = objEntity.getComponent<PhysicsComponent>();
         // transformComponentObj.move({0.f, 0.01f, 3.f});
         // physicsComponentObj.setPosition({0.f, 0.01f, 3.f});
+
+        // objEntity.addComponent<ScriptComponent>().bind(beh, data.scriptName);
 
         // auto& obj2Entity = Shape::createCubeEntity(curScene.get(), {"../../test/textures/ok.png"});
         // auto& transformComponentObj2 = obj2Entity.getComponent<TransformComponent>();
@@ -114,7 +124,10 @@ namespace TWE {
 
         debugCamera->setPosition({0.f, 1.f, 6.f});
 
+        gui->setScriptRegistry(&scriptRegistry);
+        gui->setRegistryLoader(&RegistryLoader::load);
+
         // SceneSerializer::serialize(curScene.get(), "../../test/scenes/testscene.json");
-        SceneSerializer::deserialize(curScene.get(), "../../test/scenes/testscene.json", scriptRegistry, &RegistryLoader::load);
+        // SceneSerializer::deserialize(curScene.get(), "../../test/scenes/testscene.json", scriptRegistry, &RegistryLoader::load);
     }
 }

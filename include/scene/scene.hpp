@@ -16,7 +16,6 @@
 #include "renderer/camera.hpp"
 #include "time.hpp"
 #include "renderer/renderer.hpp"
-#include "entity/entity.hpp"
 #include "input/input.hpp"
 
 namespace TWE {
@@ -48,6 +47,7 @@ namespace TWE {
         void setDrawLightMeshes(bool drawLightMeshes);
         void setDebugCamera(DebugCamera* debugCamera);
         void setName(const std::string& name);
+        void reset();
         Entity createEntity(const std::string& name = "Entity");
         [[nodiscard]] bool& getIsFocusedOnDebugCamera();
         [[nodiscard]] bool getIsFocusedOnViewport() const noexcept;
@@ -56,6 +56,7 @@ namespace TWE {
         [[nodiscard]] entt::registry* getRegistry() const noexcept;
         [[nodiscard]] btDynamicsWorld* getDynamicWorld() const noexcept;
         [[nodiscard]] std::string getName() const noexcept;
+        [[nodiscard]] FBO* getFrameBuffer() const noexcept;
     private:
         bool updateView();
         void setShadows(const LightComponent& lightComponent, const glm::mat4& lightSpaceMat, int index);

@@ -3,7 +3,7 @@
 namespace TWE {
     LightComponent::LightComponent(const glm::vec3& color, float innerRadius, float outerRadius, float constant, float linear, float quadratic, LightType type)
     : color(color), innerRadius(innerRadius), outerRadius(outerRadius), constant(constant), linear(linear), quadratic(quadratic), type(type){
-        castShadows = type == LightType::DIR;
+        castShadows = type == LightType::Dir;
         createDepthMap();
     }
 

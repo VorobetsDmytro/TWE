@@ -2,6 +2,9 @@
 #define GUI_HPP
 
 #include "scene/scene.hpp"
+#include "scene/scene-serializer.hpp"
+#include "gui/gui-components.hpp"
+#include "registry/registry.hpp"
 
 #include <glfw3.h>
 #include <imgui.h>
@@ -14,6 +17,7 @@
 #include <vector>
 #include <string>
 #include <functional>
+#include <iostream>
 
 namespace TWE {
     enum class GizmoOperation {
@@ -28,6 +32,8 @@ namespace TWE {
         Scene* _scene;
         Entity _selectedEntity;
         GizmoOperation _gizmoOperation;
+        Registry<Behavior>* scriptRegistry;
+        std::function<void(Registry<Behavior>&)> registryLoader;
         int readPixelFBOData;
         bool isFileDialogOpen;
     };
@@ -41,6 +47,8 @@ namespace TWE {
         void addInputText(const char* name, std::string& var);
         void addButton(const char* name, std::function<void()> func);
         void setScene(Scene* scene);
+        void setScriptRegistry(Registry<Behavior>* scriptRegistry);
+        void setRegistryLoader(std::function<void(Registry<Behavior>&)> registryLoader);
     private:
         void showDockSpace();
         void showScenePanel();
@@ -50,21 +58,7 @@ namespace TWE {
         void showFileDialog();
         bool showGizmo();
         void processInput();
-        void showComponentPanel();
-        void showNameComponent();
-        void showTransformComponent();
-        void showMeshComponent();
-        void showMeshRendererComponent();
-        void showCameraComponent();
-        void showLightComponent();
-        void showPhysicsComponent();
-        void showScriptComponent();
-        bool dragFloat3(const std::string& label, glm::vec3& values, float step, float resetValue, float min = 0.f, float max = 0.f, float labelColumnWidth = 80.f);
-        bool dragFloat(const std::string& label, float& value, float step, float min = 0.f, float max = 0.f, float labelColumnWidth = 80.f);
-        bool colorEdit3(const std::string& label, glm::vec3& values, float labelColumnWidth = 80.f);
-        bool checkBox(const std::string& label, bool& value, float labelColumnWidth = 80.f);
-        void text(const std::string& label, const std::string& value, float labelColumnWidth = 80.f);
-        int combo(const std::string& label, std::string& selected, std::vector<std::string>& options, float labelColumnWidth = 80.f);
+        GUIComponents _components;
         GUISpecification _specification;
         std::vector<std::pair<const char*, bool&>> _checkBoxes;
         std::vector<std::pair<const char*, std::string&>> _inputTextes;

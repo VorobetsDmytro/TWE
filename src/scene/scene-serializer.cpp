@@ -16,6 +16,8 @@ namespace TWE {
     void SceneSerializer::deserialize(Scene* scene, const std::string& path, Registry<Behavior>& registry, std::function<void(Registry<Behavior>&)> registryLoader) {
         std::string jsonBodyStr = File::getBody(path.c_str());
         nlohmann::json jsonMain = nlohmann::json::parse(jsonBodyStr);
+        if(!jsonMain.contains("Scene"))
+            return;
         auto& items = jsonMain.items();
         for(auto& [key, value] : items) {
             if(key == "Scene")
@@ -25,6 +27,25 @@ namespace TWE {
                 for(auto& [index, components] : entities) {        
                     Entity instance = deserializeCreationTypeComponent(scene, components);
                     deserializeEntity(scene, instance, components, registry, registryLoader);
+                }
+            }
+        }
+    }
+
+    void SceneSerializer::deserialize(Scene* scene, const std::string& path, const std::string& tempDir) {
+        std::string jsonBodyStr = File::getBody(path.c_str());
+        nlohmann::json jsonMain = nlohmann::json::parse(jsonBodyStr);
+        if(!jsonMain.contains("Scene"))
+            return;
+        auto& items = jsonMain.items();
+        for(auto& [key, value] : items) {
+            if(key == "Scene")
+                scene->setName(value);
+            else if(key == "Entities") {
+                auto& entities = value.items();
+                for(auto& [index, components] : entities) {        
+                    Entity instance = deserializeCreationTypeComponent(scene, components);
+                    deserializeEntity(scene, instance, components, tempDir);
                 }
             }
         }
@@ -55,6 +76,19 @@ namespace TWE {
             deserializeLightComponent(entity, key, value);
             deserializePhysicsComponent(scene, entity, key, value);
             deserializeScriptComponent( entity, key, value, registry, registryLoader);
+        }
+    }
+
+    void SceneSerializer::deserializeEntity(Scene* scene, Entity& entity, nlohmann::json& jsonComponents, const std::string& tempDir) {
+        auto& components = jsonComponents.items();
+        for(auto& [key, value] : components) {
+            deserializeNameComponent(entity, key, value);
+            deserializeTransformComponent(entity, key, value);
+            deserializeMeshRendererComponent(entity, key, value);
+            deserializeCameraComponent(entity, key, value);
+            deserializeLightComponent(entity, key, value);
+            deserializePhysicsComponent(scene, entity, key, value);
+            deserializeScriptComponent( entity, key, value, tempDir);
         }
     }
 
@@ -247,8 +281,8 @@ namespace TWE {
         jsonPerspectiveSpecification["FOV"] = perspectiveSpecification.fov;
         jsonPerspectiveSpecification["WndWidth"] = perspectiveSpecification.wndWidth;
         jsonPerspectiveSpecification["WndHeight"] = perspectiveSpecification.wndHeight;
-        jsonPerspectiveSpecification["Near"] = perspectiveSpecification.near;
-        jsonPerspectiveSpecification["Far"] = perspectiveSpecification.far;
+        jsonPerspectiveSpecification["Near"] = perspectiveSpecification.nearDepth;
+        jsonPerspectiveSpecification["Far"] = perspectiveSpecification.farDepth;
         jsonCameraComponent["PerspectiveSpecification"] = jsonPerspectiveSpecification;
 
         nlohmann::json jsonOrthographicSpecification;
@@ -257,8 +291,8 @@ namespace TWE {
         jsonOrthographicSpecification["Right"] = orthographicSpecification.right;
         jsonOrthographicSpecification["Bottom"] = orthographicSpecification.bottom;
         jsonOrthographicSpecification["Top"] = orthographicSpecification.top;
-        jsonOrthographicSpecification["Near"] = orthographicSpecification.near;
-        jsonOrthographicSpecification["Far"] = orthographicSpecification.far;
+        jsonOrthographicSpecification["Near"] = orthographicSpecification.nearDepth;
+        jsonOrthographicSpecification["Far"] = orthographicSpecification.farDepth;
         jsonCameraComponent["OrthographicSpecification"] = jsonOrthographicSpecification;
 
         jsonEntity["CameraComponent"] = jsonCameraComponent;
@@ -436,6 +470,24 @@ namespace TWE {
             scriptComponent.bind(behavior, behaviorName);
             registry.erase(behaviorName);
             registryLoader(registry);
+        } else
+            scriptComponent.bind<Behavior>();
+    }
+
+    void SceneSerializer::deserializeScriptComponent(Entity& entity, const std::string& key, nlohmann::json& jsonComponent, const std::string& tempDir) {
+        if(key != "ScriptComponent")
+            return;
+        if(!entity.hasComponent<ScriptComponent>())
+            entity.addComponent<ScriptComponent>();
+        auto& scriptComponent = entity.getComponent<ScriptComponent>();
+
+        std::string behaviorName = jsonComponent["BehaviorClassName"];
+        std::string dllPath = tempDir + '/' + behaviorName + "/build/Debug/" + behaviorName + ".dll";
+        std::string factoryFuncName = "create" + behaviorName;
+        auto factoryScriptFunc = DLLCreator::loadDLLFunc(dllPath, factoryFuncName);
+        if(factoryScriptFunc) {
+            Behavior* beh = (Behavior*)factoryScriptFunc();
+            scriptComponent.bind(beh, behaviorName);
         } else
             scriptComponent.bind<Behavior>();
     }

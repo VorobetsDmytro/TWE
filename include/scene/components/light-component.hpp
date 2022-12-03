@@ -12,9 +12,9 @@
 
 namespace TWE {
     enum LightType {
-        DIR,
-        POINT,
-        SPOT
+        Dir,
+        Point,
+        Spot
     };
 
     extern std::vector<std::string> lightTypes;
@@ -22,7 +22,7 @@ namespace TWE {
     class LightComponent {
     public:
         LightComponent(const glm::vec3& color = {1.f, 1.f, 1.f}, float innerRadius = 15.f, float outerRadius = 25.f, float constant = 1.f, 
-                       float linear = 0.045f, float quadratic = 0.0075f, LightType type = LightType::DIR);
+                       float linear = 0.045f, float quadratic = 0.0075f, LightType type = LightType::Dir);
         LightComponent(const LightComponent& light);
         void setType(LightType type);
         void setCastShadows(bool castShadows);

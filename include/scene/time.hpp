@@ -8,7 +8,7 @@ namespace TWE {
     class Time{
     public:
         Time();
-        static void calculateFPS();
+        static void calculate();
         static GLfloat fps;
         static GLfloat deltaTime;
         static GLfloat curTime;

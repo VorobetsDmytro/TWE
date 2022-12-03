@@ -2,14 +2,13 @@ cmake_minimum_required(VERSION 3.20)
 project(TWE)
 
 file(GLOB_RECURSE CPPFILES 
-    "src/*.cpp" 
-    "external/*.cpp" 
-    "external/*.c"
+    "src/*.cpp"
     "test/*.cpp"
 )
 
 file(GLOB_RECURSE LIBFILES 
     "external/*.lib" 
+    # "lib/*.lib" 
     "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.7/lib/*.lib" #Your OpenCL SDK lib path
 )
 file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/Debug" "${CMAKE_BINARY_DIR}/Release")

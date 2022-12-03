@@ -13,15 +13,15 @@ namespace TWE {
         this->orthographicSpecification = camera.orthographicSpecification;
     }
 
-    void Camera::setPerspective(float fov, int wndWidth, int wndHeight, float near, float far) {
-        projection = glm::perspective(glm::radians<float>(fov), static_cast<float>(wndWidth) / static_cast<float>(wndHeight), near, far);
-        perspectiveSpecification = { fov, wndWidth, wndHeight, near, far };
+    void Camera::setPerspective(float fov, int wndWidth, int wndHeight, float nearDepth, float farDepth) {
+        projection = glm::perspective(glm::radians<float>(fov), static_cast<float>(wndWidth) / static_cast<float>(wndHeight), nearDepth, farDepth);
+        perspectiveSpecification = { fov, wndWidth, wndHeight, nearDepth, farDepth };
         type = CameraProjectionType::Perspective;
     }
 
-    void Camera::setOrthographic(float left, float right, float bottom, float top, float near, float far) {
-        projection = glm::ortho(left, right, bottom, top, near, far);
-        orthographicSpecification = { left, right, bottom, top, near, far };
+    void Camera::setOrthographic(float left, float right, float bottom, float top, float nearDepth, float farDepth) {
+        projection = glm::ortho(left, right, bottom, top, nearDepth, farDepth);
+        orthographicSpecification = { left, right, bottom, top, nearDepth, farDepth };
         type = CameraProjectionType::Orthographic;
     }
 
