@@ -1,10 +1,9 @@
 #include "input/input.hpp"
 
 namespace TWE {
-    bool Input::keyboardPressedKeys[512];
-    bool Input::mousePressedButtons[24];
-    float Input::xMouseOffset;
-    float Input::yMouseOffset;
+    bool* Input::keyboardPressedKeys = new bool[512]{0};
+    bool* Input::mousePressedButtons = new bool[24]{0};
+    float* Input::mouseOffset = new float[2]{0};
     
     bool Input::isKeyPressed(Keyboard key) {
         return keyboardPressedKeys[key];
@@ -17,8 +16,8 @@ namespace TWE {
     void Input::mouseCallback(GLFWwindow* window, double xpos, double ypos) {
         static float preViewX = xpos;
         static float preViewY = ypos;
-        xMouseOffset = xpos - preViewX;
-        yMouseOffset = preViewY - ypos;
+        mouseOffset[0] = xpos - preViewX;
+        mouseOffset[1] = preViewY - ypos;
         preViewX = xpos;
         preViewY = ypos;
     }

@@ -164,7 +164,7 @@ namespace TWE {
                 sc.initialize(entity, this);
                 sc._instance->start();
             }
-            sc._instance->update(Time::deltaTime);
+            sc._instance->update(Time::getDeltaTime());
         });
         if(!updateView()) {
             _frameBuffer->bind();
@@ -209,7 +209,7 @@ namespace TWE {
             transformComponent.setPosition(glm::vec3(pos.getX(), pos.getY(), pos.getZ()));
             transformComponent.setRotation(glm::degrees(angle), {axis.getX(), axis.getY() ,axis.getZ()});
         });
-        _world->stepSimulation(Time::deltaTime);
+        _world->stepSimulation(Time::getDeltaTime());
     }
 
     void Scene::linkRigidBody(const PhysicsComponent& physicsComponent) {

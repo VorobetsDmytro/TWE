@@ -2,6 +2,7 @@
 #define BEHAVIOR_HPP
 
 #include "entity.hpp"
+#include "input/input.hpp"
 
 namespace TWE {
     class Behavior {
@@ -19,6 +20,12 @@ namespace TWE {
         template<typename T>
         void removeComponent();
         Entity gameObject;
+    private:
+        void setInput(bool* keyboardPressedKeys, bool* mousePressedButtons, float* mouseOffset) {
+            Input::keyboardPressedKeys = keyboardPressedKeys;
+            Input::mousePressedButtons = mousePressedButtons;
+            Input::mouseOffset = mouseOffset;
+        }
         friend class ScriptComponent;
     };
 

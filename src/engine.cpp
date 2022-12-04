@@ -59,15 +59,15 @@ namespace TWE {
         if(!Input::isMouseButtonPressed(Mouse::MOUSE_BUTTON_RIGHT) || !curScene->getIsFocusedOnDebugCamera())
             return;
         if(Input::isKeyPressed(Keyboard::KEY_W))
-            debugCamera->keyInput(CamMovement::FORWARD, Time::deltaTime);
+            debugCamera->keyInput(CamMovement::FORWARD, Time::getDeltaTime());
         if(Input::isKeyPressed(Keyboard::KEY_S))
-            debugCamera->keyInput(CamMovement::BACKWARD, Time::deltaTime);
+            debugCamera->keyInput(CamMovement::BACKWARD, Time::getDeltaTime());
         if(Input::isKeyPressed(Keyboard::KEY_D))
-            debugCamera->keyInput(CamMovement::RIGHT, Time::deltaTime);
+            debugCamera->keyInput(CamMovement::RIGHT, Time::getDeltaTime());
         if(Input::isKeyPressed(Keyboard::KEY_A))
-            debugCamera->keyInput(CamMovement::LEFT, Time::deltaTime);
+            debugCamera->keyInput(CamMovement::LEFT, Time::getDeltaTime());
         if(Input::isKeyPressed(Keyboard::KEY_LEFT_SHIFT))
-            debugCamera->keyInput(CamMovement::L_SHIFT, Time::deltaTime);
+            debugCamera->keyInput(CamMovement::L_SHIFT, Time::getDeltaTime());
     }
 
     void Engine::setVSync(GLboolean isOn) {
@@ -89,7 +89,7 @@ namespace TWE {
             return;
         if(!Input::isMouseButtonPressed(Mouse::MOUSE_BUTTON_RIGHT) || !curScene->getIsFocusedOnDebugCamera())
             return;
-        debugCamera->mouseInput(Input::xMouseOffset, Input::yMouseOffset);
+        debugCamera->mouseInput(Input::mouseOffset[0], Input::mouseOffset[1]);
     }
 
     void Engine::framebufferSizeCallback(GLFWwindow* window, int width, int height) {

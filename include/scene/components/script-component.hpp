@@ -18,6 +18,7 @@ namespace TWE {
             initialize = [&](entt::entity entity, Scene* scene){ 
                 _instance = _tempInstance;
                 _instance->gameObject = { entity, scene };
+                _instance->setInput(Input::keyboardPressedKeys, Input::mousePressedButtons, Input::mouseOffset);
             };
             destroy = [&](){ 
                 delete _instance;
@@ -42,6 +43,7 @@ namespace TWE {
         initialize = [&](entt::entity entity, Scene* scene){ 
             _instance = static_cast<Behavior*>(new T);
             _instance->gameObject = { entity, scene };
+            _instance->setInput(Input::keyboardPressedKeys, Input::mousePressedButtons, Input::mouseOffset);
         };
         destroy = [&](){ 
             delete _instance;
