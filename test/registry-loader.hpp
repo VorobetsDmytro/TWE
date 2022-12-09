@@ -10,6 +10,8 @@
 #include "../../test/scripts/RotateRGBCube.hpp"
 //CameraController
 #include "../../test/scripts/CameraController.hpp"
+//RGBLight
+#include "../../test/scripts/RGBLight.hpp"
 //IncludeTail
 
 namespace TWE {
@@ -19,6 +21,7 @@ namespace TWE {
 			registry.add<DirBehavior>("DirBehavior");
 			registry.add<RotateRGBCube>("RotateRGBCube");
 			registry.add<CameraController>("CameraController");
+			registry.add<RGBLight>("RGBLight");
 			//InstanceTail
         }
     };

@@ -34,14 +34,16 @@ namespace TWE {
         void drawMode();
         GLboolean vSync;
         GLFWwindow* window;
-        std::unique_ptr<GUI> gui;
         bool bFillLineMode;
         bool bPreFillLineMode;
         static int wndWidth;
         static int wndHeight;
+        static std::unique_ptr<GUI> gui;
         static std::shared_ptr<Scene> curScene;
         static std::shared_ptr<DebugCamera> debugCamera;
         static Registry<Behavior> scriptRegistry;
+        static Registry<MeshSpecification> meshRegistry;
+        static Registry<MeshRendererSpecification> meshRendererRegistry;
     private:
         static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
         static void mouseCallback(GLFWwindow* window, double xpos, double ypos);

@@ -13,14 +13,15 @@ private:
     float time = 0.f;
 public:
     void start() override {
-        transform = &getComponent<TransformComponent>();
-        meshRendererComponent = &getComponent<MeshRendererComponent>();
+        
     }
 
     void update(float deltaTime) override {
+        transform = &getComponent<TransformComponent>();
+        meshRendererComponent = &getComponent<MeshRendererComponent>();
         time += deltaTime;
         transform->rotate(100.f * deltaTime, {0.f, 0.f, 1.f});
-        meshRendererComponent->material->objColor = {cos(time) / 2 + 0.5f, sin(time) / 2 + 0.5f, -cos(time) / 2 + 0.5f};
+        meshRendererComponent->material.objColor = {cos(time) / 2 + 0.5f, sin(time) / 2 + 0.5f, -cos(time) / 2 + 0.5f};
     }
 };
 

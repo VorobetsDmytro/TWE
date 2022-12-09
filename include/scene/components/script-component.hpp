@@ -20,7 +20,7 @@ namespace TWE {
                 _instance->gameObject = { entity, scene };
                 _instance->setInput(Input::keyboardPressedKeys, Input::mousePressedButtons, Input::mouseOffset);
             };
-            destroy = [&](){ 
+            destroy = [&](){
                 delete _instance;
                 _instance = nullptr;
             };

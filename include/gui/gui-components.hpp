@@ -2,6 +2,7 @@
 #define GUI_COMPONENTS_HPP
 
 #include "scene/scene.hpp"
+#include "scene/shape.hpp"
 
 #include <imgui.h>
 #include <imgui_stdlib.h>
@@ -22,6 +23,7 @@ namespace TWE {
         void showLightComponent(Entity& entity);
         void showPhysicsComponent(Entity& entity);
         void showScriptComponent(Entity& entity);
+        void showAddComponentMenu(Entity& entity);
         bool dragFloat3(const std::string& label, glm::vec3& values, float step, float resetValue, float min = 0.f, float max = 0.f, float labelColumnWidth = 80.f);
         bool dragFloat(const std::string& label, float& value, float step, float min = 0.f, float max = 0.f, float labelColumnWidth = 80.f);
         bool colorEdit3(const std::string& label, glm::vec3& values, float labelColumnWidth = 80.f);

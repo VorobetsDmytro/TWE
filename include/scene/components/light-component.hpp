@@ -22,7 +22,7 @@ namespace TWE {
     class LightComponent {
     public:
         LightComponent(const glm::vec3& color = {1.f, 1.f, 1.f}, float innerRadius = 15.f, float outerRadius = 25.f, float constant = 1.f, 
-                       float linear = 0.045f, float quadratic = 0.0075f, LightType type = LightType::Dir);
+                       float linear = 0.045f, float quadratic = 0.0075f, LightType type = LightType::Point);
         LightComponent(const LightComponent& light);
         void setType(LightType type);
         void setCastShadows(bool castShadows);

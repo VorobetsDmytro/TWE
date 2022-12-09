@@ -6,6 +6,9 @@ namespace TWE {
     std::shared_ptr<DebugCamera> Engine::debugCamera = std::make_shared<DebugCamera>(glm::vec3(0.f, 0.f, 0.f), 0.1f);
     std::shared_ptr<Scene> Engine::curScene;
     Registry<Behavior> Engine::scriptRegistry;
+    Registry<MeshSpecification> Engine::meshRegistry;
+    Registry<MeshRendererSpecification> Engine::meshRendererRegistry;
+    std::unique_ptr<GUI> Engine::gui;
 
     Engine::Engine(int wndWidth, int wndHeight, const char* title, GLFWmonitor* monitor, GLFWwindow* share) {
         //glfw
@@ -43,6 +46,11 @@ namespace TWE {
         bPreFillLineMode = bFillLineMode;
         debugCamera->setPerspective(90.f, wndWidth, wndHeight);
         curScene = std::make_shared<TWE::Scene>(wndWidth, wndHeight);
+        Shape::meshRegistry = &meshRegistry;
+        Shape::meshRendererRegistry = &meshRendererRegistry;
+        curScene->setDebugCamera(debugCamera.get());
+        gui->setScriptRegistry(&scriptRegistry);
+        gui->setScene(curScene.get());
         setVSync(true);
     }
 
@@ -52,7 +60,7 @@ namespace TWE {
     }
 
     void Engine::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
-        curScene->proccesKeyInput(window, key, scancode, action, mode);
+        Input::keyCallback(window, key, scancode, action, mode);
     }
 
     void Engine::keyInput(){
@@ -76,20 +84,23 @@ namespace TWE {
     }
 
     void Engine::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-        if(!curScene->proccesMouseButtonInput(window, button, action, mods))
-            return;
+        Input::mouseButtonCallback(window, button, action, mods);
         if(button == GLFW_MOUSE_BUTTON_RIGHT && curScene->getIsFocusedOnDebugCamera()) {
             glfwSetInputMode(window, GLFW_CURSOR, action == GLFW_PRESS ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
-            glfwSetCursorPos(window, static_cast<GLfloat>(wndWidth / 2), static_cast<GLfloat>(wndHeight / 2));
         }
     }
 
     void Engine::mouseCallback(GLFWwindow* window, double xpos, double ypos) {
-        if(!curScene->proccesMouseInput(window, xpos, ypos))
+        static bool debugCameraFlag = false;
+        if(!gui->getIsFocusedOnViewport())
             return;
-        if(!Input::isMouseButtonPressed(Mouse::MOUSE_BUTTON_RIGHT) || !curScene->getIsFocusedOnDebugCamera())
-            return;
-        debugCamera->mouseInput(Input::mouseOffset[0], Input::mouseOffset[1]);
+        Input::mouseCallback(window, xpos, ypos);
+        if(Input::isMouseButtonPressed(Mouse::MOUSE_BUTTON_RIGHT) && curScene->getIsFocusedOnDebugCamera()) {
+            if(debugCameraFlag)
+                debugCamera->mouseInput(Input::mouseOffset[0], Input::mouseOffset[1]);
+            debugCameraFlag = true;
+        } else
+            debugCameraFlag = false;
     }
 
     void Engine::framebufferSizeCallback(GLFWwindow* window, int width, int height) {
@@ -109,8 +120,6 @@ namespace TWE {
     }
 
     void Engine::start(){
-        curScene->setDebugCamera(debugCamera.get());
-        gui->setScene(curScene.get());
         gui->addCheckbox("Fill", bFillLineMode);
         gui->addCheckbox("Debug camera focus", curScene->getIsFocusedOnDebugCamera());
         while(!glfwWindowShouldClose(window)){

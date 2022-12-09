@@ -2,7 +2,6 @@
 
 namespace TWE {
     MeshRendererComponent::MeshRendererComponent(const char* vertexShaderPath, const char* fragmentShaderPath) {
-        material = std::make_shared<Material>();
         shader = std::make_shared<Shader>(vertexShaderPath, fragmentShaderPath);
     }
 
@@ -12,10 +11,10 @@ namespace TWE {
     }
 
     void MeshRendererComponent::updateMaterialUniform() {
-        shader->setUniform("material.objColor", material->objColor);
-        shader->setUniform("material.ambient", material->ambient);
-        shader->setUniform("material.diffuse", material->diffuse);
-        shader->setUniform("material.specular", material->specular);
-        shader->setUniform("material.shininess", material->shininess);
+        shader->setUniform("material.objColor", material.objColor);
+        shader->setUniform("material.ambient", material.ambient);
+        shader->setUniform("material.diffuse", material.diffuse);
+        shader->setUniform("material.specular", material.specular);
+        shader->setUniform("material.shininess", material.shininess);
     }
 }

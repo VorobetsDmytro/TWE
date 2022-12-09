@@ -22,6 +22,9 @@ namespace TWE {
         template<typename T>
         void removeComponent();
 
+        template<typename T = void>
+        void destroy();
+
         bool operator==(const Entity& other);
         bool operator!=(const Entity& other);
         [[nodiscard]] entt::entity getSource() const noexcept;
@@ -48,6 +51,13 @@ namespace TWE {
     template<typename T>
     void Entity::removeComponent() {
         _scene->_registry->remove<T>(_entity);
+    }
+
+    template<typename T>
+    void Entity::destroy() {
+        _scene->clearEntity(*this);
+        _entity = entt::null;
+        _scene = nullptr;
     }
 }
 

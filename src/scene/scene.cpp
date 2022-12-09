@@ -13,9 +13,9 @@ namespace TWE {
         _frameBuffer = std::make_unique<FBO>(windowWidth, windowHeight, attachments);
         _debugCamera = nullptr;
         _isFocusedOnDebugCamera = true;
-        _isFocusedOnViewport = false;
         _drawLightMeshes = true;
         _name = "Unnamed";
+        _entityCounter = 0;
     }
 
     Scene::~Scene() {
@@ -52,30 +52,6 @@ namespace TWE {
         });
         _registry->clear();
         _registry = std::make_unique<entt::registry>();
-    }
-
-    bool Scene::proccesKeyInput(GLFWwindow* window, int key, int scancode, int action, int mode) {
-        if(_isFocusedOnViewport) {
-            Input::keyCallback(window, key, scancode, action, mode);
-            return true;
-        }
-        return false;
-    }
-
-    bool Scene::proccesMouseButtonInput(GLFWwindow* window, int button, int action, int mods) {
-        if(_isFocusedOnViewport) {
-            Input::mouseButtonCallback(window, button, action, mods);
-            return true;
-        }
-        return false;
-    }
-
-    bool Scene::proccesMouseInput(GLFWwindow* window, double xpos, double ypos) {
-        if(_isFocusedOnViewport) {
-            Input::mouseCallback(window, xpos, ypos);
-            return true;
-        }
-        return false;
     }
 
     void Scene::setLight(const LightComponent& light, const TransformComponent& transform, const MeshRendererComponent& meshRenderer, const  uint32_t index) {
@@ -159,12 +135,12 @@ namespace TWE {
     }
 
     void Scene::update() {
-        _registry->view<ScriptComponent>().each([&](entt::entity entity, ScriptComponent& sc){
-            if(!sc._instance) {
-                sc.initialize(entity, this);
-                sc._instance->start();
+        _registry->view<ScriptComponent>().each([&](entt::entity entity, ScriptComponent& scriptComponent){
+            if(!scriptComponent._instance) {
+                scriptComponent.initialize(entity, this);
+                scriptComponent._instance->start();
             }
-            sc._instance->update(Time::getDeltaTime());
+            scriptComponent._instance->update(Time::getDeltaTime());
         });
         if(!updateView()) {
             _frameBuffer->bind();
@@ -220,10 +196,6 @@ namespace TWE {
         _isFocusedOnDebugCamera = isFocusedOnDebugCamera;
     }
 
-    void Scene::setFocusOnViewport(bool isFocusedOnViewport) {
-        _isFocusedOnViewport = isFocusedOnViewport;
-    }
-
     void Scene::setDrawLightMeshes(bool drawLightMeshes) {
         _drawLightMeshes = drawLightMeshes;
     }
@@ -232,15 +204,40 @@ namespace TWE {
         auto entity = _registry->create();
         _registry->emplace<TransformComponent>(entity);
         _registry->emplace<NameComponent>(entity, name);
+        _registry->emplace<CreationTypeComponent>(entity);
+        ++_entityCounter;
         return { entity, this };
+    }
+
+    void Scene::clearEntity(Entity& entity) {
+        if(entity.hasComponent<CameraComponent>())
+            entity.removeComponent<CameraComponent>();
+        if(entity.hasComponent<CreationTypeComponent>())
+            entity.removeComponent<CreationTypeComponent>();
+        if(entity.hasComponent<LightComponent>())
+            entity.removeComponent<LightComponent>();
+        if(entity.hasComponent<MeshComponent>())
+            entity.removeComponent<MeshComponent>();
+        if(entity.hasComponent<MeshRendererComponent>())
+            entity.removeComponent<MeshRendererComponent>();
+        if(entity.hasComponent<PhysicsComponent>()){
+            _world->removeRigidBody(entity.getComponent<PhysicsComponent>().getRigidBody());
+            entity.removeComponent<PhysicsComponent>();
+        }
+        if(entity.hasComponent<ScriptComponent>()) {
+            entity.getComponent<ScriptComponent>().destroy();
+            entity.removeComponent<ScriptComponent>();
+        }
+        entity.removeComponent<TransformComponent>();
+        entity.removeComponent<NameComponent>();
     }
 
     bool& Scene::getIsFocusedOnDebugCamera() { return _isFocusedOnDebugCamera; }
     bool Scene::getIsFocusedOnDebugCamera() const noexcept { return _isFocusedOnDebugCamera; }
-    bool Scene::getIsFocusedOnViewport() const noexcept { return _isFocusedOnViewport; };
     bool Scene::getDrawLightMeshes() const noexcept { return _drawLightMeshes; }
     entt::registry* Scene::getRegistry() const noexcept { return _registry.get(); }
     btDynamicsWorld* Scene::getDynamicWorld() const noexcept { return _world.get(); }
     std::string Scene::getName() const noexcept { return _name; }
     FBO* Scene::getFrameBuffer() const noexcept { return _frameBuffer.get(); }
+    uint32_t Scene::getEntityCounter() const noexcept { return _entityCounter; }
 }

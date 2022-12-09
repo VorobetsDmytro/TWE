@@ -12,10 +12,11 @@ private:
     float speed = 5.f;
 public:
     void start() override {
-        transform = &getComponent<TransformComponent>();
+
     }
 
     void update(float deltaTime) override {
+        transform = &getComponent<TransformComponent>();
         move(deltaTime);
     }
 

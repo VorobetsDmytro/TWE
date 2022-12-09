@@ -7,7 +7,8 @@ namespace TWE {
         nlohmann::json jsonEntities = nlohmann::json::array();
         scene->_registry->each([&](entt::entity entity) {
             Entity instance = { entity, scene };
-            serializeEntity(instance, jsonEntities);
+            if(instance.hasComponent<NameComponent>())
+                serializeEntity(instance, jsonEntities);
         });
         jsonMain["Entities"] = jsonEntities;
         File::save(path.c_str(), jsonMain.dump());
@@ -105,7 +106,6 @@ namespace TWE {
 
     Entity SceneSerializer::deserializeCreationTypeComponent(Scene* scene, nlohmann::json& jsonComponent) {
         auto creationTypeComponent = static_cast<EntityCreationType>(jsonComponent["CreationTypeComponent"]["Type"]);
-        Entity entity;
         auto jsonMeshComponent = jsonComponent.find("MeshComponent");
         std::vector<std::string> textures;
         if(jsonMeshComponent != jsonComponent.end()) {
@@ -115,33 +115,25 @@ namespace TWE {
         }
         switch (creationTypeComponent) {
         case EntityCreationType::Cube:
-            entity = Shape::createCubeEntity(scene, textures);
-            break;
+            return Shape::createCubeEntity(scene, textures);
         case EntityCreationType::Plate:
-            entity = Shape::createPlateEntity(scene, textures);
-            break;
+            return Shape::createPlateEntity(scene, textures);
         case EntityCreationType::Cubemap:
-            entity = Shape::createCubemapEntity(scene, textures);
-            break;
+            return Shape::createCubemapEntity(scene, textures);
         case EntityCreationType::SpotLight:
-            entity = Shape::createSpotLightEntity(scene);
-            break;
+            return Shape::createSpotLightEntity(scene);
         case EntityCreationType::PointLight:
-            entity = Shape::createPointLightEntity(scene);
-            break;
+            return Shape::createPointLightEntity(scene);
         case EntityCreationType::DirLight:
-            entity = Shape::createDirLightEntity(scene);
-            break;
+            return Shape::createDirLightEntity(scene);
         case EntityCreationType::Camera:
-            entity = Shape::createCameraEntity(scene);
-            break;
+            return Shape::createCameraEntity(scene);
         case EntityCreationType::Model:
             ModelLoader mLoader;
             ModelLoaderData* modelData = mLoader.loadModel(jsonComponent["MeshComponent"]["ModelPath"]);
-            entity = Shape::createModelEntity(scene, modelData)[0];
-            break;
+            return Shape::createModelEntity(scene, modelData)[0];
         }
-        return entity;
+        return {};
     }
 
     void SceneSerializer::serializeNameComponent(Entity& entity, nlohmann::json& jsonEntity) {
@@ -236,14 +228,14 @@ namespace TWE {
         nlohmann::json jsonMeshRendererComponent;
 
         nlohmann::json jsonMaterial = nlohmann::json::object();
-        jsonMaterial["Ambient"] = meshRendererComponent.material->ambient;
-        jsonMaterial["Diffuse"] = meshRendererComponent.material->diffuse;
-        jsonMaterial["Shininess"] = meshRendererComponent.material->shininess;
-        jsonMaterial["Specular"] = meshRendererComponent.material->specular;
+        jsonMaterial["Ambient"] = meshRendererComponent.material.ambient;
+        jsonMaterial["Diffuse"] = meshRendererComponent.material.diffuse;
+        jsonMaterial["Shininess"] = meshRendererComponent.material.shininess;
+        jsonMaterial["Specular"] = meshRendererComponent.material.specular;
         nlohmann::json jsonMaterialColor = nlohmann::json::array();
-        jsonMaterialColor.push_back(meshRendererComponent.material->objColor.x);
-        jsonMaterialColor.push_back(meshRendererComponent.material->objColor.y);
-        jsonMaterialColor.push_back(meshRendererComponent.material->objColor.z);
+        jsonMaterialColor.push_back(meshRendererComponent.material.objColor.x);
+        jsonMaterialColor.push_back(meshRendererComponent.material.objColor.y);
+        jsonMaterialColor.push_back(meshRendererComponent.material.objColor.z);
         jsonMaterial["ObjColor"] = jsonMaterialColor;
         jsonMeshRendererComponent["Material"] = jsonMaterial;
             
@@ -258,12 +250,12 @@ namespace TWE {
         auto& meshRendererComponent = entity.getComponent<MeshRendererComponent>();
 
         nlohmann::json jsonMaterial = jsonComponent["Material"];
-        meshRendererComponent.material->ambient = jsonMaterial["Ambient"];
-        meshRendererComponent.material->diffuse = jsonMaterial["Diffuse"];
-        meshRendererComponent.material->shininess = jsonMaterial["Shininess"];
-        meshRendererComponent.material->specular = jsonMaterial["Specular"];
+        meshRendererComponent.material.ambient = jsonMaterial["Ambient"];
+        meshRendererComponent.material.diffuse = jsonMaterial["Diffuse"];
+        meshRendererComponent.material.shininess = jsonMaterial["Shininess"];
+        meshRendererComponent.material.specular = jsonMaterial["Specular"];
         nlohmann::json jsonObjColor = jsonMaterial["ObjColor"];
-        meshRendererComponent.material->objColor = { jsonObjColor[0], jsonObjColor[1], jsonObjColor[2] };
+        meshRendererComponent.material.objColor = { jsonObjColor[0], jsonObjColor[1], jsonObjColor[2] };
     }
 
     void SceneSerializer::serializeCameraComponent(Entity& entity, nlohmann::json& jsonEntity) {
@@ -428,21 +420,18 @@ namespace TWE {
     void SceneSerializer::deserializePhysicsComponent(Scene* scene, Entity& entity, const std::string& key, nlohmann::json& jsonComponent) {
         if(key != "PhysicsComponent")
             return;
-        if(!entity.hasComponent<PhysicsComponent>())
-            entity.addComponent<PhysicsComponent>();
-        auto& physicsComponent = entity.getComponent<PhysicsComponent>();
-
-        physicsComponent.setMass(scene->getDynamicWorld(), jsonComponent["Mass"]);
-        physicsComponent.setColliderType(jsonComponent["Type"]);
-
+        if(entity.hasComponent<PhysicsComponent>())
+            return;
         nlohmann::json jsonPosition = jsonComponent["Position"];
-        physicsComponent.setPosition({jsonPosition[0], jsonPosition[1], jsonPosition[2]});
-
         nlohmann::json jsonRotation = jsonComponent["Rotation"];
-        physicsComponent.setRotation({jsonRotation[0], jsonRotation[1], jsonRotation[2]});
-
         nlohmann::json jsonSize = jsonComponent["Size"];
-        physicsComponent.setSize(scene->getDynamicWorld(), {jsonSize[0], jsonSize[1], jsonSize[2]});
+        ColliderType type = static_cast<ColliderType>(jsonComponent["Type"]);
+        glm::vec3 size = {jsonSize[0], jsonSize[1], jsonSize[2]};
+        glm::vec3 position = {jsonPosition[0], jsonPosition[1], jsonPosition[2]};
+        glm::vec3 rotation = {jsonRotation[0], jsonRotation[1], jsonRotation[2]};
+        float mass = jsonComponent["Mass"];
+        auto& physicsComponent = entity.addComponent<PhysicsComponent>(type, size, position, rotation, mass);
+        scene->linkRigidBody(physicsComponent);
     }
 
     void SceneSerializer::serializeScriptComponent(Entity& entity, nlohmann::json& jsonEntity) {

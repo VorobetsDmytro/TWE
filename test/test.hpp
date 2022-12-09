@@ -1,6 +1,8 @@
 #ifndef TEST_HPP
 #define TEST_HPP
 
+#include <iostream>
+
 #include "engine.hpp"
 #include "scene/scene-serializer.hpp"
 #include "stream/registry-recorder.hpp"

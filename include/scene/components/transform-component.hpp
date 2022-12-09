@@ -5,7 +5,6 @@
 #include <gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <iostream>
 #include <glm/gtx/matrix_decompose.hpp>
 #include <glad.h>
 

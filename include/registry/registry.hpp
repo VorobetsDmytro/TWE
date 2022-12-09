@@ -11,7 +11,7 @@ namespace TWE {
     class Registry {
     public:
         template<typename Instance = T>
-        void add(const std::string& key);
+        T* add(const std::string& key);
         T* get(const std::string& key);
         void erase(const std::string& key);
     private:
@@ -20,15 +20,19 @@ namespace TWE {
 
     template<typename T>
     template<typename Instance>
-    void Registry<T>::add(const std::string& key) {
+    T* Registry<T>::add(const std::string& key) {
         auto item = _registry.find(key);
         if(item != _registry.end())
-            return;
-        _registry.insert({key, new Instance});
+            return nullptr;
+        Instance* instance = new Instance;
+        _registry.insert({key, instance});
+        return instance;
     }
 
     template<typename T>
     T* Registry<T>::get(const std::string& key) {
+        if(_registry.empty())
+            return nullptr;
         auto item = _registry.find(key);
         if(item == _registry.end())
             return nullptr;

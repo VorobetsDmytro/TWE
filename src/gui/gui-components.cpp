@@ -12,12 +12,67 @@ namespace TWE {
             showLightComponent(entity);
             showPhysicsComponent(entity);
             showScriptComponent(entity);
+            showAddComponentMenu(entity);
         }
         ImGui::End();
     }
 
     void GUIComponents::setScene(Scene* scene) {
         _scene = scene;
+    }
+
+    void GUIComponents::showAddComponentMenu(Entity& entity) {
+        ImGui::Dummy({0.f, 5.f});
+        std::string popUpId = "Add component";
+        if(ImGui::Button("Add component", { ImGui::GetContentRegionAvail().x, 20.f }))
+            ImGui::OpenPopup(popUpId.c_str());
+        float popUpWidth = 150.f;
+        ImGui::SetNextWindowSize({popUpWidth, 0.f});
+        if(ImGui::BeginPopup(popUpId.c_str())) {
+            auto& availSize = ImGui::GetContentRegionAvail();
+            if(!entity.hasComponent<MeshComponent>() || !entity.hasComponent<MeshRendererComponent>()) {
+                if(ImGui::Button("Mesh component", {availSize.x, 0.f})) {
+                    auto mesh = Shape::meshRegistry->get("Cube mesh");
+                    auto meshRenderer = Shape::meshRendererRegistry->get("Default renderer");
+                    if(mesh && meshRenderer) {
+                        auto& creationType = entity.getComponent<CreationTypeComponent>();
+                        creationType.setType(EntityCreationType::Cube);
+                        if(entity.hasComponent<MeshComponent>())
+                            entity.removeComponent<MeshComponent>();
+                        if(entity.hasComponent<MeshRendererComponent>())
+                            entity.removeComponent<MeshRendererComponent>();
+                        entity.addComponent<MeshComponent>(mesh->vertices, mesh->verticesSize, mesh->indices, mesh->indicesSize);
+                        auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(meshRenderer->vertexShaderPath.c_str(), meshRenderer->fragmentShaderPath.c_str());
+                        meshRendererComponent.shader->setUniform("id", (int)entity.getSource());
+                    }      
+                    ImGui::CloseCurrentPopup();
+                }
+            }
+            if(!entity.hasComponent<CameraComponent>()) {
+                if(ImGui::Button("Camera component", {availSize.x, 0.f})) {
+                    auto& cameraComponent = entity.addComponent<CameraComponent>();
+                    auto fboSize = _scene->getFrameBuffer()->getSize();
+                    cameraComponent.getSource()->setPerspective(90.f, fboSize.first, fboSize.second);
+                    ImGui::CloseCurrentPopup();
+                }
+            }
+            if(!entity.hasComponent<LightComponent>()) {
+                if(ImGui::Button("Light component", {availSize.x, 0.f})) {
+                    entity.addComponent<LightComponent>();
+                    ImGui::CloseCurrentPopup();
+                }
+            }
+            if(!entity.hasComponent<PhysicsComponent>()) {
+                if(ImGui::Button("Physics component", {availSize.x, 0.f})) {
+                    auto transformComponent = entity.getComponent<TransformComponent>();
+                    auto& physicsComponent = entity.addComponent<PhysicsComponent>(ColliderType::Box, transformComponent.size, transformComponent.position, 
+                        transformComponent.rotation, 0.f);
+                    _scene->getDynamicWorld()->addRigidBody(physicsComponent.getRigidBody());
+                    ImGui::CloseCurrentPopup();
+                }
+            }
+            ImGui::EndPopup();
+        }
     }
 
     void GUIComponents::showNameComponent(Entity& entity) {
@@ -66,9 +121,22 @@ namespace TWE {
             auto id = (void*)(typeid(MeshComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Mesh")) {
+                std::string popUpId = "Mesh";
+                if(ImGui::IsItemClicked(1))
+                    ImGui::OpenPopup(popUpId.c_str());
                 auto& meshComponent = entity.getComponent<MeshComponent>();
                 if(!meshComponent.textures.empty())
                     ImGui::Image((void*)(uint64_t)meshComponent.textures[0]->getId(), {30.f, 30.f});
+                float popUpWidth = 150.f;
+                ImGui::SetNextWindowSize({popUpWidth, 0.f});
+                if(ImGui::BeginPopup(popUpId.c_str())) {
+                    auto& availSize = ImGui::GetContentRegionAvail();
+                    if(ImGui::Button("Remove component", { availSize.x, 0.f })) {
+                        entity.removeComponent<MeshComponent>();
+                        ImGui::CloseCurrentPopup();
+                    }
+                    ImGui::EndPopup();
+                }
                 ImGui::TreePop();
             }
         }
@@ -79,14 +147,27 @@ namespace TWE {
             auto id = (void*)(typeid(MeshRendererComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Mesh Renderer")) {
+                std::string popUpId = "MeshRenderer";
+                if(ImGui::IsItemClicked(1))
+                    ImGui::OpenPopup(popUpId.c_str());
                 auto& meshRendererComponent = entity.getComponent<MeshRendererComponent>();
                 if(ImGui::TreeNodeEx(id, flags, "Material")) {
-                    colorEdit3("Color", meshRendererComponent.material->objColor);
-                    dragFloat("Ambient", meshRendererComponent.material->ambient, 0.01f);
-                    dragFloat("Diffuse", meshRendererComponent.material->diffuse, 0.1f, 0.1f, 999999.f);
-                    dragFloat("Specular", meshRendererComponent.material->specular, 0.1f, 0.f, 999999.f);
-                    dragFloat("Shininess", meshRendererComponent.material->shininess, 1.f, 12.f, 999999.f);
+                    colorEdit3("Color", meshRendererComponent.material.objColor);
+                    dragFloat("Ambient", meshRendererComponent.material.ambient, 0.01f);
+                    dragFloat("Diffuse", meshRendererComponent.material.diffuse, 0.1f, 0.1f, 999999.f);
+                    dragFloat("Specular", meshRendererComponent.material.specular, 0.1f, 0.f, 999999.f);
+                    dragFloat("Shininess", meshRendererComponent.material.shininess, 1.f, 12.f, 999999.f);
                     ImGui::TreePop();
+                }
+                float popUpWidth = 150.f;
+                ImGui::SetNextWindowSize({popUpWidth, 0.f});
+                if(ImGui::BeginPopup(popUpId.c_str())) {
+                    auto& availSize = ImGui::GetContentRegionAvail();
+                    if(ImGui::Button("Remove component", { availSize.x, 0.f })) {
+                        entity.removeComponent<MeshRendererComponent>();
+                        ImGui::CloseCurrentPopup();
+                    }
+                    ImGui::EndPopup();
                 }
                 ImGui::TreePop();
             }
@@ -98,6 +179,9 @@ namespace TWE {
             auto id = (void*)(typeid(CameraComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Camera")) {
+                std::string popUpId = "Camera";
+                if(ImGui::IsItemClicked(1))
+                    ImGui::OpenPopup(popUpId.c_str());
                 auto& cameraComponent = entity.getComponent<CameraComponent>();
                 auto* cameraSource = cameraComponent.getSource();
                 int typeIndex = combo("Projection", cameraProjectionTypes[cameraSource->getType()], cameraProjectionTypes, 105.f);
@@ -125,6 +209,16 @@ namespace TWE {
                         cameraSource->setOrthographic(-aspect, aspect, -aspect, aspect, 
                             orthographicSpecification.nearDepth, orthographicSpecification.farDepth);
                 }
+                float popUpWidth = 150.f;
+                ImGui::SetNextWindowSize({popUpWidth, 0.f});
+                if(ImGui::BeginPopup(popUpId.c_str())) {
+                    auto& availSize = ImGui::GetContentRegionAvail();
+                    if(ImGui::Button("Remove component", { availSize.x, 0.f })) {
+                        entity.removeComponent<CameraComponent>();
+                        ImGui::CloseCurrentPopup();
+                    }
+                    ImGui::EndPopup();
+                }
                 ImGui::TreePop();
             }
         }
@@ -135,6 +229,9 @@ namespace TWE {
             auto id = (void*)(typeid(LightComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Light")) {
+                std::string popUpId = "Light";
+                if(ImGui::IsItemClicked(1))
+                    ImGui::OpenPopup(popUpId.c_str());
                 auto& lightComponent = entity.getComponent<LightComponent>();
                 std::string selectedType = lightTypes[lightComponent.type];
                 int typeIndex = combo("Type", lightTypes[lightComponent.type], lightTypes, 100.f);
@@ -154,6 +251,16 @@ namespace TWE {
                     if(checkBox("Cast shadows", lightComponent.castShadows, 100.f))
                         lightComponent.setCastShadows(lightComponent.castShadows);
                 }
+                float popUpWidth = 150.f;
+                ImGui::SetNextWindowSize({popUpWidth, 0.f});
+                if(ImGui::BeginPopup(popUpId.c_str())) {
+                    auto& availSize = ImGui::GetContentRegionAvail();
+                    if(ImGui::Button("Remove component", { availSize.x, 0.f })) {
+                        entity.removeComponent<LightComponent>();
+                        ImGui::CloseCurrentPopup();
+                    }
+                    ImGui::EndPopup();
+                }
                 ImGui::TreePop();
             }
         }
@@ -164,10 +271,24 @@ namespace TWE {
             auto id = (void*)(typeid(PhysicsComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Physics")) {
+                std::string popUpId = "Physics";
+                if(ImGui::IsItemClicked(1))
+                    ImGui::OpenPopup(popUpId.c_str());
                 auto& physicsComponent = entity.getComponent<PhysicsComponent>();
                 auto mass = physicsComponent.getMass();
                 if(dragFloat("Mass", mass, 0.01f, 0.f, 999999.f))
                     physicsComponent.setMass(_scene->getDynamicWorld(), mass);
+                float popUpWidth = 150.f;
+                ImGui::SetNextWindowSize({popUpWidth, 0.f});
+                if(ImGui::BeginPopup(popUpId.c_str())) {
+                    auto& availSize = ImGui::GetContentRegionAvail();
+                    if(ImGui::Button("Remove component", { availSize.x, 0.f })) {
+                        _scene->getDynamicWorld()->removeRigidBody(physicsComponent.getRigidBody());
+                        entity.removeComponent<PhysicsComponent>();
+                        ImGui::CloseCurrentPopup();
+                    }
+                    ImGui::EndPopup();
+                }
                 ImGui::TreePop();
             }
         }

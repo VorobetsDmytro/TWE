@@ -9,7 +9,6 @@ namespace TWE {
     public:
         virtual void start() {}
         virtual void update(float deltaTime) {}
-        virtual void destroy() {}
     protected:
         template<typename T>
         bool hasComponent();
@@ -27,6 +26,7 @@ namespace TWE {
             Input::mouseOffset = mouseOffset;
         }
         friend class ScriptComponent;
+        friend class Scene;
     };
 
     template<typename T>

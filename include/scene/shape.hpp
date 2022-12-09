@@ -9,8 +9,27 @@
 #include "model-loader/model-loader-data.hpp"
 #include "scene/components/components.hpp"
 #include "renderer/renderer.hpp"
+#include "registry/registry.hpp"
 
 namespace TWE {
+    struct MeshSpecification {
+        MeshSpecification() = default;
+        MeshSpecification(float* vertices, uint32_t verticesSize, uint32_t* indices, uint32_t indicesSize)
+            : vertices(vertices), verticesSize(verticesSize), indices(indices), indicesSize(indicesSize) {}
+        float* vertices;
+        uint32_t verticesSize;
+        uint32_t* indices;
+        uint32_t indicesSize;
+    };
+
+    struct MeshRendererSpecification {
+        MeshRendererSpecification() = default;
+        MeshRendererSpecification(const std::string& vertexShaderPath, const std::string& fragmentShaderPath)
+            : vertexShaderPath(vertexShaderPath), fragmentShaderPath(fragmentShaderPath) {}
+        std::string vertexShaderPath;
+        std::string fragmentShaderPath;
+    };
+
     class Shape{
     public:
         Shape() = default;
@@ -22,6 +41,8 @@ namespace TWE {
         static Entity createDirLightEntity(Scene* scene, const glm::vec3& color = {1.f, 1.f, 1.f});
         static Entity createCameraEntity(Scene* scene);
         static std::vector<Entity> createModelEntity(Scene* scene, ModelLoaderData* modelLoaderData);
+        static Registry<MeshSpecification>* meshRegistry;
+        static Registry<MeshRendererSpecification>* meshRendererRegistry;
     private:
         static float cubeVertices[];
         static uint32_t cubeIndices[];

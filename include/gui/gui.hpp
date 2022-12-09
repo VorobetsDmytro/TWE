@@ -36,6 +36,8 @@ namespace TWE {
         std::function<void(Registry<Behavior>&)> registryLoader;
         int readPixelFBOData;
         bool isFileDialogOpen;
+        bool isMouseOnViewport;
+        bool isFocusedOnViewport;
     };
 
     class GUI{
@@ -49,6 +51,8 @@ namespace TWE {
         void setScene(Scene* scene);
         void setScriptRegistry(Registry<Behavior>* scriptRegistry);
         void setRegistryLoader(std::function<void(Registry<Behavior>&)> registryLoader);
+        [[nodiscard]] bool getIsMouseOnViewport();
+        [[nodiscard]] bool getIsFocusedOnViewport();
     private:
         void showDockSpace();
         void showScenePanel();
@@ -56,6 +60,8 @@ namespace TWE {
         void showViewportPanel();
         void showDirectoryPanel();
         void showFileDialog();
+        void showSceneEntityPopup(const std::string& popupId);
+        void showSceneMenuPopup(const std::string& popupId);
         bool showGizmo();
         void processInput();
         GUIComponents _components;

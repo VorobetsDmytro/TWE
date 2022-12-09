@@ -17,6 +17,7 @@ namespace TWE {
         _specification._scene = nullptr;
         _specification._gizmoOperation = GizmoOperation::Translate;
         _specification.isFileDialogOpen = false;
+        _specification.isMouseOnViewport = false;
         
         ImGuiFileDialog::Instance()->SetFileStyle(IGFD_FileStyleByExtention, ".json", ImVec4(1.0f, 1.0f, 0.0f, 1.f));
     }
@@ -65,6 +66,8 @@ namespace TWE {
         }
         if (ImGui::BeginMenuBar()) {
             if (ImGui::BeginMenu("File")) {
+                if(ImGui::MenuItem("Save scene"))
+                    ImGuiFileDialog::Instance()->OpenDialog("SaveScene", "Choose File", ".json", ".", 1, nullptr);
                 if(ImGui::MenuItem("Load scene"))
                     ImGuiFileDialog::Instance()->OpenDialog("LoadScene", "Choose File", ".json", ".", 1, nullptr);
                 ImGui::EndMenu();
@@ -82,16 +85,6 @@ namespace TWE {
             }
             ImGui::EndMenuBar();
         }
-        if (ImGuiFileDialog::Instance()->Display("LoadScene"))  {
-            if (ImGuiFileDialog::Instance()->IsOk()) {
-                std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-                _specification._selectedEntity = {};
-                _specification._scene->reset();
-                SceneSerializer::deserialize(_specification._scene, filePathName, 
-                    *_specification.scriptRegistry, _specification.registryLoader);
-            }
-            ImGuiFileDialog::Instance()->Close();
-        }
         showScenePanel();
         showTestPanel();
         showDirectoryPanel();
@@ -104,19 +97,92 @@ namespace TWE {
         ImGui::Begin("Scene");
         if(ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered())
             _specification._selectedEntity = {};
+        bool canOpenWindowPopup = true;
+        std::string entityPopup = "EntityPopup";
         if(_specification._scene) {
             _specification._scene->_registry->view<NameComponent>().each([&](entt::entity entity, NameComponent& nameComponent){
                 auto id = (void*)entity;
                 Entity entityInstance = {entity, _specification._scene};
                 ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | (_specification._selectedEntity == entityInstance ? ImGuiTreeNodeFlags_Selected : 0);
                 bool isOpened = ImGui::TreeNodeEx(id, flags, nameComponent.getName().c_str());
-                if(ImGui::IsItemClicked())
+                if(ImGui::IsItemClicked(0) || ImGui::IsItemClicked(1))
                     _specification._selectedEntity = entityInstance;
+                if(ImGui::IsItemClicked(1)) {
+                    ImGui::OpenPopup(entityPopup.c_str());
+                    canOpenWindowPopup = false;
+                }
                 if(isOpened)
                     ImGui::TreePop();
             });
         }
+        std::string menuPopup = "MenuPopup";
+        if(ImGui::IsMouseClicked(1) && ImGui::IsWindowHovered()) {
+            ImGui::SetWindowFocus();
+            if(canOpenWindowPopup)
+                ImGui::OpenPopup(menuPopup.c_str());
+        }
+        showSceneMenuPopup(menuPopup);
+        showSceneEntityPopup(entityPopup);
         ImGui::End();
+    }
+
+    void GUI::showSceneEntityPopup(const std::string& popupId) {
+        float popUpWidth = 150.f;
+        ImGui::SetNextWindowSize({popUpWidth, 0.f});
+        if(ImGui::BeginPopup(popupId.c_str())) {
+            auto& availSize = ImGui::GetContentRegionAvail();
+            if(ImGui::Button("Remove", {availSize.x, 0.f})) {
+                if(_specification._selectedEntity.hasComponent<PhysicsComponent>())
+                    _specification._scene->getDynamicWorld()
+                        ->removeRigidBody(_specification._selectedEntity.getComponent<PhysicsComponent>().getRigidBody());
+                if(_specification._selectedEntity.hasComponent<ScriptComponent>())
+                    _specification._selectedEntity.getComponent<ScriptComponent>().destroy();
+                _specification._selectedEntity.destroy();
+                _specification._selectedEntity = {};
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+    }
+
+    void GUI::showSceneMenuPopup(const std::string& popupId) {
+        float popUpWidth = 150.f;
+        ImGui::SetNextWindowSize({popUpWidth, 0.f});
+        if(ImGui::BeginPopup(popupId.c_str())) {
+            auto& availSize = ImGui::GetContentRegionAvail();
+            if(ImGui::BeginMenu("Create entity")) {
+                if(ImGui::Button("Entity", {availSize.x, 0.f})) {
+                    _specification._selectedEntity = _specification._scene->createEntity();
+                    ImGui::CloseCurrentPopup();
+                }       
+                if(ImGui::Button("Cube", {availSize.x, 0.f})) {
+                    _specification._selectedEntity = Shape::createCubeEntity(_specification._scene);
+                    ImGui::CloseCurrentPopup();
+                }       
+                else if(ImGui::Button("Plate", {availSize.x, 0.f})) {
+                    _specification._selectedEntity = Shape::createPlateEntity(_specification._scene);
+                    ImGui::CloseCurrentPopup();
+                }       
+                else if(ImGui::Button("Camera", {availSize.x, 0.f})) {
+                    _specification._selectedEntity = Shape::createCameraEntity(_specification._scene);
+                    ImGui::CloseCurrentPopup();
+                }       
+                else if(ImGui::Button("Point Light", {availSize.x, 0.f})) {
+                    _specification._selectedEntity = Shape::createPointLightEntity(_specification._scene);
+                    ImGui::CloseCurrentPopup();
+                }            
+                else if(ImGui::Button("Spot Light", {availSize.x, 0.f})) {
+                    _specification._selectedEntity = Shape::createSpotLightEntity(_specification._scene);
+                    ImGui::CloseCurrentPopup();
+                }            
+                else if(ImGui::Button("Dir Light", {availSize.x, 0.f})) {
+                    _specification._selectedEntity = Shape::createDirLightEntity(_specification._scene);
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndMenu();
+            }
+            ImGui::EndPopup();
+        }
     }
 
     void GUI::showTestPanel() {
@@ -135,7 +201,9 @@ namespace TWE {
         ImGui::Begin("Viewport");
         
         auto& cursorPos = ImGui::GetCursorPos();
-        _specification._scene->setFocusOnViewport(ImGui::IsWindowFocused());
+        if(ImGui::IsMouseClicked(1) && ImGui::IsWindowHovered())
+            ImGui::SetWindowFocus();
+        _specification.isFocusedOnViewport = ImGui::IsWindowFocused();
         ImVec2 viewPortSize = ImGui::GetContentRegionAvail();
         auto frameSize = _specification._scene->_frameBuffer->getSize();
         if(viewPortSize.x != frameSize.first || viewPortSize.y != frameSize.second)
@@ -154,14 +222,16 @@ namespace TWE {
         mousePos.y = viewPortSize.y - mousePos.y;
         if(_specification._scene->getIsFocusedOnDebugCamera() && !_specification.isFileDialogOpen) {
             bool isUsing = showGizmo();
-            if(!isUsing && ImGui::IsMouseClicked(0)) {
-                if(mousePos.x >= 0.f && mousePos.y >= 0.f && mousePos.x < viewPortSize.x && mousePos.y < viewPortSize.y) {
+            if(mousePos.x >= 0.f && mousePos.y >= 0.f && mousePos.x < viewPortSize.x && mousePos.y < viewPortSize.y) {
+                _specification.isMouseOnViewport = true;
+                if(!isUsing && ImGui::IsMouseClicked(0)) {
                     int data = _specification._scene->_frameBuffer->readPixel(1, (int)mousePos.x, (int)mousePos.y);
-                    _specification._selectedEntity = data == -1 || data < 0 || data >= _specification._scene->_registry->size() 
+                    _specification._selectedEntity = data == -1 || data >= _specification._scene->_entityCounter || data >= _specification._scene->_registry->size() 
                         ? Entity() 
                         : Entity{ (entt::entity)data, _specification._scene };
                 }
-            }
+            } else
+                _specification.isMouseOnViewport = false;
         }
         ImGui::End();
     }
@@ -172,13 +242,33 @@ namespace TWE {
     }
 
     void GUI::showFileDialog() {
-        if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey"))  {
-            if (ImGuiFileDialog::Instance()->IsOk()) {
+        if(ImGuiFileDialog::Instance()->Display("SaveScene"))  {
+            if(ImGuiFileDialog::Instance()->IsOk()) {
+                std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+                SceneSerializer::serialize(_specification._scene, filePathName);
+            }
+            ImGuiFileDialog::Instance()->Close();
+            return;
+        }
+        if(ImGuiFileDialog::Instance()->Display("LoadScene"))  {
+            if(ImGuiFileDialog::Instance()->IsOk()) {
+                std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+                _specification._selectedEntity = {};
+                _specification._scene->reset();
+                SceneSerializer::deserialize(_specification._scene, filePathName, 
+                    *_specification.scriptRegistry, _specification.registryLoader);
+            }
+            ImGuiFileDialog::Instance()->Close();
+            return;
+        }
+        if(ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey"))  {
+            if(ImGuiFileDialog::Instance()->IsOk()) {
                 std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
                 std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
             }
             _specification.isFileDialogOpen = false;
             ImGuiFileDialog::Instance()->Close();
+            return;
         }
     }
 
@@ -224,7 +314,7 @@ namespace TWE {
     }
 
     void GUI::processInput() {
-        if(_specification._scene->getIsFocusedOnViewport() && !Input::isMouseButtonPressed(Mouse::MOUSE_BUTTON_RIGHT) 
+        if(_specification.isFocusedOnViewport && !Input::isMouseButtonPressed(Mouse::MOUSE_BUTTON_RIGHT) 
         && _specification._selectedEntity.getSource() != entt::null) {
             if(Input::isKeyPressed(Keyboard::KEY_Q))
                 _specification._gizmoOperation = GizmoOperation::None;
@@ -234,6 +324,12 @@ namespace TWE {
                 _specification._gizmoOperation = GizmoOperation::Rotate;
             if(Input::isKeyPressed(Keyboard::KEY_R))
                 _specification._gizmoOperation = GizmoOperation::Scale;
+        }
+        if(_specification._selectedEntity.getSource() != entt::null) {
+            if(Input::isKeyPressed(Keyboard::KEY_DELETE)) {
+                _specification._selectedEntity.destroy();
+                _specification._selectedEntity = {};
+            }
         }
     }
 
@@ -261,4 +357,7 @@ namespace TWE {
     void GUI::setRegistryLoader(std::function<void(Registry<Behavior>&)> registryLoader) {
         _specification.registryLoader = registryLoader;
     }
+
+    bool GUI::getIsMouseOnViewport() { return _specification.isMouseOnViewport; }
+    bool GUI::getIsFocusedOnViewport() { return _specification.isFocusedOnViewport; }
 }
