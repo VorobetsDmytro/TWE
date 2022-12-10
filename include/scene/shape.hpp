@@ -14,12 +14,11 @@
 namespace TWE {
     struct MeshSpecification {
         MeshSpecification() = default;
-        MeshSpecification(float* vertices, uint32_t verticesSize, uint32_t* indices, uint32_t indicesSize)
-            : vertices(vertices), verticesSize(verticesSize), indices(indices), indicesSize(indicesSize) {}
-        float* vertices;
-        uint32_t verticesSize;
-        uint32_t* indices;
-        uint32_t indicesSize;
+        MeshSpecification(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo)
+            : vao(vao), vbo(vbo), ebo(ebo) {}
+        std::shared_ptr<VAO> vao;
+        std::shared_ptr<VBO> vbo;
+        std::shared_ptr<EBO> ebo;
     };
 
     struct MeshRendererSpecification {
@@ -44,6 +43,8 @@ namespace TWE {
         static Registry<MeshSpecification>* meshRegistry;
         static Registry<MeshRendererSpecification>* meshRendererRegistry;
     private:
+        static MeshSpecification* registerMeshSpecification(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& id);
+        static MeshRendererSpecification* registerMeshRendererSpecification(const std::string& vertexShaderPath, const std::string& fragmentShaderPath, const std::string& id);
         static float cubeVertices[];
         static uint32_t cubeIndices[];
         static float plateVertices[];

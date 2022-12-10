@@ -1,7 +1,8 @@
 #include "renderer/vbo.hpp"
 
 namespace TWE {
-    VBO::VBO(float* vertices, long int size, uint32_t drawType) {
+    VBO::VBO(float* vertices, long int size, uint32_t drawType)
+    : _vertices(vertices), _size(size) {
         glGenBuffers(1, &_id);
         glBindBuffer(GL_ARRAY_BUFFER, _id);
         glBufferData(GL_ARRAY_BUFFER, size, vertices, drawType);
@@ -10,6 +11,8 @@ namespace TWE {
 
     VBO::VBO(const VBO& vbo) {
         this->_id = vbo._id;
+        this->_vertices = vbo._vertices;
+        this->_size = vbo._size;
     }
 
     VBO::~VBO() {
@@ -29,4 +32,6 @@ namespace TWE {
     }
 
     uint32_t VBO::getId() { return _id; }
+    float* VBO::getVertices() { return _vertices; }
+    long int VBO::getSize() { return _size; }
 }

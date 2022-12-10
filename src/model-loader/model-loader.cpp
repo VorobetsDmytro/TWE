@@ -69,9 +69,7 @@ namespace TWE {
             std::vector<std::string> diff = loadMatText(material, aiTextureType_DIFFUSE);
             texturesPath.insert(texturesPath.end(), diff.begin(), diff.end());
         }
-        if(texturesPath.size() > 0)
-            return MeshComponent(vertices.data(), vertices.size() * sizeof(GLfloat), indices.data(), indices.size() * sizeof(GLuint), texturesPath);
-        return MeshComponent(vertices.data(), vertices.size() * sizeof(GLfloat), indices.data(), indices.size() * sizeof(GLuint));
+        return MeshComponent(vertices.data(), vertices.size() * sizeof(GLfloat), indices.data(), indices.size() * sizeof(GLuint), "Model mesh", texturesPath);
     }
 
     void ModelLoader::procNode(aiNode* node, const aiScene* scene) {

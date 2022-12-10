@@ -24,6 +24,8 @@ namespace TWE {
         // transformComponentObj.move({0.f, 0.01f, 3.f});
         // physicsComponentObj.setPosition({0.f, 0.01f, 3.f});
 
+        // Shape::createCubeEntity(curScene.get(), {"../../test/textures/box.png"});
+
         // auto& obj2Entity = Shape::createCubeEntity(curScene.get(), {"../../test/textures/ok.png"});
         // auto& transformComponentObj2 = obj2Entity.getComponent<TransformComponent>();
         // auto& physicsComponentObj2 = obj2Entity.getComponent<PhysicsComponent>();
@@ -111,17 +113,17 @@ namespace TWE {
         // transformComponentCam.move({0.f, 1.f, 8.f});
         // cameraComponentCam.getSource()->setPerspective(90.f, wndWidth, wndHeight);
 
-        // // model = mLoader.loadModel("../../test/models/mountain/Mountain_Final_fbx_.fbx");
-        // // if(model) {
-        // //     auto& modelEntities = Shape::createModelEntity(curScene.get(), model);
-        // //     for(auto& modelEntitie : modelEntities) {
-        // //         auto& transformComponentM = modelEntitie.getComponent<TransformComponent>();
-        // //         auto& meshComponentM = modelEntitie.getComponent<MeshComponent>();
-        // //         transformComponentM.scale({0.1f, 0.1f, 0.1f});
-        // //         transformComponentM.rotate(-90.f, {1.f, 0.f, 0.f});
-        // //         meshComponentM.setTexture("../../test/models/mountain/internal_ground_ao_texture.jpeg", 0);
-        // //     }
-        // // }
+        // ModelLoaderData* model = mLoader.loadModel("../../test/models/mountain/Mountain_Final_fbx_.fbx");
+        // if(model) {
+        //     auto& modelEntities = Shape::createModelEntity(curScene.get(), model);
+        //     for(auto& modelEntitie : modelEntities) {
+        //         auto& transformComponentM = modelEntitie.getComponent<TransformComponent>();
+        //         auto& meshComponentM = modelEntitie.getComponent<MeshComponent>();
+        //         transformComponentM.scale({0.1f, 0.1f, 0.1f});
+        //         transformComponentM.rotate(-90.f, {1.f, 0.f, 0.f});
+        //         // meshComponentM.setTexture("../../test/models/mountain/internal_ground_ao_texture.jpeg", 0);
+        //     }
+        // }
 
         // SceneSerializer::serialize(curScene.get(), "../../test/scenes/testscene.json");
         SceneSerializer::deserialize(curScene.get(), "../../test/scenes/testscene.json", scriptRegistry, &RegistryLoader::load);

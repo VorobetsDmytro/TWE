@@ -90,27 +90,21 @@ namespace TWE {
         Entity entity = scene->createEntity();
         auto& creationType = entity.getComponent<CreationTypeComponent>();
         creationType.setType(EntityCreationType::Cube);
-        std::string meshId = "Cube mesh";
-        auto meshSpecification = meshRegistry->get(meshId);
-        if(!meshSpecification) {
-            meshSpecification = meshRegistry->add<MeshSpecification>(meshId);
-            meshSpecification->vertices = Shape::cubeVertices;
-            meshSpecification->verticesSize = sizeof(Shape::cubeVertices);
-            meshSpecification->indices = Shape::cubeIndices;
-            meshSpecification->indicesSize = sizeof(Shape::cubeIndices);
-        }
         std::string meshRendererId = "Default renderer";
         auto meshRendererSpecification = meshRendererRegistry->get(meshRendererId);
-        if(!meshRendererSpecification) {
-            meshRendererSpecification = meshRendererRegistry->add<MeshRendererSpecification>(meshRendererId);
-            meshRendererSpecification->vertexShaderPath = SHADER_PATHS[ShaderIndices::DEFAULT_VERT];
-            meshRendererSpecification->fragmentShaderPath = SHADER_PATHS[ShaderIndices::DEFAULT_FRAG];
+        if(!meshRendererSpecification)
+            meshRendererSpecification = registerMeshRendererSpecification(SHADER_PATHS[ShaderIndices::DEFAULT_VERT], SHADER_PATHS[ShaderIndices::DEFAULT_FRAG], meshRendererId);
+        std::string meshId = "Cube mesh";
+        auto meshSpecification = meshRegistry->get(meshId);
+        if(meshSpecification)
+            entity.addComponent<MeshComponent>(meshSpecification->vao, meshSpecification->vbo, meshSpecification->ebo, meshId, texPaths);
+        else {
+            auto& meshComponent = entity.addComponent<MeshComponent>(Shape::cubeVertices, sizeof(Shape::cubeVertices), 
+                Shape::cubeIndices, sizeof(Shape::cubeIndices), meshId, texPaths);
+            registerMeshSpecification(meshComponent.vao, meshComponent.vbo, meshComponent.ebo, meshId);
         }
-        if(!texPaths.size())
-            entity.addComponent<MeshComponent>(meshSpecification->vertices, meshSpecification->verticesSize, meshSpecification->indices, meshSpecification->indicesSize);
-        else 
-            entity.addComponent<MeshComponent>(meshSpecification->vertices, meshSpecification->verticesSize, meshSpecification->indices, meshSpecification->indicesSize, texPaths);
-        auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(meshRendererSpecification->vertexShaderPath.c_str(), meshRendererSpecification->fragmentShaderPath.c_str());
+        auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(meshRendererSpecification->vertexShaderPath.c_str(), 
+            meshRendererSpecification->fragmentShaderPath.c_str(), meshRendererId);
         auto& transformComponent = entity.getComponent<TransformComponent>();
         auto& nameComponent = entity.getComponent<NameComponent>();
         nameComponent.setName("Cube");
@@ -122,27 +116,21 @@ namespace TWE {
         Entity entity = scene->createEntity();
         auto& creationType = entity.getComponent<CreationTypeComponent>();
         creationType.setType(EntityCreationType::Plate);
-        std::string meshId = "Plate mesh";
-        auto meshSpecification = meshRegistry->get(meshId);
-        if(!meshSpecification) {
-            meshSpecification = meshRegistry->add<MeshSpecification>(meshId);
-            meshSpecification->vertices = Shape::plateVertices;
-            meshSpecification->verticesSize = sizeof(Shape::plateVertices);
-            meshSpecification->indices = Shape::plateIndices;
-            meshSpecification->indicesSize = sizeof(Shape::plateIndices);
-        }
         std::string meshRendererId = "Default renderer";
         auto meshRendererSpecification = meshRendererRegistry->get(meshRendererId);
-        if(!meshRendererSpecification) {
-            meshRendererSpecification = meshRendererRegistry->add<MeshRendererSpecification>(meshRendererId);
-            meshRendererSpecification->vertexShaderPath = SHADER_PATHS[ShaderIndices::DEFAULT_VERT];
-            meshRendererSpecification->fragmentShaderPath = SHADER_PATHS[ShaderIndices::DEFAULT_FRAG];
+        if(!meshRendererSpecification)
+            meshRendererSpecification = registerMeshRendererSpecification(SHADER_PATHS[ShaderIndices::DEFAULT_VERT], SHADER_PATHS[ShaderIndices::DEFAULT_FRAG], meshRendererId);
+        std::string meshId = "Plate mesh";
+        auto meshSpecification = meshRegistry->get(meshId);
+        if(meshSpecification)
+            entity.addComponent<MeshComponent>(meshSpecification->vao, meshSpecification->vbo, meshSpecification->ebo, meshId, texPaths);
+        else {
+            auto& meshComponent = entity.addComponent<MeshComponent>(Shape::plateVertices, sizeof(Shape::plateVertices), 
+                Shape::plateIndices, sizeof(Shape::plateIndices), meshId, texPaths);
+            registerMeshSpecification(meshComponent.vao, meshComponent.vbo, meshComponent.ebo, meshId);
         }
-        if(!texPaths.size())
-            entity.addComponent<MeshComponent>(meshSpecification->vertices, meshSpecification->verticesSize, meshSpecification->indices, meshSpecification->indicesSize);
-        else
-            entity.addComponent<MeshComponent>(meshSpecification->vertices, meshSpecification->verticesSize, meshSpecification->indices, meshSpecification->indicesSize, texPaths);
-        auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(meshRendererSpecification->vertexShaderPath.c_str(), meshRendererSpecification->fragmentShaderPath.c_str());
+        auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(meshRendererSpecification->vertexShaderPath.c_str(), 
+            meshRendererSpecification->fragmentShaderPath.c_str(), meshRendererId);
         auto& transformComponent = entity.getComponent<TransformComponent>();
         auto& nameComponent = entity.getComponent<NameComponent>();
         nameComponent.setName("Plate");
@@ -157,25 +145,22 @@ namespace TWE {
         Entity entity = scene->createEntity();
         auto& creationType = entity.getComponent<CreationTypeComponent>();
         creationType.setType(EntityCreationType::Cubemap);
-        std::string meshId = "Cubemap mesh";
-        auto meshSpecification = meshRegistry->get(meshId);
-        if(!meshSpecification) {
-            meshSpecification = meshRegistry->add<MeshSpecification>(meshId);
-            meshSpecification->vertices = Shape::cubeVertices;
-            meshSpecification->verticesSize = sizeof(Shape::cubeVertices);
-            meshSpecification->indices = Shape::cubemapIndices;
-            meshSpecification->indicesSize = sizeof(Shape::cubemapIndices);
-        }
         std::string meshRendererId = "Cubemap renderer";
         auto meshRendererSpecification = meshRendererRegistry->get(meshRendererId);
-        if(!meshRendererSpecification) {
-            meshRendererSpecification = meshRendererRegistry->add<MeshRendererSpecification>(meshRendererId);
-            meshRendererSpecification->vertexShaderPath = SHADER_PATHS[ShaderIndices::CUBEMAP_VERT];
-            meshRendererSpecification->fragmentShaderPath = SHADER_PATHS[ShaderIndices::CUBEMAP_FRAG];
-        }
+        if(!meshRendererSpecification)
+            meshRendererSpecification = registerMeshRendererSpecification(SHADER_PATHS[ShaderIndices::CUBEMAP_VERT], SHADER_PATHS[ShaderIndices::CUBEMAP_FRAG], meshRendererId);
         auto& transformComponent = entity.getComponent<TransformComponent>();
-        entity.addComponent<MeshComponent>(meshSpecification->vertices, meshSpecification->verticesSize, meshSpecification->indices, meshSpecification->indicesSize, std::vector<Texture*>{texture});
-        entity.addComponent<MeshRendererComponent>(meshRendererSpecification->vertexShaderPath.c_str(), meshRendererSpecification->fragmentShaderPath.c_str());
+        std::string meshId = "Cubemap mesh";
+        auto meshSpecification = meshRegistry->get(meshId);
+        if(meshSpecification)
+            entity.addComponent<MeshComponent>(meshSpecification->vao, meshSpecification->vbo, meshSpecification->ebo, meshId, std::vector<Texture*>{ texture });
+        else {
+            auto& meshComponent = entity.addComponent<MeshComponent>(Shape::cubeVertices, sizeof(Shape::cubeVertices), 
+                Shape::cubemapIndices, sizeof(Shape::cubemapIndices), meshId, std::vector<Texture*>{ texture });
+            registerMeshSpecification(meshComponent.vao, meshComponent.vbo, meshComponent.ebo, meshId);
+        }
+        auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(meshRendererSpecification->vertexShaderPath.c_str(), 
+            meshRendererSpecification->fragmentShaderPath.c_str(), meshRendererId);
         transformComponent.scale({1000.f, 1000.f, 1000.f});
         auto& nameComponent = entity.getComponent<NameComponent>();
         nameComponent.setName("Cubemap");
@@ -186,25 +171,22 @@ namespace TWE {
         Entity entity = scene->createEntity();
         auto& creationType = entity.getComponent<CreationTypeComponent>();
         creationType.setType(EntityCreationType::SpotLight);
-        std::string meshId = "Cube mesh";
-        auto meshSpecification = meshRegistry->get(meshId);
-        if(!meshSpecification) {
-            meshSpecification = meshRegistry->add<MeshSpecification>(meshId);
-            meshSpecification->vertices = Shape::cubeVertices;
-            meshSpecification->verticesSize = sizeof(Shape::cubeVertices);
-            meshSpecification->indices = Shape::cubeIndices;
-            meshSpecification->indicesSize = sizeof(Shape::cubeIndices);
-        }
         std::string meshRendererId = "Light renderer";
         auto meshRendererSpecification = meshRendererRegistry->get(meshRendererId);
-        if(!meshRendererSpecification) {
-            meshRendererSpecification = meshRendererRegistry->add<MeshRendererSpecification>(meshRendererId);
-            meshRendererSpecification->vertexShaderPath = SHADER_PATHS[ShaderIndices::LIGHT_VERT];
-            meshRendererSpecification->fragmentShaderPath = SHADER_PATHS[ShaderIndices::LIGHT_FRAG];
-        }
+        if(!meshRendererSpecification)
+            meshRendererSpecification = registerMeshRendererSpecification(SHADER_PATHS[ShaderIndices::LIGHT_VERT], SHADER_PATHS[ShaderIndices::LIGHT_FRAG], meshRendererId);
         auto& transformComponent = entity.getComponent<TransformComponent>();
-        entity.addComponent<MeshComponent>(meshSpecification->vertices, meshSpecification->verticesSize, meshSpecification->indices, meshSpecification->indicesSize);
-        auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(meshRendererSpecification->vertexShaderPath.c_str(), meshRendererSpecification->fragmentShaderPath.c_str());
+        std::string meshId = "Cube mesh";
+        auto meshSpecification = meshRegistry->get(meshId);
+        if(meshSpecification)
+            entity.addComponent<MeshComponent>(meshSpecification->vao, meshSpecification->vbo, meshSpecification->ebo, meshId);
+        else {
+            auto& meshComponent = entity.addComponent<MeshComponent>(Shape::cubeVertices, sizeof(Shape::cubeVertices), 
+                Shape::cubeIndices, sizeof(Shape::cubeIndices), meshId);
+            registerMeshSpecification(meshComponent.vao, meshComponent.vbo, meshComponent.ebo, meshId);
+        }
+        auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(meshRendererSpecification->vertexShaderPath.c_str(), 
+            meshRendererSpecification->fragmentShaderPath.c_str(), meshRendererId);
         entity.addComponent<LightComponent>(color, innerRadius, outerRadius, constant, linear, quadratic, LightType::Spot);
         transformComponent.scale({0.5f, 0.5f, 0.5f});
         meshRendererComponent.shader->setUniform(("type." + lightTypes[LightType::Spot]).c_str(), true);
@@ -218,25 +200,22 @@ namespace TWE {
         Entity entity = scene->createEntity();
         auto& creationType = entity.getComponent<CreationTypeComponent>();
         creationType.setType(EntityCreationType::PointLight);
-        std::string meshId = "Cube mesh";
-        auto meshSpecification = meshRegistry->get(meshId);
-        if(!meshSpecification) {
-            meshSpecification = meshRegistry->add<MeshSpecification>(meshId);
-            meshSpecification->vertices = Shape::cubeVertices;
-            meshSpecification->verticesSize = sizeof(Shape::cubeVertices);
-            meshSpecification->indices = Shape::cubeIndices;
-            meshSpecification->indicesSize = sizeof(Shape::cubeIndices);
-        }
         std::string meshRendererId = "Light renderer";
         auto meshRendererSpecification = meshRendererRegistry->get(meshRendererId);
-        if(!meshRendererSpecification) {
-            meshRendererSpecification = meshRendererRegistry->add<MeshRendererSpecification>(meshRendererId);
-            meshRendererSpecification->vertexShaderPath = SHADER_PATHS[ShaderIndices::LIGHT_VERT];
-            meshRendererSpecification->fragmentShaderPath = SHADER_PATHS[ShaderIndices::LIGHT_FRAG];
-        }
+        if(!meshRendererSpecification)
+            meshRendererSpecification = registerMeshRendererSpecification(SHADER_PATHS[ShaderIndices::LIGHT_VERT], SHADER_PATHS[ShaderIndices::LIGHT_FRAG], meshRendererId);
         auto& transformComponent = entity.getComponent<TransformComponent>();
-        entity.addComponent<MeshComponent>(meshSpecification->vertices, meshSpecification->verticesSize, meshSpecification->indices, meshSpecification->indicesSize);
-        auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(meshRendererSpecification->vertexShaderPath.c_str(), meshRendererSpecification->fragmentShaderPath.c_str());
+        std::string meshId = "Cube mesh";
+        auto meshSpecification = meshRegistry->get(meshId);
+        if(meshSpecification)
+            entity.addComponent<MeshComponent>(meshSpecification->vao, meshSpecification->vbo, meshSpecification->ebo, meshId);
+        else {
+            auto& meshComponent = entity.addComponent<MeshComponent>(Shape::cubeVertices, sizeof(Shape::cubeVertices), 
+                Shape::cubeIndices, sizeof(Shape::cubeIndices), meshId);
+            registerMeshSpecification(meshComponent.vao, meshComponent.vbo, meshComponent.ebo, meshId);
+        }
+        auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(meshRendererSpecification->vertexShaderPath.c_str(), 
+            meshRendererSpecification->fragmentShaderPath.c_str(), meshRendererId);
         entity.addComponent<LightComponent>(color, 15.f, 20.f, constant, linear, quadratic, LightType::Point);
         transformComponent.scale({0.5f, 0.5f, 0.5f});
         meshRendererComponent.shader->setUniform(("type." + lightTypes[LightType::Point]).c_str(), true);
@@ -250,25 +229,22 @@ namespace TWE {
         Entity entity = scene->createEntity();
         auto& creationType = entity.getComponent<CreationTypeComponent>();
         creationType.setType(EntityCreationType::DirLight);
-        std::string meshId = "Cube mesh";
-        auto meshSpecification = meshRegistry->get(meshId);
-        if(!meshSpecification) {
-            meshSpecification = meshRegistry->add<MeshSpecification>(meshId);
-            meshSpecification->vertices = Shape::cubeVertices;
-            meshSpecification->verticesSize = sizeof(Shape::cubeVertices);
-            meshSpecification->indices = Shape::cubeIndices;
-            meshSpecification->indicesSize = sizeof(Shape::cubeIndices);
-        }
         std::string meshRendererId = "Light renderer";
         auto meshRendererSpecification = meshRendererRegistry->get(meshRendererId);
-        if(!meshRendererSpecification) {
-            meshRendererSpecification = meshRendererRegistry->add<MeshRendererSpecification>(meshRendererId);
-            meshRendererSpecification->vertexShaderPath = SHADER_PATHS[ShaderIndices::LIGHT_VERT];
-            meshRendererSpecification->fragmentShaderPath = SHADER_PATHS[ShaderIndices::LIGHT_FRAG];
-        }
+        if(!meshRendererSpecification)
+            meshRendererSpecification = registerMeshRendererSpecification(SHADER_PATHS[ShaderIndices::LIGHT_VERT], SHADER_PATHS[ShaderIndices::LIGHT_FRAG], meshRendererId);
         auto& transformComponent = entity.getComponent<TransformComponent>();
-        entity.addComponent<MeshComponent>(meshSpecification->vertices, meshSpecification->verticesSize, meshSpecification->indices, meshSpecification->indicesSize);
-        auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(meshRendererSpecification->vertexShaderPath.c_str(), meshRendererSpecification->fragmentShaderPath.c_str());
+        std::string meshId = "Cube mesh";
+        auto meshSpecification = meshRegistry->get(meshId);
+        if(meshSpecification)
+            entity.addComponent<MeshComponent>(meshSpecification->vao, meshSpecification->vbo, meshSpecification->ebo, meshId);
+        else {
+            auto& meshComponent = entity.addComponent<MeshComponent>(Shape::cubeVertices, sizeof(Shape::cubeVertices), 
+                Shape::cubeIndices, sizeof(Shape::cubeIndices), meshId);
+            registerMeshSpecification(meshComponent.vao, meshComponent.vbo, meshComponent.ebo, meshId);
+        }
+        auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(meshRendererSpecification->vertexShaderPath.c_str(), 
+            meshRendererSpecification->fragmentShaderPath.c_str(), meshRendererId);
         entity.addComponent<LightComponent>(color, 15.f, 20.f, 1.f, 0.045f, 0.0075f, LightType::Dir);
         transformComponent.scale({0.5f, 0.5f, 0.5f});
         meshRendererComponent.shader->setUniform(("type." + lightTypes[LightType::Dir]).c_str(), true);
@@ -296,24 +272,19 @@ namespace TWE {
             Entity entity = scene->createEntity();
             auto& creationType = entity.getComponent<CreationTypeComponent>();
             creationType.setType(EntityCreationType::Model);
-            std::string meshId = "Model mesh-" + std::to_string(meshCounter);
-            auto meshSpecification = meshRegistry->get(meshId);
-            if(!meshSpecification) {
-                meshSpecification = meshRegistry->add<MeshSpecification>(meshId);
-                meshSpecification->vertices = mesh.vertices;
-                meshSpecification->verticesSize = mesh.vertSize;
-                meshSpecification->indices = mesh.indices;
-                meshSpecification->indicesSize = mesh.indSize;
-            }
             std::string meshRendererId = "Default renderer";
             auto meshRendererSpecification = meshRendererRegistry->get(meshRendererId);
-            if(!meshRendererSpecification) {
-                meshRendererSpecification = meshRendererRegistry->add<MeshRendererSpecification>(meshRendererId);
-                meshRendererSpecification->vertexShaderPath = SHADER_PATHS[ShaderIndices::DEFAULT_VERT];
-                meshRendererSpecification->fragmentShaderPath = SHADER_PATHS[ShaderIndices::DEFAULT_FRAG];
+            if(!meshRendererSpecification)
+                meshRendererSpecification = registerMeshRendererSpecification(SHADER_PATHS[ShaderIndices::DEFAULT_VERT], SHADER_PATHS[ShaderIndices::DEFAULT_FRAG], meshRendererId);
+            std::string meshId = "Model mesh-" + std::to_string(meshCounter++);
+            auto meshSpecification = meshRegistry->get(meshId);
+            if(meshSpecification)
+                entity.addComponent<MeshComponent>(meshSpecification->vao, meshSpecification->vbo, meshSpecification->ebo, meshId);
+            else {
+                auto& meshComponent = entity.addComponent<MeshComponent>(mesh);
+                registerMeshSpecification(meshComponent.vao, meshComponent.vbo, meshComponent.ebo, meshId);
             }
-            entity.addComponent<MeshComponent>(mesh);
-            auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(SHADER_PATHS[modelLoaderData->vert], SHADER_PATHS[modelLoaderData->frag]);
+            auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(SHADER_PATHS[modelLoaderData->vert], SHADER_PATHS[modelLoaderData->frag], meshRendererId);
             auto& nameComponent = entity.getComponent<NameComponent>();
             nameComponent.setName("Model");
             meshRendererComponent.shader->setUniform("id", (int)entity.getSource());
@@ -322,5 +293,20 @@ namespace TWE {
             meshComponent.modelPath = modelLoaderData->fullPath;
         }
         return models;
+    }
+
+    MeshSpecification* Shape::registerMeshSpecification(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& id) {
+        auto meshSpecification = meshRegistry->add<MeshSpecification>(id);
+        meshSpecification->vao = vao;
+        meshSpecification->vbo = vbo;
+        meshSpecification->ebo = ebo;
+        return meshSpecification;
+    }
+
+    MeshRendererSpecification* Shape::registerMeshRendererSpecification(const std::string& vertexShaderPath, const std::string& fragmentShaderPath, const std::string& id) {
+        auto meshRendererSpecification = meshRendererRegistry->add<MeshRendererSpecification>(id);
+        meshRendererSpecification->vertexShaderPath = vertexShaderPath;
+        meshRendererSpecification->fragmentShaderPath = fragmentShaderPath;
+        return meshRendererSpecification;
     }
 }

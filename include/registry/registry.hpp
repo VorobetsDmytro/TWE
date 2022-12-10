@@ -5,6 +5,7 @@
 #include <string>
 #include <iostream>
 #include <algorithm>
+#include <vector>
 
 namespace TWE {
     template<typename T>
@@ -14,6 +15,9 @@ namespace TWE {
         T* add(const std::string& key);
         T* get(const std::string& key);
         void erase(const std::string& key);
+        [[nodiscard]] std::vector<std::string> getKeys();
+        [[nodiscard]] std::vector<T*> getValues();
+        [[nodiscard]] std::map<std::string, T*>& getSource();
     private:
         std::map<std::string, T*> _registry;
     };
@@ -46,6 +50,25 @@ namespace TWE {
             return;
         _registry.erase(key);
     }
+
+    template<typename T>
+    std::vector<std::string> Registry<T>::getKeys() {
+        std::vector<std::string> res;
+        for(auto& [key, value] : _registry)
+            res.push_back(key);
+        return res;
+    }
+
+    template<typename T>
+    std::vector<T*> Registry<T>::getValues() {
+        std::vector<T*> res;
+        for(auto& [key, value] : _registry)
+            res.push_back(value);
+        return res;
+    }
+
+    template<typename T>
+    std::map<std::string, T*>& Registry<T>::getSource() { return _registry; }
 }
 
 #endif

@@ -10,5 +10,5 @@ uniform int id = -1;
 
 void main(){
     color = texture(textureImg, texCoord);
-    outId = id;
+    outId = -1;
 }

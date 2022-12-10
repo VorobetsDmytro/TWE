@@ -15,8 +15,12 @@ namespace TWE {
         void unbind();
         void clean();
         [[nodiscard]] uint32_t getId();
+        [[nodiscard]] float* getVertices();
+        [[nodiscard]] long int getSize();
     private:
         uint32_t _id;
+        float* _vertices;
+        long int _size;
     };
 }
 

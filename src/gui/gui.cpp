@@ -199,7 +199,6 @@ namespace TWE {
 
     void GUI::showViewportPanel() {
         ImGui::Begin("Viewport");
-        
         auto& cursorPos = ImGui::GetCursorPos();
         if(ImGui::IsMouseClicked(1) && ImGui::IsWindowHovered())
             ImGui::SetWindowFocus();

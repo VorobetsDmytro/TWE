@@ -9,7 +9,7 @@ namespace TWE {
         meshComponent->vao->bind();
         for(auto& texture : meshComponent->textures)
             texture->bind();
-        glDrawElements(GL_TRIANGLES, meshComponent->indSize / sizeof(GLsizei), GL_UNSIGNED_INT, (GLvoid*)0);
+        glDrawElements(GL_TRIANGLES, meshComponent->ebo->getSize() / sizeof(int), GL_UNSIGNED_INT, (void*)0);
         meshComponent->vao->unbind();
     }
 

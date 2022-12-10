@@ -32,8 +32,10 @@ namespace TWE {
             auto& availSize = ImGui::GetContentRegionAvail();
             if(!entity.hasComponent<MeshComponent>() || !entity.hasComponent<MeshRendererComponent>()) {
                 if(ImGui::Button("Mesh component", {availSize.x, 0.f})) {
-                    auto mesh = Shape::meshRegistry->get("Cube mesh");
-                    auto meshRenderer = Shape::meshRendererRegistry->get("Default renderer");
+                    std::string meshId = "Cube mesh";
+                    std::string meshRendererId = "Default renderer";
+                    auto mesh = Shape::meshRegistry->get(meshId);
+                    auto meshRenderer = Shape::meshRendererRegistry->get(meshRendererId);
                     if(mesh && meshRenderer) {
                         auto& creationType = entity.getComponent<CreationTypeComponent>();
                         creationType.setType(EntityCreationType::Cube);
@@ -41,8 +43,9 @@ namespace TWE {
                             entity.removeComponent<MeshComponent>();
                         if(entity.hasComponent<MeshRendererComponent>())
                             entity.removeComponent<MeshRendererComponent>();
-                        entity.addComponent<MeshComponent>(mesh->vertices, mesh->verticesSize, mesh->indices, mesh->indicesSize);
-                        auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(meshRenderer->vertexShaderPath.c_str(), meshRenderer->fragmentShaderPath.c_str());
+                        entity.addComponent<MeshComponent>(mesh->vao, mesh->vbo, mesh->ebo, meshId);
+                        auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(meshRenderer->vertexShaderPath.c_str(), 
+                            meshRenderer->fragmentShaderPath.c_str(), meshRendererId);
                         meshRendererComponent.shader->setUniform("id", (int)entity.getSource());
                     }      
                     ImGui::CloseCurrentPopup();
@@ -125,6 +128,13 @@ namespace TWE {
                 if(ImGui::IsItemClicked(1))
                     ImGui::OpenPopup(popUpId.c_str());
                 auto& meshComponent = entity.getComponent<MeshComponent>();
+                std::vector<std::string> meshRegistryKeys = Shape::meshRegistry->getKeys();
+                int meshIndex = combo("Mesh", meshComponent.registryId, meshRegistryKeys);
+                if(meshIndex != -1) {
+                    std::string meshId = meshRegistryKeys[meshIndex];
+                    auto meshSpecification = Shape::meshRegistry->get(meshId);
+                    meshComponent.setMesh(meshSpecification->vao, meshSpecification->vbo, meshSpecification->ebo, meshId);
+                }
                 if(!meshComponent.textures.empty())
                     ImGui::Image((void*)(uint64_t)meshComponent.textures[0]->getId(), {30.f, 30.f});
                 float popUpWidth = 150.f;
@@ -151,6 +161,15 @@ namespace TWE {
                 if(ImGui::IsItemClicked(1))
                     ImGui::OpenPopup(popUpId.c_str());
                 auto& meshRendererComponent = entity.getComponent<MeshRendererComponent>();
+                std::vector<std::string> meshRendererRegistryKeys = Shape::meshRendererRegistry->getKeys();
+                int meshRendererIndex = combo("Shader", meshRendererComponent.registryId, meshRendererRegistryKeys);
+                if(meshRendererIndex != -1) {
+                    std::string meshRendererId = meshRendererRegistryKeys[meshRendererIndex];
+                    auto meshRendererSpecification = Shape::meshRendererRegistry->get(meshRendererId);
+                    meshRendererComponent.setShader(meshRendererSpecification->vertexShaderPath.c_str(), 
+                        meshRendererSpecification->fragmentShaderPath.c_str(), meshRendererId);
+                    meshRendererComponent.shader->setUniform("id", (int)entity.getSource());
+                }
                 if(ImGui::TreeNodeEx(id, flags, "Material")) {
                     colorEdit3("Color", meshRendererComponent.material.objColor);
                     dragFloat("Ambient", meshRendererComponent.material.ambient, 0.01f);

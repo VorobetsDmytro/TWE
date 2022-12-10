@@ -15,8 +15,12 @@ namespace TWE {
         void unbind();
         void clean();
         [[nodiscard]] uint32_t getId();
+        [[nodiscard]] uint32_t* getIndices();
+        [[nodiscard]] long int getSize();
     private:
         uint32_t _id;
+        uint32_t* _indices;
+        long int _size;
     };
 }
 
