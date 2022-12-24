@@ -5,6 +5,10 @@ namespace TWE {
 
     NameComponent::NameComponent(const std::string& name): _name(name) {}
 
+    NameComponent::NameComponent(const NameComponent& nameComponent) {
+        this->_name = nameComponent._name;
+    }
+
     void NameComponent::setName(const std::string& name){
         _name = name;
     }

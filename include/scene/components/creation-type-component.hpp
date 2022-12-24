@@ -20,6 +20,7 @@ namespace TWE {
     public:
         CreationTypeComponent();
         CreationTypeComponent(EntityCreationType type);
+        CreationTypeComponent(const CreationTypeComponent& creationTypeComponent);
         void setType(EntityCreationType type);
         [[nodiscard]] EntityCreationType getType() const noexcept;
     private:

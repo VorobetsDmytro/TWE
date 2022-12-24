@@ -31,17 +31,15 @@ namespace TWE {
     protected:
         void keyInput();
         void setVSync(GLboolean isOn);
-        void drawMode();
         GLboolean vSync;
         GLFWwindow* window;
-        bool bFillLineMode;
-        bool bPreFillLineMode;
         static int wndWidth;
         static int wndHeight;
         static std::unique_ptr<GUI> gui;
         static std::shared_ptr<Scene> curScene;
         static std::shared_ptr<DebugCamera> debugCamera;
         static Registry<Behavior> scriptRegistry;
+        static Registry<DLLLoadData> scriptDLLRegistry;
         static Registry<MeshSpecification> meshRegistry;
         static Registry<MeshRendererSpecification> meshRendererRegistry;
     private:

@@ -9,8 +9,10 @@
 namespace TWE {
     class RegistryRecorder {
     public:
-        static void recordScript(const std::string& registryLoaderPath, const std::string& className, const std::string& scriptDirectoryPath);
+        static void recordScript(const std::string& className, const std::string& scriptDirectoryPath);
+        static void initPaths(const std::string &registryLoaderPath);
     private:
+        static std::string _registryLoaderPath;
         [[nodiscard]] static std::string trim(const std::string& str);
     };
 }

@@ -14,16 +14,17 @@
 namespace TWE {
     class MeshComponent {
     public:
-        MeshComponent(float* vertices, int vertSize, uint32_t* indices, int indSize, const std::string& registryId, const std::vector<std::string>& texPaths = {});
-        MeshComponent(float* vertices, int vertSize, uint32_t* indices, int indSize, const std::string& registryId, const std::vector<Texture*>& texs);
-        MeshComponent(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId, const std::vector<std::string>& texPaths = {});
-        MeshComponent(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId, const std::vector<Texture*>& texs);
+        MeshComponent(float* vertices, int vertSize, uint32_t* indices, int indSize, const std::string& registryId, const TextureAttachmentSpecification& textureAtttachments = {});
+        MeshComponent(float* vertices, int vertSize, uint32_t* indices, int indSize, const std::string& registryId, Texture* texture);
+        MeshComponent(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId, const TextureAttachmentSpecification& textureAtttachments = {});
+        MeshComponent(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId, Texture* texture);
         MeshComponent(const MeshComponent& mesh);
         void setMesh(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId);
+        void setModelPath(const std::string& modelPath);
         std::shared_ptr<VAO> vao;
         std::shared_ptr<VBO> vbo;
         std::shared_ptr<EBO> ebo;
-        std::vector<std::shared_ptr<Texture>> textures;
+        std::shared_ptr<Texture> texture;
         std::string modelPath;
         std::string registryId;
     private:

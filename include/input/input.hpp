@@ -10,6 +10,7 @@
 namespace TWE {
     class Input {
     public:
+        static void init(bool* keyboardPressedKeys, bool* mousePressedButtons, float* mouseOffset);
         [[nodiscard]] static bool isKeyPressed(Keyboard key);
         [[nodiscard]] static bool isMouseButtonPressed(Mouse button);
     private:

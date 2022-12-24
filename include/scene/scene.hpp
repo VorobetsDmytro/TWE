@@ -7,6 +7,7 @@
 #include <gtc/type_ptr.hpp>
 #include <memory>
 #include <string>
+#include <iostream>
 #include <btBulletDynamicsCommon.h>
 #include <LinearMath/btTransform.h>
 #include <LinearMath/btVector3.h>
@@ -17,8 +18,29 @@
 #include "time.hpp"
 #include "renderer/renderer.hpp"
 #include "input/input.hpp"
+#include "registry/registry.hpp"
+#include "stream/dll-creator.hpp"
 
 namespace TWE {
+    enum class SceneState {
+        Edit,
+        Run
+    };
+
+    struct SceneRegistrySpecification {
+        entt::registry* curEntityRegistry = nullptr;
+        entt::registry editEntityRegistry;
+        entt::registry runEntityRegistry;
+    };
+
+    struct ScenePhysicsSpecification {
+        btDynamicsWorld* world;
+        btDispatcher* dispatcher;
+        btConstraintSolver* solver;
+        btCollisionConfiguration* collisionConfig;
+        btBroadphaseInterface* broadPhase;
+    };
+
     struct SceneCameraSpecification {
         Camera* camera = nullptr;
         glm::vec3 position = glm::vec3(0.f);
@@ -29,22 +51,20 @@ namespace TWE {
     class Scene {
     public:
         Scene(uint32_t windowWidth, uint32_t windowHeight);
-        ~Scene();
         void update();
         void draw();
-        void setTransMat(const glm::mat4& transform, TransformMatrixOptions option);
-        void setLight(const LightComponent& light, const TransformComponent& transform, const MeshRendererComponent& meshRenderer, const  uint32_t index);
-        void setViewPos(const glm::vec3& pos);
+        void reset();
         void updateView(const glm::mat4& view, const glm::mat4& projection, const glm::vec3& pos);
-        void generateShadows(uint32_t windowWidth, uint32_t windowHeight);
-        void updatePhysics();
-        void linkRigidBody(const PhysicsComponent& physicsComponent);
-        void setFocusOnDebugCamera(bool isFocusedOnDebugCamera);
-        void setDrawLightMeshes(bool drawLightMeshes);
+        void validateScripts();
+        void validateScript(const std::string& scriptName);
         void setDebugCamera(DebugCamera* debugCamera);
         void setName(const std::string& name);
-        void reset();
-        void clearEntity(Entity& entity);
+        void setScriptRegistry(Registry<Behavior>* scriptRegistry);
+        void setScriptDLLRegistry(Registry<DLLLoadData>* scriptDLLRegistry);
+        void setRegistryLoader(std::function<void(Registry<Behavior>&)> registryLoader);
+        void setState(SceneState state);
+        void cleanEntity(Entity& entity);
+        Entity copyEntity(Entity& entity, entt::registry& to);
         Entity createEntity(const std::string& name = "Entity");
         [[nodiscard]] bool& getIsFocusedOnDebugCamera();
         [[nodiscard]] bool getIsFocusedOnDebugCamera() const noexcept;
@@ -54,24 +74,42 @@ namespace TWE {
         [[nodiscard]] std::string getName() const noexcept;
         [[nodiscard]] FBO* getFrameBuffer() const noexcept;
         [[nodiscard]] uint32_t getEntityCounter() const noexcept;
+        [[nodiscard]] Registry<Behavior>* getScriptRegistry() const noexcept;
+        [[nodiscard]] Registry<DLLLoadData>* getScriptDLLRegistry() const noexcept;
+        [[nodiscard]] std::function<void(Registry<Behavior>&)> getRegistryLoader() const noexcept;
     private:
+        void updateEditState();
+        void updateRunState();
+        void updatePhysics();
+        void updateScripts();
+        void updateLight();
+        void updateShadows(uint32_t windowWidth, uint32_t windowHeight);
         bool updateView();
         void setShadows(const LightComponent& lightComponent, const glm::mat4& lightSpaceMat, int index);
-        std::unique_ptr<btDynamicsWorld> _world;
-        std::unique_ptr<btDispatcher> _dispatcher;
-        std::unique_ptr<btConstraintSolver> _solver;
-        std::unique_ptr<btCollisionConfiguration> _collisionConfig;
-        std::unique_ptr<btBroadphaseInterface> _broadPhase;
-        std::unique_ptr<entt::registry> _registry;
+        void bindScript(DLLLoadData* dllData, std::vector<Entity>& entities);
+        void setTransMat(const glm::mat4& transform, TransformMatrixOptions option);
+        void setLight(const LightComponent& light, const TransformComponent& transform, const MeshRendererComponent& meshRenderer, const  uint32_t index);
+        void setViewPos(const glm::vec3& pos);
+        void copyEntityRegistry(entt::registry& from, entt::registry& to);
+        [[nodiscard]] std::vector<Entity> unbindScript(DLLLoadData* dllData);
+
+        SceneState _sceneState;
+        SceneRegistrySpecification _entityRegistry;
         std::unique_ptr<FBO> _frameBuffer;
         DebugCamera* _debugCamera;
+        ScenePhysicsSpecification _scenePhysics;
         SceneCameraSpecification _sceneCameraSpecification;
         bool _isFocusedOnDebugCamera;
         bool _drawLightMeshes;
+        bool _drawColliders;
         std::string _name;
-        uint32_t _entityCounter;
+        Registry<DLLLoadData>* _scriptDLLRegistry;
+        Registry<Behavior>* _scriptRegistry;
+        std::function<void(Registry<Behavior>&)> _registryLoader;
+
         friend class Entity;
         friend class GUI;
+        friend class GUIComponentsPanel;
         friend class SceneSerializer;
     };
 }

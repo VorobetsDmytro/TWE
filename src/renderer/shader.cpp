@@ -1,7 +1,8 @@
 #include "renderer/shader.hpp"
 
 namespace TWE {
-    Shader::Shader(const char* vertPath, const char* fragPath) {
+    Shader::Shader(const char* vertPath, const char* fragPath)
+    : _vertPath(vertPath), _fragPath(fragPath) {
         std::string vertBody = File::getBody(vertPath);
         std::string fragBody = File::getBody(fragPath);
         const char* vertex = vertBody.c_str();
@@ -20,6 +21,8 @@ namespace TWE {
 
     Shader::Shader(const Shader& shader) {
         this->_id = shader._id;
+        this->_vertPath = shader._vertPath;
+        this->_fragPath = shader._fragPath;
     }
 
     Shader::~Shader() {
@@ -98,6 +101,8 @@ namespace TWE {
     }
 
     uint32_t Shader::getId() const noexcept { return _id; }
+    std::string Shader::getVertPath() const noexcept { return _vertPath; }
+    std::string Shader::getFragPath() const noexcept { return _fragPath; }
 
     const char* TRANS_MAT_OPTIONS[3] = {
         "model",
@@ -105,12 +110,14 @@ namespace TWE {
         "projection"
     };
 
-    const char* SHADER_PATHS[6] = {
+    const char* SHADER_PATHS[8] = {
         "../../shaders/default.vert",
         "../../shaders/default.frag",
         "../../shaders/light.vert",
         "../../shaders/light.frag",
         "../../shaders/cubemap.vert",
         "../../shaders/cubemap.frag",
+        "../../shaders/collider.vert",
+        "../../shaders/collider.frag",
     };
 }

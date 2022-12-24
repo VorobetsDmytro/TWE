@@ -4,54 +4,63 @@ namespace TWE {
     Test::Test(int wndWidth, int wndHeight, const char* title, GLFWmonitor *monitor, GLFWwindow *share)
     :Engine(wndWidth, wndHeight, title, monitor, share){
         RegistryLoader::load(scriptRegistry);
-        RegistryRecorder::recordScript("../../test/registry-loader.hpp", "DirBehavior", "../../test/scripts");
-        RegistryRecorder::recordScript("../../test/registry-loader.hpp", "RotateRGBCube", "../../test/scripts");
-        RegistryRecorder::recordScript("../../test/registry-loader.hpp", "CameraController", "../../test/scripts");
-        RegistryRecorder::recordScript("../../test/registry-loader.hpp", "RGBLight", "../../test/scripts");
-
-        // auto data = DLLCreator::compileScript("../../temp", "RotateRGBCube", "../../test/scripts", "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.7");
-        // auto data2 = DLLCreator::compileScript("../../temp", "DirBehavior", "../../test/scripts", "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.7");
-        // auto data3 = DLLCreator::compileScript("../../temp", "CameraController", "../../test/scripts", "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.7");
-        // auto data4 = DLLCreator::compileScript("../../temp", "RGBLight", "../../test/scripts", "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.7");
+        RegistryRecorder::initPaths("../../test/registry-loader.hpp");
+        DLLCreator::initPaths("../../temp", "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.7");
+        curScene->setRegistryLoader(&RegistryLoader::load);
 
         debugCamera->setPosition({0.f, 1.f, 6.f});
 
-        gui->setRegistryLoader(&RegistryLoader::load);
+        // RegistryRecorder::recordScript("../../test/registry-loader.hpp", "RotateRGBCube", "../../test/scripts");
+        // RegistryRecorder::recordScript("../../test/registry-loader.hpp", "CameraController", "../../test/scripts");
+        // RegistryRecorder::recordScript("../../test/registry-loader.hpp", "RGBLight", "../../test/scripts");
+
+        // auto data = DLLCreator::compileScript("RotateRGBCube", "../../test/scripts");
+        // auto data2 = DLLCreator::compileScript("DirBehavior", "../../test/scripts");
+        // auto data3 = DLLCreator::compileScript("CameraController", "../../test/scripts");
+        // auto data4 = DLLCreator::compileScript("RGBLight", "../../test/scripts");
         
-        // auto& objEntity = Shape::createCubeEntity(curScene.get(), {"../../test/textures/box.png"});
+        // auto& objEntity = Shape::createCubeEntity(curScene.get(), TextureAttachmentSpecification{ {"../../test/textures/box.png", 0, TextureType::Texture2D, TextureInOutFormat::RGBA} });
         // auto& transformComponentObj = objEntity.getComponent<TransformComponent>();
-        // auto& physicsComponentObj = objEntity.getComponent<PhysicsComponent>();
+        // auto& physicsComponentObj = objEntity.addComponent<PhysicsComponent>(curScene->getDynamicWorld(), ColliderType::Box, transformComponentObj.size, 
+        //     transformComponentObj.position, transformComponentObj.rotation, 0.f);
         // transformComponentObj.move({0.f, 0.01f, 3.f});
         // physicsComponentObj.setPosition({0.f, 0.01f, 3.f});
+        // objEntity.addComponent<ScriptComponent>().bind(scriptRegistry.get("RotateRGBCube"), "RotateRGBCube");
+        // scriptRegistry.erase("RotateRGBCube");
+        // RegistryLoader::load(scriptRegistry);
 
-        // Shape::createCubeEntity(curScene.get(), {"../../test/textures/box.png"});
-
-        // auto& obj2Entity = Shape::createCubeEntity(curScene.get(), {"../../test/textures/ok.png"});
+        // auto& obj2Entity = Shape::createCubeEntity(curScene.get(), TextureAttachmentSpecification{ {"../../test/textures/ok.png", 0, TextureType::Texture2D, TextureInOutFormat::RGBA} });
         // auto& transformComponentObj2 = obj2Entity.getComponent<TransformComponent>();
-        // auto& physicsComponentObj2 = obj2Entity.getComponent<PhysicsComponent>();
+        // auto& physicsComponentObj2 = obj2Entity.addComponent<PhysicsComponent>(curScene->getDynamicWorld(), ColliderType::Box, transformComponentObj2.size, 
+        //     transformComponentObj2.position, transformComponentObj2.rotation, 0.f);
         // physicsComponentObj2.setPosition({0.9f, 10.f, 0.9f});
-        // physicsComponentObj2.setMass(curScene->getDynamicWorld(), 1.f);
+        // physicsComponentObj2.setMass(1.f);
 
         // auto& obj3Entity = Shape::createCubeEntity(curScene.get());
         // auto& transformComponentObj3 = obj3Entity.getComponent<TransformComponent>();
-        // auto& physicsComponentObj3 = obj3Entity.getComponent<PhysicsComponent>();
+        // auto& physicsComponentObj3 = obj3Entity.addComponent<PhysicsComponent>(curScene->getDynamicWorld(), ColliderType::Box, transformComponentObj3.size, 
+        //     transformComponentObj3.position, transformComponentObj3.rotation, 0.f);
         // physicsComponentObj3.setPosition({-1.5f, 1.f, 0.f});
         // transformComponentObj3.move({-1.5f, 1.f, 0.f});
         // transformComponentObj3.scale({0.5f, 0.5f, 0.5f});
         // obj3Entity.addComponent<ScriptComponent>().bind(scriptRegistry.get("RotateRGBCube"), "RotateRGBCube");
         // scriptRegistry.erase("RotateRGBCube");
         // RegistryLoader::load(scriptRegistry);
-        // objEntity.addComponent<ScriptComponent>().bind(scriptRegistry.get("RotateRGBCube"), "RotateRGBCube");
 
-        // auto& obj4Entity = Shape::createCubeEntity(curScene.get(), {"../../test/textures/ok.png"});
+        // auto& obj4Entity = Shape::createCubeEntity(curScene.get(), TextureAttachmentSpecification{ {"../../test/textures/ok.png", 0, TextureType::Texture2D, TextureInOutFormat::RGBA} });
         // auto& transformComponentObj4 = obj4Entity.getComponent<TransformComponent>();
-        // auto& physicsComponentObj4 = obj4Entity.getComponent<PhysicsComponent>();
+        // auto& physicsComponentObj4 = obj4Entity.addComponent<PhysicsComponent>(curScene->getDynamicWorld(), ColliderType::Box, transformComponentObj4.size, 
+        //     transformComponentObj4.position, transformComponentObj4.rotation, 0.f);
         // physicsComponentObj4.setPosition({1.7f, 11.f, 0.9f});
-        // physicsComponentObj4.setMass(curScene->getDynamicWorld(), 1.f);
+        // physicsComponentObj4.setMass(1.f);
 
         // auto& plateEntity = Shape::createPlateEntity(curScene.get());
-        // plateEntity.getComponent<TransformComponent>().move({0.f, -0.5f, 0.f});
-        // plateEntity.getComponent<PhysicsComponent>().setPosition({0.f, -0.5f, 0.f});
+        // auto& plateTransform = plateEntity.getComponent<TransformComponent>();
+        // plateTransform.move({0.f, -0.5f, 0.f});
+        // auto& platePhysics = plateEntity.addComponent<PhysicsComponent>(curScene->getDynamicWorld(), ColliderType::Box, 
+        //     glm::vec3{plateTransform.size.x * 10.f, plateTransform.size.y * 0.01f, plateTransform.size.z * 10.f}, 
+        //     plateTransform.position, plateTransform.rotation, 0.f);
+        // platePhysics.setPosition({0.f, -0.5f, 0.f});
 
         // auto& spotLightEntity = Shape::createSpotLightEntity(curScene.get());
         // auto& transformComponentSL = spotLightEntity.getComponent<TransformComponent>();
@@ -94,13 +103,13 @@ namespace TWE {
 
         // auto& cubemapEntity = Shape::createCubemapEntity(
         //     curScene.get(),
-        //     {
-        //         "../../test/textures/cubemap/posx.jpg",
-        //         "../../test/textures/cubemap/negx.jpg",
-        //         "../../test/textures/cubemap/posy.jpg",
-        //         "../../test/textures/cubemap/negy.jpg",
-        //         "../../test/textures/cubemap/posz.jpg",
-        //         "../../test/textures/cubemap/negz.jpg",
+        //     TextureAttachmentSpecification {
+        //         {"../../test/textures/cubemap/posx.jpg", 0, TextureType::CubemapTexture, TextureInOutFormat::RGBA},
+        //         {"../../test/textures/cubemap/negx.jpg", 0, TextureType::CubemapTexture, TextureInOutFormat::RGBA},
+        //         {"../../test/textures/cubemap/posy.jpg", 0, TextureType::CubemapTexture, TextureInOutFormat::RGBA},
+        //         {"../../test/textures/cubemap/negy.jpg", 0, TextureType::CubemapTexture, TextureInOutFormat::RGBA},
+        //         {"../../test/textures/cubemap/posz.jpg", 0, TextureType::CubemapTexture, TextureInOutFormat::RGBA},
+        //         {"../../test/textures/cubemap/negz.jpg", 0, TextureType::CubemapTexture, TextureInOutFormat::RGBA},
         //     }
         // );
 
@@ -126,6 +135,6 @@ namespace TWE {
         // }
 
         // SceneSerializer::serialize(curScene.get(), "../../test/scenes/testscene.json");
-        SceneSerializer::deserialize(curScene.get(), "../../test/scenes/testscene.json", scriptRegistry, &RegistryLoader::load);
+        SceneSerializer::deserialize(curScene.get(), "../../test/scenes/testscene.json");
     }
 }

@@ -2,8 +2,11 @@
 
 namespace TWE {
     CameraComponent::CameraComponent() {
-        _camera = std::make_shared<Camera>();
         _isFocusedOn = true;
+    }
+
+    CameraComponent::~CameraComponent() {
+        _isFocusedOn = false;
     }
 
     CameraComponent::CameraComponent(const CameraComponent& cameraComponent) {
@@ -16,5 +19,5 @@ namespace TWE {
     }
 
     bool CameraComponent::isFocusedOn() const noexcept { return _isFocusedOn; }
-    Camera* CameraComponent::getSource() const noexcept { return _camera.get(); }
+    Camera* CameraComponent::getSource() { return &_camera; }
 }

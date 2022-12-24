@@ -8,6 +8,7 @@ namespace TWE {
     public:
         NameComponent();
         NameComponent(const std::string& name);
+        NameComponent(const NameComponent& nameComponent);
         void setName(const std::string& name);
         [[nodiscard]] std::string getName() const noexcept;
     private:

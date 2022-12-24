@@ -64,12 +64,21 @@ namespace TWE {
             for(int j = 0 ; j < face.mNumIndices; ++j)
                 indices.push_back(face.mIndices[j]);
         }
+        TextureAttachmentSpecification textureAtttachments;
         if(mesh->mMaterialIndex >= 0){
             aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
             std::vector<std::string> diff = loadMatText(material, aiTextureType_DIFFUSE);
+            for(auto& imgPath : diff) {
+                TextureSpecification textureSpecification;
+                textureSpecification.imgPath = imgPath;
+                textureSpecification.texNumber = 0;
+                textureSpecification.texType = TextureType::Texture2D;
+                textureSpecification.inOutTexFormat = TextureInOutFormat::RGBA;
+                textureAtttachments.textureSpecifications.push_back(textureSpecification);
+            }
             texturesPath.insert(texturesPath.end(), diff.begin(), diff.end());
         }
-        return MeshComponent(vertices.data(), vertices.size() * sizeof(GLfloat), indices.data(), indices.size() * sizeof(GLuint), "Model mesh", texturesPath);
+        return MeshComponent(vertices.data(), vertices.size() * sizeof(GLfloat), indices.data(), indices.size() * sizeof(GLuint), "Model mesh", textureAtttachments);
     }
 
     void ModelLoader::procNode(aiNode* node, const aiScene* scene) {

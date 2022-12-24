@@ -16,7 +16,7 @@ public:
     }
 
     void update(float deltaTime) override {
-        light = &getComponent<LightComponent>();
+        light = getComponent<LightComponent>();
         time += deltaTime;
         light->color = {cos(time) / 2 + 0.5f, sin(time) / 2 + 0.5f, -cos(time) / 2 + 0.5f};
     }

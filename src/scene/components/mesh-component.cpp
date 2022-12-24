@@ -1,48 +1,35 @@
 #include "scene/components/mesh-component.hpp"
 
 namespace TWE {
-    MeshComponent::MeshComponent(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize, const std::string& registryId, const std::vector<std::string>& texPaths)
+    MeshComponent::MeshComponent(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize, const std::string& registryId, const TextureAttachmentSpecification& textureAtttachments)
     : registryId(registryId) {
         create(vertices, vertSize, indices, indSize);
-        int texPathsSize = texPaths.size();
-        for(uint32_t i = 0; i < texPathsSize; ++i) {
-            TextureAttachmentSpecification attachments;
-            attachments.textureSpecifications.push_back({texPaths[i], GL_TEXTURE_2D, i, GL_RGBA});
-            textures.push_back(std::make_shared<Texture>(attachments));
-        }
+        texture = std::make_shared<Texture>(textureAtttachments);
     }
 
-    MeshComponent::MeshComponent(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize, const std::string& registryId, const std::vector<Texture*>& texs)
+    MeshComponent::MeshComponent(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize, const std::string& registryId, Texture* texture)
     : registryId(registryId) {
         create(vertices, vertSize, indices, indSize);
-        int texsSize = texs.size();
-        for(int i = 0; i < texsSize; ++i)
-            textures.push_back(std::make_shared<Texture>(*texs[i]));
+        this->texture = std::make_shared<Texture>(*texture);
     }
 
-    MeshComponent::MeshComponent(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId, const std::vector<std::string>& texPaths)
+    MeshComponent::MeshComponent(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId, const TextureAttachmentSpecification& textureAtttachments)
     : vao(vao), vbo(vbo), ebo(ebo), registryId(registryId) {
-        int texPathsSize = texPaths.size();
-        for(uint32_t i = 0; i < texPathsSize; ++i) {
-            TextureAttachmentSpecification attachments;
-            attachments.textureSpecifications.push_back({texPaths[i], GL_TEXTURE_2D, i, GL_RGBA});
-            textures.push_back(std::make_shared<Texture>(attachments));
-        }
+        texture = std::make_shared<Texture>(textureAtttachments);
     }
 
-    MeshComponent::MeshComponent(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId, const std::vector<Texture*>& texs)
+    MeshComponent::MeshComponent(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId, Texture* texture)
     : vao(vao), vbo(vbo), ebo(ebo), registryId(registryId) {
-        int texsSize = texs.size();
-        for(int i = 0; i < texsSize; ++i)
-            textures.push_back(std::make_shared<Texture>(*texs[i]));
+        this->texture = std::make_shared<Texture>(*texture);
     }
 
     MeshComponent::MeshComponent(const MeshComponent& mesh) {
         this->vao = mesh.vao;
         this->vbo = mesh.vbo;
         this->ebo = mesh.ebo;
-        this->textures = mesh.textures;
+        this->texture = mesh.texture;
         this->registryId = mesh.registryId;
+        this->registryId = mesh.modelPath;
     }
 
     void MeshComponent::setMesh(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId) {
@@ -50,6 +37,10 @@ namespace TWE {
         this->vbo = vbo;
         this->ebo = ebo;
         this->registryId = registryId;
+    }
+
+    void MeshComponent::setModelPath(const std::string& modelPath) {
+        this->modelPath = modelPath;
     }
 
     void MeshComponent::create(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize) {

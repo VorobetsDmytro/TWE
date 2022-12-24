@@ -1,13 +1,15 @@
 #include "stream/dll-creator.hpp"
 
 namespace TWE {
-    DLLLoadData DLLCreator::compileScript(const std::string& tempDir, const std::string& scriptName, const std::string& scriptDirectoryPath,
-    const std::string& openCLSDKPath) {
-        createScriptDirectory(tempDir, scriptName);
-        createCMakeFile(tempDir, scriptName, openCLSDKPath);
-        createCPPFile(tempDir, scriptName, scriptDirectoryPath);
-        std::string buildDir = tempDir + '/' + scriptName + "/build"; 
-        std::string generateCommand = "cmake -S " + tempDir + '/' + scriptName + " -B " + buildDir ;
+    std::string DLLCreator::_tempDir;
+    std::string DLLCreator::_openCLSDKPath;
+    
+    DLLLoadData DLLCreator::compileScript(const std::string& scriptName, const std::string& scriptDirectoryPath) {
+        createScriptDirectory(_tempDir, scriptName);
+        createCMakeFile(_tempDir, scriptName, _openCLSDKPath);
+        createCPPFile(_tempDir, scriptName, scriptDirectoryPath);
+        std::string buildDir = _tempDir + '/' + scriptName + "/build"; 
+        std::string generateCommand = "cmake -S " + _tempDir + '/' + scriptName + " -B " + buildDir ;
         if(system(generateCommand.c_str()) != 0) {
             std::cout << "Failed to generate build files\n";
             return {};
@@ -18,35 +20,33 @@ namespace TWE {
             return {};
         }
         std::string dllPath = buildDir + "/Debug/" + scriptName + ".dll";
+        std::string pdbPath = buildDir + "/Debug/" + scriptName + ".pdb";
         std::string factoryFuncName = "create" + scriptName;
         std::cout << dllPath << std::endl;
         std::cout << factoryFuncName << std::endl;
-        return { dllPath, factoryFuncName, scriptName };
+        File::remove(pdbPath.c_str());
+        return { dllPath, factoryFuncName, scriptName, scriptDirectoryPath };
     }
 
-    PVoid DLLCreator::loadDLLFunc(const std::string& dllPath, const std::string& factoryFuncName) {
-        #if defined(TWE_PLATFORM_WINDOWS)
-        HINSTANCE hDll = LoadLibrary(dllPath.c_str());
-        if (hDll == NULL) {
-            std::cout << "Failed to load library.\n";
-            return nullptr;
-        }
-        return (PVoid)GetProcAddress(hDll, factoryFuncName.c_str());
-        #else
-        return nullptr;
-        #endif
-    }
-
-    PVoid DLLCreator::loadDLLFunc(const DLLLoadData& loadData) {
+    PVoid DLLCreator::loadDLLFunc(DLLLoadData& loadData) {
         #if defined(TWE_PLATFORM_WINDOWS)
         HINSTANCE hDll = LoadLibrary(loadData.dllPath.c_str());
         if (hDll == NULL) {
             std::cout << "Failed to load library.\n";
             return nullptr;
         }
+        loadData.hDlls.push_back(hDll);
         return (PVoid)GetProcAddress(hDll, loadData.factoryFuncName.c_str());
         #else
         return nullptr;
+        #endif
+    }
+
+    void DLLCreator::freeDLLFunc(DLLLoadData& loadData) {
+        #if defined(TWE_PLATFORM_WINDOWS)
+        for(auto& hdll : loadData.hDlls)
+            FreeLibrary(hdll);
+        loadData.hDlls.clear();
         #endif
     }
 
@@ -114,5 +114,10 @@ namespace TWE {
         os << "}\n"; 
 
         os.close();
+    }
+
+    void DLLCreator::initPaths(const std::string& tempDir, const std::string& openCLSDKPath) {
+        _tempDir = tempDir;
+        _openCLSDKPath = openCLSDKPath;
     }
 }

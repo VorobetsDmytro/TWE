@@ -70,6 +70,9 @@ namespace TWE {
                     ImGuiFileDialog::Instance()->OpenDialog("SaveScene", "Choose File", ".json", ".", 1, nullptr);
                 if(ImGui::MenuItem("Load scene"))
                     ImGuiFileDialog::Instance()->OpenDialog("LoadScene", "Choose File", ".json", ".", 1, nullptr);
+                ImGui::Separator();
+                if(ImGui::MenuItem("Validate scripts"))
+                    _specification._scene->validateScripts();
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Options")) {
@@ -93,23 +96,43 @@ namespace TWE {
         ImGui::End();
     }
 
+    void GUI::selectEntity(Entity& entity) {
+        unselectEntity();
+        _specification._selectedEntity = entity;
+        if(_specification._selectedEntity.hasComponent<MeshRendererComponent>())
+            _specification._selectedEntity.getComponent<MeshRendererComponent>().showCollider = true;
+    }
+
+    void GUI::unselectEntity() {
+        if(_specification._selectedEntity.getSource() == entt::null)
+            return;
+        if(_specification._selectedEntity.hasComponent<MeshRendererComponent>())
+            _specification._selectedEntity.getComponent<MeshRendererComponent>().showCollider = false;
+        _specification._selectedEntity = {};
+    }
+
     void GUI::showScenePanel() {
         ImGui::Begin("Scene");
-        if(ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered())
-            _specification._selectedEntity = {};
+        if(ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered()) {
+            unselectEntity();
+            ImGuiFileDialog::Instance()->Close();
+        }
         bool canOpenWindowPopup = true;
         std::string entityPopup = "EntityPopup";
         if(_specification._scene) {
-            _specification._scene->_registry->view<NameComponent>().each([&](entt::entity entity, NameComponent& nameComponent){
+            _specification._scene->_entityRegistry.curEntityRegistry->view<NameComponent>().each([&](entt::entity entity, NameComponent& nameComponent){
                 auto id = (void*)entity;
                 Entity entityInstance = {entity, _specification._scene};
                 ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | (_specification._selectedEntity == entityInstance ? ImGuiTreeNodeFlags_Selected : 0);
                 bool isOpened = ImGui::TreeNodeEx(id, flags, nameComponent.getName().c_str());
-                if(ImGui::IsItemClicked(0) || ImGui::IsItemClicked(1))
-                    _specification._selectedEntity = entityInstance;
+                if(ImGui::IsItemClicked(0) || ImGui::IsItemClicked(1)) {
+                    selectEntity(entityInstance);selectEntity(entityInstance);
+                    ImGuiFileDialog::Instance()->Close();
+                }
                 if(ImGui::IsItemClicked(1)) {
                     ImGui::OpenPopup(entityPopup.c_str());
                     canOpenWindowPopup = false;
+                    ImGuiFileDialog::Instance()->Close();
                 }
                 if(isOpened)
                     ImGui::TreePop();
@@ -136,9 +159,9 @@ namespace TWE {
                     _specification._scene->getDynamicWorld()
                         ->removeRigidBody(_specification._selectedEntity.getComponent<PhysicsComponent>().getRigidBody());
                 if(_specification._selectedEntity.hasComponent<ScriptComponent>())
-                    _specification._selectedEntity.getComponent<ScriptComponent>().destroy();
+                    _specification._selectedEntity.getComponent<ScriptComponent>().unbind();
                 _specification._selectedEntity.destroy();
-                _specification._selectedEntity = {};
+                unselectEntity();
                 ImGui::CloseCurrentPopup();
             }
             ImGui::EndPopup();
@@ -152,32 +175,73 @@ namespace TWE {
             auto& availSize = ImGui::GetContentRegionAvail();
             if(ImGui::BeginMenu("Create entity")) {
                 if(ImGui::Button("Entity", {availSize.x, 0.f})) {
-                    _specification._selectedEntity = _specification._scene->createEntity();
+                    selectEntity(_specification._scene->createEntity());
                     ImGui::CloseCurrentPopup();
                 }       
                 if(ImGui::Button("Cube", {availSize.x, 0.f})) {
-                    _specification._selectedEntity = Shape::createCubeEntity(_specification._scene);
+                    selectEntity(Shape::createCubeEntity(_specification._scene));
                     ImGui::CloseCurrentPopup();
                 }       
-                else if(ImGui::Button("Plate", {availSize.x, 0.f})) {
-                    _specification._selectedEntity = Shape::createPlateEntity(_specification._scene);
+                if(ImGui::Button("Plate", {availSize.x, 0.f})) {
+                    selectEntity(Shape::createPlateEntity(_specification._scene));
                     ImGui::CloseCurrentPopup();
                 }       
-                else if(ImGui::Button("Camera", {availSize.x, 0.f})) {
-                    _specification._selectedEntity = Shape::createCameraEntity(_specification._scene);
+                if(ImGui::Button("Camera", {availSize.x, 0.f})) {
+                    selectEntity(Shape::createCameraEntity(_specification._scene));
                     ImGui::CloseCurrentPopup();
                 }       
-                else if(ImGui::Button("Point Light", {availSize.x, 0.f})) {
-                    _specification._selectedEntity = Shape::createPointLightEntity(_specification._scene);
+                if(ImGui::Button("Point Light", {availSize.x, 0.f})) {
+                    selectEntity(Shape::createPointLightEntity(_specification._scene));
                     ImGui::CloseCurrentPopup();
                 }            
-                else if(ImGui::Button("Spot Light", {availSize.x, 0.f})) {
-                    _specification._selectedEntity = Shape::createSpotLightEntity(_specification._scene);
+                if(ImGui::Button("Spot Light", {availSize.x, 0.f})) {
+                    selectEntity(Shape::createSpotLightEntity(_specification._scene));
                     ImGui::CloseCurrentPopup();
                 }            
-                else if(ImGui::Button("Dir Light", {availSize.x, 0.f})) {
-                    _specification._selectedEntity = Shape::createDirLightEntity(_specification._scene);
+                if(ImGui::Button("Dir Light", {availSize.x, 0.f})) {
+                    selectEntity(Shape::createDirLightEntity(_specification._scene));
                     ImGui::CloseCurrentPopup();
+                }
+                if(ImGui::Button("Model", {availSize.x, 0.f})) {
+                    ImGuiFileDialog::Instance()->OpenDialog("LoadModel", "Choose File", ".obj,.fbx", ".", 1, nullptr);
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndMenu();
+            }
+            ImGui::EndPopup();
+        }
+    }
+
+    void GUI::showDirectoryMenuPopup(const std::string& popupId) {
+        float popUpWidth = 150.f;
+        ImGui::SetNextWindowSize({popUpWidth, 0.f});
+        if(ImGui::BeginPopup(popupId.c_str())) {
+            auto& availSize = ImGui::GetContentRegionAvail();
+            if(ImGui::BeginMenu("Validate script")) {
+                static std::string scriptName;
+                if(GUIComponents::inputAndButton("Script name", scriptName, "Validate")) {
+                    _specification._scene->validateScript(scriptName);
+                    scriptName.clear();
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndMenu();
+            }
+            if(ImGui::BeginMenu("Create script")) {
+                static std::string scriptName;
+                if(GUIComponents::inputAndButton("Script name", scriptName, "Create")) {
+                    auto checkScriptUniqName = _specification._scene->_scriptRegistry->get(scriptName);
+                    if(!checkScriptUniqName) {
+                        std::string scriptDirectoryPath = "../../test/scripts";
+                        if(ScriptCreator::create(scriptName, scriptDirectoryPath)) {
+                            auto dllData = new DLLLoadData(DLLCreator::compileScript(scriptName, scriptDirectoryPath));
+                            if(dllData->isValid) {
+                                _specification._scene->_scriptDLLRegistry->add(scriptName, dllData);
+                                RegistryRecorder::recordScript(scriptName, scriptDirectoryPath);
+                            }
+                            scriptName.clear();
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
                 }
                 ImGui::EndMenu();
             }
@@ -197,8 +261,21 @@ namespace TWE {
         ImGui::End();
     }
 
+    void GUI::showViewportStatePanel() {
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar;
+        ImGui::Begin("##ViewportState", 0, flags);
+        if(_specification._scene->_sceneState == SceneState::Edit)
+            if(ImGui::Button("Play"))
+                _specification._scene->setState(SceneState::Run);
+        if(_specification._scene->_sceneState == SceneState::Run)
+            if(ImGui::Button("Stop"))
+                _specification._scene->setState(SceneState::Edit);
+        ImGui::End();
+    }
+
     void GUI::showViewportPanel() {
         ImGui::Begin("Viewport");
+        showViewportStatePanel();
         auto& cursorPos = ImGui::GetCursorPos();
         if(ImGui::IsMouseClicked(1) && ImGui::IsWindowHovered())
             ImGui::SetWindowFocus();
@@ -223,11 +300,12 @@ namespace TWE {
             bool isUsing = showGizmo();
             if(mousePos.x >= 0.f && mousePos.y >= 0.f && mousePos.x < viewPortSize.x && mousePos.y < viewPortSize.y) {
                 _specification.isMouseOnViewport = true;
-                if(!isUsing && ImGui::IsMouseClicked(0)) {
+                if(!isUsing && !ImGuiFileDialog::Instance()->IsOpened() && ImGui::IsMouseClicked(0)) {
                     int data = _specification._scene->_frameBuffer->readPixel(1, (int)mousePos.x, (int)mousePos.y);
-                    _specification._selectedEntity = data == -1 || data >= _specification._scene->_entityCounter || data >= _specification._scene->_registry->size() 
-                        ? Entity() 
-                        : Entity{ (entt::entity)data, _specification._scene };
+                    if(data == -1 || !_specification._scene->_entityRegistry.curEntityRegistry->valid((entt::entity)data))
+                        unselectEntity();
+                    else
+                        selectEntity(Entity{ (entt::entity)data, _specification._scene });
                 }
             } else
                 _specification.isMouseOnViewport = false;
@@ -237,6 +315,12 @@ namespace TWE {
 
     void GUI::showDirectoryPanel() {
         ImGui::Begin("Directory");
+        std::string directoryMenuPopup = "DirectoryMenuPopup";
+        if(ImGui::IsMouseClicked(1) && ImGui::IsWindowHovered()) {
+            ImGui::SetWindowFocus();
+            ImGui::OpenPopup(directoryMenuPopup.c_str());
+        }
+        showDirectoryMenuPopup(directoryMenuPopup);
         ImGui::End();
     }
 
@@ -252,10 +336,9 @@ namespace TWE {
         if(ImGuiFileDialog::Instance()->Display("LoadScene"))  {
             if(ImGuiFileDialog::Instance()->IsOk()) {
                 std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-                _specification._selectedEntity = {};
+                unselectEntity();
                 _specification._scene->reset();
-                SceneSerializer::deserialize(_specification._scene, filePathName, 
-                    *_specification.scriptRegistry, _specification.registryLoader);
+                SceneSerializer::deserialize(_specification._scene, filePathName);
             }
             ImGuiFileDialog::Instance()->Close();
             return;
@@ -264,6 +347,21 @@ namespace TWE {
             if(ImGuiFileDialog::Instance()->IsOk()) {
                 std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
                 std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
+            }
+            _specification.isFileDialogOpen = false;
+            ImGuiFileDialog::Instance()->Close();
+            return;
+        }
+        if(ImGuiFileDialog::Instance()->Display("LoadModel"))  {
+            if(ImGuiFileDialog::Instance()->IsOk()) {
+                std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+                ModelLoader mLoader;
+                ModelLoaderData* model = mLoader.loadModel(filePathName);
+                if(model){
+                    auto& modelEntities = Shape::createModelEntity(_specification._scene, model);
+                    if(!modelEntities.empty())
+                        selectEntity(modelEntities.back());
+                }
             }
             _specification.isFileDialogOpen = false;
             ImGuiFileDialog::Instance()->Close();
@@ -306,7 +404,7 @@ namespace TWE {
                 _specification._selectedEntity.getComponent<PhysicsComponent>().setRotation(glm::quat(rotation));
             selectedEntityTransform.setSize(size);
             if(hasPhysics)
-                _specification._selectedEntity.getComponent<PhysicsComponent>().setSize(_specification._scene->getDynamicWorld(), size);
+                _specification._selectedEntity.getComponent<PhysicsComponent>().setSize(size);
         }
 
         return isUsing;
@@ -327,7 +425,7 @@ namespace TWE {
         if(_specification._selectedEntity.getSource() != entt::null) {
             if(Input::isKeyPressed(Keyboard::KEY_DELETE)) {
                 _specification._selectedEntity.destroy();
-                _specification._selectedEntity = {};
+                unselectEntity();
             }
         }
     }
@@ -347,14 +445,6 @@ namespace TWE {
     void GUI::setScene(Scene* scene) {
         _specification._scene = scene;
         _components.setScene(scene);
-    }
-
-    void GUI::setScriptRegistry(Registry<Behavior>* scriptRegistry) {
-        _specification.scriptRegistry = scriptRegistry;
-    }
-
-    void GUI::setRegistryLoader(std::function<void(Registry<Behavior>&)> registryLoader) {
-        _specification.registryLoader = registryLoader;
     }
 
     bool GUI::getIsMouseOnViewport() { return _specification.isMouseOnViewport; }

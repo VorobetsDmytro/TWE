@@ -3,12 +3,15 @@
 namespace TWE {
     PhysicsComponent::PhysicsComponent(): _colliderType(ColliderType::None){}
 
-    PhysicsComponent::PhysicsComponent(ColliderType colliderType, const glm::vec3& size, const glm::vec3& pos, const glm::vec3& rotation, float mass)
-    : _colliderType(colliderType) {
+    PhysicsComponent::PhysicsComponent(btDynamicsWorld* dynamicsWorld, ColliderType colliderType, const glm::vec3& shapeSize, 
+    const glm::vec3& localScale, const glm::vec3& pos, const glm::vec3& rotation, float mass)
+    : _colliderType(colliderType), _dynamicsWorld(dynamicsWorld) {
         _transform.setIdentity();
         _transform.setOrigin({pos.x, pos.y, pos.z});
         _transform.setRotation({rotation.x, rotation.y, rotation.z});
-        btBoxShape* boxShape = new btBoxShape({size.x / 2, size.y / 2, size.z / 2});
+        btBoxShape* boxShape = new btBoxShape({shapeSize.x / 2, shapeSize.y / 2, shapeSize.z / 2});
+        boxShape->setLocalScaling({localScale.x, localScale.y, localScale.z});
+        boxShape->setMargin(0.f);
         btVector3 inertia(0.f, 0.f, 0.f);
         boxShape->calculateLocalInertia(mass, inertia);
         btMotionState* motionState = new btDefaultMotionState(_transform);
@@ -16,16 +19,19 @@ namespace TWE {
         _rigidBody = std::make_shared<btRigidBody>(constrInfo);
         _rigidBody->setUserPointer(this);
         _mass = mass;
+        dynamicsWorld->addRigidBody(_rigidBody.get());
     }
 
     PhysicsComponent::PhysicsComponent(const PhysicsComponent& physics) {
         this->_mass = physics._mass;
         this->_rigidBody = physics._rigidBody;
         this->_colliderType = physics._colliderType;
+        this->_dynamicsWorld = physics._dynamicsWorld;
+        this->_transform = physics._transform;
     }
 
-    void PhysicsComponent::setMass(btDynamicsWorld* dynamicsWorldfloat, float mass) {
-        dynamicsWorldfloat->removeRigidBody(_rigidBody.get());
+    void PhysicsComponent::setMass(float mass) {
+        _dynamicsWorld->removeRigidBody(_rigidBody.get());
         _mass = mass;
         btVector3 inertia;
         _rigidBody->getCollisionShape()->calculateLocalInertia(mass, inertia);
@@ -34,7 +40,7 @@ namespace TWE {
         _rigidBody->setPushVelocity({0.f, 0.f, 0.f});
         _rigidBody->setAngularVelocity({0.f, 0.f, 0.f});
         _rigidBody->setTurnVelocity({0.f, 0.f, 0.f});
-        dynamicsWorldfloat->addRigidBody(_rigidBody.get());
+        _dynamicsWorld->addRigidBody(_rigidBody.get());
     }
 
     void PhysicsComponent::setPosition(const glm::vec3& pos) {
@@ -61,16 +67,60 @@ namespace TWE {
         _rigidBody->setWorldTransform(_transform);
     }
 
-    void PhysicsComponent::setSize(btDynamicsWorld* dynamicsWorldfloat, const glm::vec3& size) {
-        dynamicsWorldfloat->removeRigidBody(_rigidBody.get());
+    void PhysicsComponent::setSize(const glm::vec3& size) {
+        _dynamicsWorld->removeRigidBody(_rigidBody.get());
         btCollisionShape* shape = _rigidBody->getCollisionShape();
         shape->setLocalScaling({size.x, size.y, size.z});
-        dynamicsWorldfloat->addRigidBody(_rigidBody.get());
+        _dynamicsWorld->addRigidBody(_rigidBody.get());
     }
 
     void PhysicsComponent::setColliderType(ColliderType type) {
         _colliderType = type;
         // TODO: Change a collider type in the rigid body
+    }
+
+    void PhysicsComponent::setShapeDimensions(const glm::vec3& size) {
+        _dynamicsWorld->removeRigidBody(_rigidBody.get());
+        btVector3 shapeDimensions = { size.x, size.y, size.z };
+        btBoxShape* boxShape = (btBoxShape*)_rigidBody->getCollisionShape();
+        boxShape->setImplicitShapeDimensions(shapeDimensions / 2);
+        _dynamicsWorld->addRigidBody(_rigidBody.get());
+    }
+
+    glm::mat4 PhysicsComponent::getModel() {
+        _transform = _rigidBody->getWorldTransform();
+        glm::mat4 model;
+        _transform.getOpenGLMatrix(glm::value_ptr(model));
+        btBoxShape* boxShape = (btBoxShape*)_rigidBody->getCollisionShape();  
+        btVector3 shapeDimensions = boxShape->getImplicitShapeDimensions();
+        btVector3 localScaling = boxShape->getLocalScaling();
+        btVector3& size = (shapeDimensions * 2);
+        model = glm::scale(model, {size.x(), size.y(), size.z()});
+        return model;
+    }
+
+    glm::vec3 PhysicsComponent::getShapeDimensions() { 
+        btBoxShape* boxShape = (btBoxShape*)_rigidBody->getCollisionShape();
+        btVector3 shapeDimensions = boxShape->getImplicitShapeDimensions();
+        btVector3& size = (shapeDimensions * 2);
+        return { size.x(), size.y(), size.z() };
+    }
+    
+    glm::vec3 PhysicsComponent::getLocalScale() { 
+        auto& localScaling = _rigidBody->getCollisionShape()->getLocalScaling(); 
+        return { localScaling.x(), localScaling.y(), localScaling.z() };
+    }
+
+    glm::vec3 PhysicsComponent::getPosition() {
+        auto& position = _rigidBody->getWorldTransform().getOrigin();
+        return { position.x(), position.y(), position.z() };
+    }
+
+    glm::vec3 PhysicsComponent::getRotation() {
+        auto& quat = _rigidBody->getWorldTransform().getRotation();
+        glm::vec3 rot;
+        quat.getEulerZYX(rot.z, rot.y, rot.x);
+        return rot;
     }
 
     btRigidBody* PhysicsComponent::getRigidBody() const noexcept { return _rigidBody.get(); }

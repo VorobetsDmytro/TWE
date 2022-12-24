@@ -10,28 +10,33 @@ namespace TWE {
     class ScriptComponent {
     public:
         ScriptComponent();
+        ScriptComponent(const ScriptComponent& scriptComponent);
         template<typename T>
         void bind();
-        void bind(Behavior* behavior, const std::string& behaviorClassName) {
-            _behaviorClassName = behaviorClassName;
-            _tempInstance = behavior;
-            initialize = [&](entt::entity entity, Scene* scene){ 
-                _instance = _tempInstance;
-                _instance->gameObject = { entity, scene };
-                _instance->setInput(Input::keyboardPressedKeys, Input::mousePressedButtons, Input::mouseOffset);
-            };
-            destroy = [&](){
+        void unbind() {
+            if(_instance) {
                 delete _instance;
                 _instance = nullptr;
-            };
+            }
+            _isInitialized = false;
+            isEnabled = false;
+        }
+        void bind(Behavior* behavior, const std::string& behaviorClassName) {
+            _behaviorClassName = behaviorClassName;
+            _instance = behavior;
+            isEnabled = true;
+        }
+        void initialize(entt::entity entity, Scene* scene) {
+            _instance->gameObject = { entity, scene };
+            _instance->setInput(Input::keyboardPressedKeys, Input::mousePressedButtons, Input::mouseOffset);
+            _isInitialized = true;
         }
         [[nodiscard]] std::string getBehaviorClassName() const noexcept {
             return _behaviorClassName;
         }
-        std::function<void(entt::entity entity, Scene* scene)> initialize; 
-        std::function<void()> destroy;
+        bool isEnabled;
     private:
-        Behavior* _tempInstance;
+        bool _isInitialized;
         Behavior* _instance;
         std::string _behaviorClassName;
         friend class Scene;
@@ -40,15 +45,8 @@ namespace TWE {
     template<typename T>
     void ScriptComponent::bind() {
         _behaviorClassName = std::string(typeid(T).name()).substr(6);
-        initialize = [&](entt::entity entity, Scene* scene){ 
-            _instance = static_cast<Behavior*>(new T);
-            _instance->gameObject = { entity, scene };
-            _instance->setInput(Input::keyboardPressedKeys, Input::mousePressedButtons, Input::mouseOffset);
-        };
-        destroy = [&](){ 
-            delete _instance;
-            _instance = nullptr;
-        };
+        _instance = static_cast<Behavior*>(new T);
+        isEnabled = true;
     }
 }
 

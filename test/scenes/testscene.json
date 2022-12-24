@@ -56,14 +56,42 @@
             "MeshComponent": {
                 "ModelPath": "",
                 "Textures": [
-                    [
-                        "../../test/textures/cubemap/posx.jpg",
-                        "../../test/textures/cubemap/negx.jpg",
-                        "../../test/textures/cubemap/posy.jpg",
-                        "../../test/textures/cubemap/negy.jpg",
-                        "../../test/textures/cubemap/posz.jpg",
-                        "../../test/textures/cubemap/negz.jpg"
-                    ]
+                    {
+                        "ImgPath": "../../test/textures/cubemap/posx.jpg",
+                        "InOutTexFormat": 6408,
+                        "TexNumber": 0,
+                        "TexType": 34067
+                    },
+                    {
+                        "ImgPath": "../../test/textures/cubemap/negx.jpg",
+                        "InOutTexFormat": 6408,
+                        "TexNumber": 0,
+                        "TexType": 34067
+                    },
+                    {
+                        "ImgPath": "../../test/textures/cubemap/posy.jpg",
+                        "InOutTexFormat": 6408,
+                        "TexNumber": 0,
+                        "TexType": 34067
+                    },
+                    {
+                        "ImgPath": "../../test/textures/cubemap/negy.jpg",
+                        "InOutTexFormat": 6408,
+                        "TexNumber": 0,
+                        "TexType": 34067
+                    },
+                    {
+                        "ImgPath": "../../test/textures/cubemap/posz.jpg",
+                        "InOutTexFormat": 6408,
+                        "TexNumber": 0,
+                        "TexType": 34067
+                    },
+                    {
+                        "ImgPath": "../../test/textures/cubemap/negz.jpg",
+                        "InOutTexFormat": 6408,
+                        "TexNumber": 0,
+                        "TexType": 34067
+                    }
                 ]
             },
             "MeshRendererComponent": {
@@ -77,6 +105,10 @@
                     ],
                     "Shininess": 64.0,
                     "Specular": 1.0
+                },
+                "Shaders": {
+                    "FragPath": "../../shaders/cubemap.frag",
+                    "VertPath": "../../shaders/cubemap.vert"
                 }
             },
             "NameComponent": {
@@ -108,9 +140,12 @@
             "MeshComponent": {
                 "ModelPath": "../../test/models/tophat/TopHat.obj",
                 "Textures": [
-                    [
-                        "../../test/models/tophat/Texture_TopHat.png"
-                    ]
+                    {
+                        "ImgPath": "../../test/models/tophat/Texture_TopHat.png",
+                        "InOutTexFormat": 6408,
+                        "TexNumber": 0,
+                        "TexType": 3553
+                    }
                 ]
             },
             "MeshRendererComponent": {
@@ -124,6 +159,10 @@
                     ],
                     "Shininess": 64.0,
                     "Specular": 1.0
+                },
+                "Shaders": {
+                    "FragPath": "../../shaders/default.frag",
+                    "VertPath": "../../shaders/default.vert"
                 }
             },
             "NameComponent": {
@@ -155,9 +194,9 @@
             "LightComponent": {
                 "CastShadows": true,
                 "Color": [
-                    0.9922, 
-                    0.9843, 
-                    0.8275
+                    0.9922000169754028,
+                    0.9843000173568726,
+                    0.8274999856948853
                 ],
                 "Constant": 1.0,
                 "InnerRadius": 15.0,
@@ -181,6 +220,10 @@
                     ],
                     "Shininess": 64.0,
                     "Specular": 1.0
+                },
+                "Shaders": {
+                    "FragPath": "../../shaders/light.frag",
+                    "VertPath": "../../shaders/light.vert"
                 }
             },
             "NameComponent": {
@@ -241,6 +284,10 @@
                     ],
                     "Shininess": 64.0,
                     "Specular": 1.0
+                },
+                "Shaders": {
+                    "FragPath": "../../shaders/light.frag",
+                    "VertPath": "../../shaders/light.vert"
                 }
             },
             "NameComponent": {
@@ -301,6 +348,10 @@
                     ],
                     "Shininess": 64.0,
                     "Specular": 1.0
+                },
+                "Shaders": {
+                    "FragPath": "../../shaders/light.frag",
+                    "VertPath": "../../shaders/light.vert"
                 }
             },
             "NameComponent": {
@@ -358,6 +409,10 @@
                     ],
                     "Shininess": 64.0,
                     "Specular": 1.0
+                },
+                "Shaders": {
+                    "FragPath": "../../shaders/light.frag",
+                    "VertPath": "../../shaders/light.vert"
                 }
             },
             "NameComponent": {
@@ -401,6 +456,10 @@
                     ],
                     "Shininess": 64.0,
                     "Specular": 1.0
+                },
+                "Shaders": {
+                    "FragPath": "../../shaders/default.frag",
+                    "VertPath": "../../shaders/default.vert"
                 }
             },
             "NameComponent": {
@@ -452,9 +511,12 @@
             "MeshComponent": {
                 "ModelPath": "",
                 "Textures": [
-                    [
-                        "../../test/textures/ok.png"
-                    ]
+                    {
+                        "ImgPath": "../../test/textures/ok.png",
+                        "InOutTexFormat": 6408,
+                        "TexNumber": 0,
+                        "TexType": 3553
+                    }
                 ]
             },
             "MeshRendererComponent": {
@@ -468,6 +530,10 @@
                     ],
                     "Shininess": 64.0,
                     "Specular": 1.0
+                },
+                "Shaders": {
+                    "FragPath": "../../shaders/default.frag",
+                    "VertPath": "../../shaders/default.vert"
                 }
             },
             "NameComponent": {
@@ -495,9 +561,9 @@
             },
             "TransformComponent": {
                 "Position": [
-                    0.0,
-                    0.0,
-                    0.0
+                    1.7000000476837158,
+                    11.0,
+                    0.8999999761581421
                 ],
                 "Rotation": [
                     0.0,
@@ -531,10 +597,14 @@
                     ],
                     "Shininess": 64.0,
                     "Specular": 1.0
+                },
+                "Shaders": {
+                    "FragPath": "../../shaders/default.frag",
+                    "VertPath": "../../shaders/default.vert"
                 }
             },
             "NameComponent": {
-                "Name": "Cube"
+                "Name": "RotatedCube"
             },
             "PhysicsComponent": {
                 "Mass": 0.0,
@@ -585,9 +655,12 @@
             "MeshComponent": {
                 "ModelPath": "",
                 "Textures": [
-                    [
-                        "../../test/textures/ok.png"
-                    ]
+                    {
+                        "ImgPath": "../../test/textures/ok.png",
+                        "InOutTexFormat": 6408,
+                        "TexNumber": 0,
+                        "TexType": 3553
+                    }
                 ]
             },
             "MeshRendererComponent": {
@@ -601,6 +674,10 @@
                     ],
                     "Shininess": 64.0,
                     "Specular": 1.0
+                },
+                "Shaders": {
+                    "FragPath": "../../shaders/default.frag",
+                    "VertPath": "../../shaders/default.vert"
                 }
             },
             "NameComponent": {
@@ -628,9 +705,9 @@
             },
             "TransformComponent": {
                 "Position": [
-                    0.0,
-                    0.0,
-                    0.0
+                    0.8999999761581421,
+                    10.0,
+                    0.8999999761581421
                 ],
                 "Rotation": [
                     0.0,
@@ -652,9 +729,12 @@
             "MeshComponent": {
                 "ModelPath": "",
                 "Textures": [
-                    [
-                        "../../test/textures/box.png"
-                    ]
+                    {
+                        "ImgPath": "../../test/textures/box.png",
+                        "InOutTexFormat": 6408,
+                        "TexNumber": 0,
+                        "TexType": 3553
+                    }
                 ]
             },
             "MeshRendererComponent": {
@@ -668,6 +748,10 @@
                     ],
                     "Shininess": 64.0,
                     "Specular": 1.0
+                },
+                "Shaders": {
+                    "FragPath": "../../shaders/default.frag",
+                    "VertPath": "../../shaders/default.vert"
                 }
             },
             "NameComponent": {
@@ -715,5 +799,31 @@
             }
         }
     ],
-    "Scene": "Unnamed"
+    "Scene": "Unnamed",
+    "ScriptsDLL": [
+        {
+            "DLLPath": "../../temp/CameraController/build/Debug/CameraController.dll",
+            "FactoryFuncName": "createCameraController",
+            "ScriptDirectoryPath": "../../test/scripts",
+            "ScriptName": "CameraController"
+        },
+        {
+            "DLLPath": "../../temp/DirBehavior/build/Debug/DirBehavior.dll",
+            "FactoryFuncName": "createDirBehavior",
+            "ScriptDirectoryPath": "../../test/scripts",
+            "ScriptName": "DirBehavior"
+        },
+        {
+            "DLLPath": "../../temp/RGBLight/build/Debug/RGBLight.dll",
+            "FactoryFuncName": "createRGBLight",
+            "ScriptDirectoryPath": "../../test/scripts",
+            "ScriptName": "RGBLight"
+        },
+        {
+            "DLLPath": "../../temp/RotateRGBCube/build/Debug/RotateRGBCube.dll",
+            "FactoryFuncName": "createRotateRGBCube",
+            "ScriptDirectoryPath": "../../test/scripts",
+            "ScriptName": "RotateRGBCube"
+        }
+    ]
 }

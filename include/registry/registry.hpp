@@ -13,6 +13,7 @@ namespace TWE {
     public:
         template<typename Instance = T>
         T* add(const std::string& key);
+        T* add(const std::string& key, T* value);
         T* get(const std::string& key);
         void erase(const std::string& key);
         [[nodiscard]] std::vector<std::string> getKeys();
@@ -31,6 +32,15 @@ namespace TWE {
         Instance* instance = new Instance;
         _registry.insert({key, instance});
         return instance;
+    }
+
+    template<typename T>
+    T* Registry<T>::add(const std::string& key, T* value) {
+        auto item = _registry.find(key);
+        if(item != _registry.end())
+            return nullptr;
+        _registry.insert({key, value});
+        return value;
     }
 
     template<typename T>

@@ -1,10 +1,12 @@
 #include "stream/registry-recorder.hpp"
 
 namespace TWE {
-    void RegistryRecorder::recordScript(const std::string& registryLoaderPath, const std::string& className, const std::string& scriptDirectoryPath) {
+    std::string RegistryRecorder::_registryLoaderPath;
+
+    void RegistryRecorder::recordScript(const std::string& className, const std::string& scriptDirectoryPath) {
         std::vector<std::string> fileBody;
         std::ifstream is;
-        is.open(registryLoaderPath);
+        is.open(_registryLoaderPath);
         for(std::string line; std::getline(is, line);) {
             if(trim(line) == "//" + className)
                 return;
@@ -13,7 +15,7 @@ namespace TWE {
         is.close();
 
         std::ofstream os;
-        os.open(registryLoaderPath, std::ios::trunc);
+        os.open(_registryLoaderPath, std::ios::trunc);
         for(auto& line : fileBody) {
             std::string trimLine = trim(line);
             if(trimLine == "//IncludeTail") {
@@ -39,5 +41,9 @@ namespace TWE {
         result.erase(result.find_last_not_of('\t') + 1);
         result.erase(0, result.find_first_not_of('\t'));
         return result;
+    }
+
+    void RegistryRecorder::initPaths(const std::string &registryLoaderPath) {
+        _registryLoaderPath = registryLoaderPath;
     }
 }

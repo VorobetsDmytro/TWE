@@ -16,18 +16,18 @@ public:
     }
 
     void update(float deltaTime) override {
-        transform = &getComponent<TransformComponent>();
+        transform = getComponent<TransformComponent>();
         move(deltaTime);
     }
 
     void move(float deltaTime) {
-        if(Input::isKeyPressed(Keyboard::KEY_W))
+        if(input.isKeyPressed(Keyboard::KEY_W))
             transform->move({0.f, 0.f, -speed * deltaTime});
-        if(Input::isKeyPressed(Keyboard::KEY_S))
+        if(input.isKeyPressed(Keyboard::KEY_S))
             transform->move({0.f, 0.f, speed * deltaTime});
-        if(Input::isKeyPressed(Keyboard::KEY_D))
+        if(input.isKeyPressed(Keyboard::KEY_D))
             transform->move({speed * deltaTime, 0.f, 0.f});
-        if(Input::isKeyPressed(Keyboard::KEY_A))
+        if(input.isKeyPressed(Keyboard::KEY_A))
             transform->move({-speed * deltaTime, 0.f, 0.f});
     }
 };

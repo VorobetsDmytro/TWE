@@ -12,26 +12,36 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <vector>
+
+#include "stream/file.hpp"
 
 namespace TWE {
     typedef void*(*PVoid)();
 
     struct DLLLoadData {
         DLLLoadData() = default;
-        DLLLoadData(const std::string& dllPath, const std::string& factoryFuncName, const std::string& scriptName)
-            : dllPath(dllPath), factoryFuncName(factoryFuncName), scriptName(scriptName) {}
+        DLLLoadData(const std::string& dllPath, const std::string& factoryFuncName, const std::string& scriptName, const std::string& scriptDirectoryPath)
+            : dllPath(dllPath), factoryFuncName(factoryFuncName), scriptName(scriptName), scriptDirectoryPath(scriptDirectoryPath), isValid(true) {}
+        bool isValid = false;
+        #ifdef TWE_PLATFORM_WINDOWS
+        std::vector<HINSTANCE> hDlls;
+        #endif
         std::string dllPath;
         std::string factoryFuncName;
         std::string scriptName;
+        std::string scriptDirectoryPath;
     };
 
     class DLLCreator {
     public:
-        static DLLLoadData compileScript(const std::string& tempDir, const std::string& scriptName, const std::string& scriptDirectoryPath,
-            const std::string& openCLSDKPath);
-        [[nodiscard]] static PVoid loadDLLFunc(const std::string& dllPath, const std::string& factoryFuncName);
-        [[nodiscard]] static PVoid loadDLLFunc(const DLLLoadData& loadData);
+        static DLLLoadData compileScript(const std::string& scriptName, const std::string& scriptDirectoryPath);
+        static void initPaths(const std::string& tempDir, const std::string& openCLSDKPath);
+        [[nodiscard]] static PVoid loadDLLFunc(DLLLoadData& loadData);
+        [[nodiscard]] static void freeDLLFunc(DLLLoadData& loadData);
     private:
+        static std::string _tempDir;
+        static std::string _openCLSDKPath;
         static void createScriptDirectory(const std::string& tempDir, const std::string& scriptName);
         static void createCMakeFile(const std::string& tempDir, const std::string& scriptName, const std::string& openCLSDKPath);
         static void createCPPFile(const std::string& tempDir, const std::string& scriptName, const std::string& scriptDirectoryPath);

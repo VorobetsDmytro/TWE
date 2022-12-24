@@ -9,12 +9,13 @@ namespace TWE {
     class CameraComponent {
     public:
         CameraComponent();
+        ~CameraComponent();
         CameraComponent(const CameraComponent& cameraComponent);
         void setFocuse(bool isFocusedOn);
         [[nodiscard]] bool isFocusedOn() const noexcept;
-        [[nodiscard]] Camera* getSource() const noexcept;
+        [[nodiscard]] Camera* getSource();
     private:
-        std::shared_ptr<Camera> _camera;
+        Camera _camera;
         bool _isFocusedOn;
     };
 }

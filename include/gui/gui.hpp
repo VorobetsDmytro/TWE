@@ -3,8 +3,10 @@
 
 #include "scene/scene.hpp"
 #include "scene/scene-serializer.hpp"
-#include "gui/gui-components.hpp"
+#include "gui/gui-components-panel.hpp"
 #include "registry/registry.hpp"
+#include "stream/script-creator.hpp"
+#include "stream/registry-recorder.hpp"
 
 #include <glfw3.h>
 #include <imgui.h>
@@ -32,8 +34,6 @@ namespace TWE {
         Scene* _scene;
         Entity _selectedEntity;
         GizmoOperation _gizmoOperation;
-        Registry<Behavior>* scriptRegistry;
-        std::function<void(Registry<Behavior>&)> registryLoader;
         int readPixelFBOData;
         bool isFileDialogOpen;
         bool isMouseOnViewport;
@@ -49,8 +49,6 @@ namespace TWE {
         void addInputText(const char* name, std::string& var);
         void addButton(const char* name, std::function<void()> func);
         void setScene(Scene* scene);
-        void setScriptRegistry(Registry<Behavior>* scriptRegistry);
-        void setRegistryLoader(std::function<void(Registry<Behavior>&)> registryLoader);
         [[nodiscard]] bool getIsMouseOnViewport();
         [[nodiscard]] bool getIsFocusedOnViewport();
     private:
@@ -58,13 +56,17 @@ namespace TWE {
         void showScenePanel();
         void showTestPanel();
         void showViewportPanel();
+        void showViewportStatePanel();
         void showDirectoryPanel();
         void showFileDialog();
         void showSceneEntityPopup(const std::string& popupId);
         void showSceneMenuPopup(const std::string& popupId);
+        void showDirectoryMenuPopup(const std::string& popupId);
         bool showGizmo();
         void processInput();
-        GUIComponents _components;
+        void selectEntity(Entity& entity);
+        void unselectEntity();
+        GUIComponentsPanel _components;
         GUISpecification _specification;
         std::vector<std::pair<const char*, bool&>> _checkBoxes;
         std::vector<std::pair<const char*, std::string&>> _inputTextes;

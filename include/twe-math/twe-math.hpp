@@ -5,6 +5,8 @@
 #define PI 3.14159265359f
 
 #include <glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 
 #include "math.h"
 

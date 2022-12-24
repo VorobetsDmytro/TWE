@@ -4,6 +4,12 @@ namespace TWE {
     bool* Input::keyboardPressedKeys = new bool[512]{0};
     bool* Input::mousePressedButtons = new bool[24]{0};
     float* Input::mouseOffset = new float[2]{0};
+
+    void Input::init(bool* keyboardPressedKeysA, bool* mousePressedButtonsA, float* mouseOffsetA) {
+        keyboardPressedKeys = keyboardPressedKeysA;
+        mousePressedButtons = mousePressedButtonsA;
+        mouseOffset = mouseOffsetA;
+    }
     
     bool Input::isKeyPressed(Keyboard key) {
         return keyboardPressedKeys[key];

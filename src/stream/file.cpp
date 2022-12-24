@@ -20,4 +20,10 @@ namespace TWE {
         fs << data;
         fs.close();
     }
+
+    void File::remove(const char* filePath) {
+        if(!std::filesystem::exists(filePath))
+            return;
+        std::remove(filePath);
+    }
 }

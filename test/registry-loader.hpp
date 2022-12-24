@@ -18,6 +18,7 @@ namespace TWE {
     class RegistryLoader {
     public:
         static void load(Registry<Behavior>& registry){
+			registry.add<Behavior>("Behavior");
 			registry.add<DirBehavior>("DirBehavior");
 			registry.add<RotateRGBCube>("RotateRGBCube");
 			registry.add<CameraController>("CameraController");

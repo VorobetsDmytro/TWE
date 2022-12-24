@@ -5,51 +5,73 @@ namespace TWE {
         nlohmann::json jsonMain;
         jsonMain["Scene"] = scene->getName();
         nlohmann::json jsonEntities = nlohmann::json::array();
-        scene->_registry->each([&](entt::entity entity) {
+        scene->_entityRegistry.editEntityRegistry.each([&](entt::entity entity) {
             Entity instance = { entity, scene };
             if(instance.hasComponent<NameComponent>())
                 serializeEntity(instance, jsonEntities);
         });
         jsonMain["Entities"] = jsonEntities;
+        nlohmann::json jsonScripts = nlohmann::json::array();
+        auto& scriptDLLRegistrySource = scene->_scriptDLLRegistry->getSource();
+        for(auto& [key, value] : scriptDLLRegistrySource) {
+            if(!value)
+                continue;
+            nlohmann::json jsonScript;
+            serializeScriptDLL(value, jsonScript);
+            jsonScripts.push_back(jsonScript);
+        }
+        jsonMain["ScriptsDLL"] = jsonScripts;
         File::save(path.c_str(), jsonMain.dump());
     }
 
-    void SceneSerializer::deserialize(Scene* scene, const std::string& path, Registry<Behavior>& registry, std::function<void(Registry<Behavior>&)> registryLoader) {
+    void SceneSerializer::deserialize(Scene* scene, const std::string& path) {
         std::string jsonBodyStr = File::getBody(path.c_str());
         nlohmann::json jsonMain = nlohmann::json::parse(jsonBodyStr);
         if(!jsonMain.contains("Scene"))
             return;
         auto& items = jsonMain.items();
-        for(auto& [key, value] : items) {
-            if(key == "Scene")
+        for(auto& [key, value] : items)
+            if(key == "Scene") {
                 scene->setName(value);
-            else if(key == "Entities") {
+                break;
+            }
+        for(auto& [key, value] : items)
+            if(key == "ScriptsDLL") {
+                auto& scripts = value.items();
+                for(auto& [index, data] : scripts) {
+                    DLLLoadData* dllData = new DLLLoadData();
+                    deserializaScriptDLL(dllData, data);
+                    scene->_scriptDLLRegistry->add(dllData->scriptName, dllData);
+                }
+                break;
+            }
+        scene->_registryLoader(*scene->_scriptRegistry);
+        for(auto& [key, value] : items)
+            if(key == "Entities") {
                 auto& entities = value.items();
                 for(auto& [index, components] : entities) {        
                     Entity instance = deserializeCreationTypeComponent(scene, components);
-                    deserializeEntity(scene, instance, components, registry, registryLoader);
+                    deserializeEntity(scene, instance, components);
                 }
+                break;
             }
-        }
     }
 
-    void SceneSerializer::deserialize(Scene* scene, const std::string& path, const std::string& tempDir) {
-        std::string jsonBodyStr = File::getBody(path.c_str());
-        nlohmann::json jsonMain = nlohmann::json::parse(jsonBodyStr);
-        if(!jsonMain.contains("Scene"))
+    void SceneSerializer::serializeScriptDLL(DLLLoadData* dllData, nlohmann::json& jsonScript) {
+        if(!dllData)
             return;
-        auto& items = jsonMain.items();
-        for(auto& [key, value] : items) {
-            if(key == "Scene")
-                scene->setName(value);
-            else if(key == "Entities") {
-                auto& entities = value.items();
-                for(auto& [index, components] : entities) {        
-                    Entity instance = deserializeCreationTypeComponent(scene, components);
-                    deserializeEntity(scene, instance, components, tempDir);
-                }
-            }
-        }
+        jsonScript["DLLPath"] = dllData->dllPath;
+        jsonScript["FactoryFuncName"] = dllData->factoryFuncName;
+        jsonScript["ScriptName"] = dllData->scriptName;
+        jsonScript["ScriptDirectoryPath"] = dllData->scriptDirectoryPath;
+    }
+
+    void SceneSerializer::deserializaScriptDLL(DLLLoadData* dllData, nlohmann::json& jsonScript) {
+        dllData->isValid = true;
+        dllData->dllPath = jsonScript["DLLPath"];
+        dllData->factoryFuncName = jsonScript["FactoryFuncName"];
+        dllData->scriptName = jsonScript["ScriptName"];
+        dllData->scriptDirectoryPath = jsonScript["ScriptDirectoryPath"];
     }
 
     void SceneSerializer::serializeEntity(Entity& entity, nlohmann::json& jsonEntities) {
@@ -67,7 +89,7 @@ namespace TWE {
         jsonEntities.push_back(jsonEntity);
     }
 
-    void SceneSerializer::deserializeEntity(Scene* scene, Entity& entity, nlohmann::json& jsonComponents, Registry<Behavior>& registry, std::function<void(Registry<Behavior>&)> registryLoader) {
+    void SceneSerializer::deserializeEntity(Scene* scene, Entity& entity, nlohmann::json& jsonComponents) {
         auto& components = jsonComponents.items();
         for(auto& [key, value] : components) {
             deserializeNameComponent(entity, key, value);
@@ -76,20 +98,7 @@ namespace TWE {
             deserializeCameraComponent(entity, key, value);
             deserializeLightComponent(entity, key, value);
             deserializePhysicsComponent(scene, entity, key, value);
-            deserializeScriptComponent( entity, key, value, registry, registryLoader);
-        }
-    }
-
-    void SceneSerializer::deserializeEntity(Scene* scene, Entity& entity, nlohmann::json& jsonComponents, const std::string& tempDir) {
-        auto& components = jsonComponents.items();
-        for(auto& [key, value] : components) {
-            deserializeNameComponent(entity, key, value);
-            deserializeTransformComponent(entity, key, value);
-            deserializeMeshRendererComponent(entity, key, value);
-            deserializeCameraComponent(entity, key, value);
-            deserializeLightComponent(entity, key, value);
-            deserializePhysicsComponent(scene, entity, key, value);
-            deserializeScriptComponent( entity, key, value, tempDir);
+            deserializeScriptComponent(scene, entity, key, value);
         }
     }
 
@@ -107,19 +116,25 @@ namespace TWE {
     Entity SceneSerializer::deserializeCreationTypeComponent(Scene* scene, nlohmann::json& jsonComponent) {
         auto creationTypeComponent = static_cast<EntityCreationType>(jsonComponent["CreationTypeComponent"]["Type"]);
         auto jsonMeshComponent = jsonComponent.find("MeshComponent");
-        std::vector<std::string> textures;
+        TextureAttachmentSpecification textureAtttachments;
         if(jsonMeshComponent != jsonComponent.end()) {
             nlohmann::json jsonTextures = jsonComponent["MeshComponent"]["Textures"];
-            if(!jsonTextures.empty())
-                textures = jsonTextures[0];
+            for(auto& spec : jsonTextures) {
+                TextureSpecification specification;
+                specification.imgPath = spec["ImgPath"];
+                specification.texNumber = spec["TexNumber"];
+                specification.texType = spec["TexType"];
+                specification.inOutTexFormat = spec["InOutTexFormat"];
+                textureAtttachments.textureSpecifications.push_back(specification);
+            }
         }
         switch (creationTypeComponent) {
         case EntityCreationType::Cube:
-            return Shape::createCubeEntity(scene, textures);
+            return Shape::createCubeEntity(scene, textureAtttachments);
         case EntityCreationType::Plate:
-            return Shape::createPlateEntity(scene, textures);
+            return Shape::createPlateEntity(scene, textureAtttachments);
         case EntityCreationType::Cubemap:
-            return Shape::createCubemapEntity(scene, textures);
+            return Shape::createCubemapEntity(scene, textureAtttachments);
         case EntityCreationType::SpotLight:
             return Shape::createSpotLightEntity(scene);
         case EntityCreationType::PointLight:
@@ -131,7 +146,10 @@ namespace TWE {
         case EntityCreationType::Model:
             ModelLoader mLoader;
             ModelLoaderData* modelData = mLoader.loadModel(jsonComponent["MeshComponent"]["ModelPath"]);
-            return Shape::createModelEntity(scene, modelData)[0];
+            Entity modelEntity = Shape::createModelEntity(scene, modelData)[0];
+            auto& meshComponent = modelEntity.getComponent<MeshComponent>();
+            meshComponent.texture = std::make_shared<Texture>(TextureAttachmentSpecification{textureAtttachments});
+            return modelEntity;
         }
         return {};
     }
@@ -209,11 +227,12 @@ namespace TWE {
         jsonMeshComponent["ModelPath"] = meshComponent.modelPath;
             
         nlohmann::json jsonMeshTextures = nlohmann::json::array();
-        for(auto& texture : meshComponent.textures) {
-            nlohmann::json jsonMeshTexture = nlohmann::json::array();
-            auto& attachments = texture->getAttachments();
-            for(auto& specification : attachments.textureSpecifications)
-                jsonMeshTexture.push_back(specification.imgPath);
+        for(auto& textureSpec : meshComponent.texture->getAttachments().textureSpecifications) {
+            nlohmann::json jsonMeshTexture = nlohmann::json::object();
+            jsonMeshTexture["ImgPath"] = textureSpec.imgPath;
+            jsonMeshTexture["TexNumber"] = textureSpec.texNumber;
+            jsonMeshTexture["TexType"] = textureSpec.texType;
+            jsonMeshTexture["InOutTexFormat"] = textureSpec.inOutTexFormat;
             jsonMeshTextures.push_back(jsonMeshTexture);
         }
         jsonMeshComponent["Textures"] = jsonMeshTextures;
@@ -238,6 +257,11 @@ namespace TWE {
         jsonMaterialColor.push_back(meshRendererComponent.material.objColor.z);
         jsonMaterial["ObjColor"] = jsonMaterialColor;
         jsonMeshRendererComponent["Material"] = jsonMaterial;
+
+        nlohmann::json jsonShaders;
+        jsonShaders["VertPath"] = meshRendererComponent.shader->getVertPath();
+        jsonShaders["FragPath"] = meshRendererComponent.shader->getFragPath();
+        jsonMeshRendererComponent["Shaders"] = jsonShaders;
             
         jsonEntity["MeshRendererComponent"] = jsonMeshRendererComponent;
     }
@@ -256,6 +280,12 @@ namespace TWE {
         meshRendererComponent.material.specular = jsonMaterial["Specular"];
         nlohmann::json jsonObjColor = jsonMaterial["ObjColor"];
         meshRendererComponent.material.objColor = { jsonObjColor[0], jsonObjColor[1], jsonObjColor[2] };
+
+        nlohmann::json jsonShaders = jsonComponent["Shaders"];
+        std::string vertPath = jsonShaders["VertPath"];
+        std::string fragPath = jsonShaders["FragPath"];
+        if(meshRendererComponent.shader->getVertPath() != vertPath || meshRendererComponent.shader->getFragPath() != fragPath)
+            meshRendererComponent.setShader(vertPath.c_str(), fragPath.c_str(), "");
     }
 
     void SceneSerializer::serializeCameraComponent(Entity& entity, nlohmann::json& jsonEntity) {
@@ -407,11 +437,11 @@ namespace TWE {
         jsonRotation.push_back(rotation.w());
         jsonPhysicsComponent["Rotation"] = jsonRotation;
 
-        auto& size = physicsComponent.getRigidBody()->getCollisionShape()->getLocalScaling();
+        auto& size = physicsComponent.getShapeDimensions();
         nlohmann::json jsonSize = nlohmann::json::array();
-        jsonSize.push_back(size.x());
-        jsonSize.push_back(size.y());
-        jsonSize.push_back(size.z());
+        jsonSize.push_back(size.x);
+        jsonSize.push_back(size.y);
+        jsonSize.push_back(size.z);
         jsonPhysicsComponent["Size"] = jsonSize;
 
         jsonEntity["PhysicsComponent"] = jsonPhysicsComponent;
@@ -430,8 +460,8 @@ namespace TWE {
         glm::vec3 position = {jsonPosition[0], jsonPosition[1], jsonPosition[2]};
         glm::vec3 rotation = {jsonRotation[0], jsonRotation[1], jsonRotation[2]};
         float mass = jsonComponent["Mass"];
-        auto& physicsComponent = entity.addComponent<PhysicsComponent>(type, size, position, rotation, mass);
-        scene->linkRigidBody(physicsComponent);
+        auto& sizeTransform = entity.getComponent<TransformComponent>().size;
+        auto& physicsComponent = entity.addComponent<PhysicsComponent>(scene->getDynamicWorld(), type, size, sizeTransform, position, rotation, mass);
     }
 
     void SceneSerializer::serializeScriptComponent(Entity& entity, nlohmann::json& jsonEntity) {
@@ -445,8 +475,7 @@ namespace TWE {
         jsonEntity["ScriptComponent"] = jsonScriptComponent;
     }
 
-    void SceneSerializer::deserializeScriptComponent(Entity& entity, const std::string& key, nlohmann::json& jsonComponent, 
-    Registry<Behavior>& registry, std::function<void(Registry<Behavior>&)> registryLoader) {
+    void SceneSerializer::deserializeScriptComponent(Scene* scene, Entity& entity, const std::string& key, nlohmann::json& jsonComponent) {
         if(key != "ScriptComponent")
             return;
         if(!entity.hasComponent<ScriptComponent>())
@@ -454,29 +483,11 @@ namespace TWE {
         auto& scriptComponent = entity.getComponent<ScriptComponent>();
 
         std::string behaviorName = jsonComponent["BehaviorClassName"];
-        Behavior* behavior = registry.get(behaviorName);
+        Behavior* behavior = scene->_scriptRegistry->get(behaviorName);
         if(behavior) {
             scriptComponent.bind(behavior, behaviorName);
-            registry.erase(behaviorName);
-            registryLoader(registry);
-        } else
-            scriptComponent.bind<Behavior>();
-    }
-
-    void SceneSerializer::deserializeScriptComponent(Entity& entity, const std::string& key, nlohmann::json& jsonComponent, const std::string& tempDir) {
-        if(key != "ScriptComponent")
-            return;
-        if(!entity.hasComponent<ScriptComponent>())
-            entity.addComponent<ScriptComponent>();
-        auto& scriptComponent = entity.getComponent<ScriptComponent>();
-
-        std::string behaviorName = jsonComponent["BehaviorClassName"];
-        std::string dllPath = tempDir + '/' + behaviorName + "/build/Debug/" + behaviorName + ".dll";
-        std::string factoryFuncName = "create" + behaviorName;
-        auto factoryScriptFunc = DLLCreator::loadDLLFunc(dllPath, factoryFuncName);
-        if(factoryScriptFunc) {
-            Behavior* beh = (Behavior*)factoryScriptFunc();
-            scriptComponent.bind(beh, behaviorName);
+            scene->_scriptRegistry->erase(behaviorName);
+            scene->_registryLoader(*scene->_scriptRegistry);
         } else
             scriptComponent.bind<Behavior>();
     }
