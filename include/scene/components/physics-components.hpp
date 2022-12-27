@@ -33,6 +33,7 @@ namespace TWE {
         [[nodiscard]] glm::mat4 getModel();
         [[nodiscard]] float getMass() const noexcept;
         [[nodiscard]] btRigidBody* getRigidBody() const noexcept;
+        [[nodiscard]] btDynamicsWorld* getDynamicsWorld() const noexcept;
         [[nodiscard]] ColliderType getColliderType() const noexcept;
         [[nodiscard]] glm::vec3 getShapeDimensions();
         [[nodiscard]] glm::vec3 getLocalScale();
@@ -40,7 +41,7 @@ namespace TWE {
         [[nodiscard]] glm::vec3 getRotation();
     private:
         float _mass;
-        std::shared_ptr<btRigidBody> _rigidBody;
+        btRigidBody* _rigidBody;
         ColliderType _colliderType;
         btTransform _transform;
         btDynamicsWorld* _dynamicsWorld;

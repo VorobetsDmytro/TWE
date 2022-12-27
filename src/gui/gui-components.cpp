@@ -33,7 +33,7 @@ namespace TWE {
         ImGui::PopID();
     }
 
-    int GUIComponents::imageButton(const std::string& label, ImTextureID imgId, const ImVec2 &size, float labelColumnWidth) {
+    int GUIComponents::imageButton(const std::string& label, ImTextureID imgId, const ImVec2 &size, std::function<void()> dragAndDropFunc, float labelColumnWidth) {
         int result = -1;
         ImGui::PushID(label.c_str());
 
@@ -45,6 +45,10 @@ namespace TWE {
         ImGui::PushItemWidth(ImGui::CalcItemWidth());
         if(ImGui::ImageButton(imgId, size, {0.f, 0.f}, {1.f, 1.f}, 1))
             result = 0;
+        if(ImGui::BeginDragDropTarget()) {
+            dragAndDropFunc();
+            ImGui::EndDragDropTarget();
+        }
         if(imgId != 0) { 
             ImGui::SameLine();
             if(ImGui::Button("Remove", {0, size.y + 2.f}))

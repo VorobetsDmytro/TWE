@@ -120,4 +120,13 @@ namespace TWE {
         _tempDir = tempDir;
         _openCLSDKPath = openCLSDKPath;
     }
+
+    void DLLCreator::removeScript(const std::string& scriptName) {
+        if(!std::filesystem::exists(_tempDir))
+            return;
+        std::string scriptTempFolderPath = _tempDir + '/' + scriptName;
+        if(!std::filesystem::exists(scriptTempFolderPath))
+            return;
+        std::filesystem::remove_all(scriptTempFolderPath);
+    }
 }

@@ -37,6 +37,7 @@ namespace TWE {
     public:
         static DLLLoadData compileScript(const std::string& scriptName, const std::string& scriptDirectoryPath);
         static void initPaths(const std::string& tempDir, const std::string& openCLSDKPath);
+        static void removeScript(const std::string& scriptName);
         [[nodiscard]] static PVoid loadDLLFunc(DLLLoadData& loadData);
         [[nodiscard]] static void freeDLLFunc(DLLLoadData& loadData);
     private:

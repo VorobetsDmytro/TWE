@@ -1,7 +1,6 @@
 #ifndef SCRIPT_COMPONENT_HPP
 #define SCRIPT_COMPONENT_HPP
 
-#include <functional>
 #include <string>
 
 #include "entity/behavior.hpp"

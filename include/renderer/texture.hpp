@@ -53,6 +53,7 @@ namespace TWE {
         [[nodiscard]] uint32_t getIndexByTexNumber(uint32_t texNumber) const noexcept;
         [[nodiscard]] TextureSpecification* getTextureSpecByTexNumber(uint32_t texNumber);
         [[nodiscard]] TextureAttachmentSpecification& getAttachments();
+        static Texture* generateCubemapTexture(TextureAttachmentSpecification& attachments);
     private:
         void create(TextureSpecification& textureSpecification);
         TextureAttachmentSpecification _attachments;

@@ -2,25 +2,26 @@
 
 namespace TWE {
     Scene::Scene(uint32_t windowWidth, uint32_t windowHeight) {
-        _scenePhysics.collisionConfig = new btDefaultCollisionConfiguration();
-        _scenePhysics.dispatcher = new btCollisionDispatcher(_scenePhysics.collisionConfig);
-        _scenePhysics.broadPhase = new btDbvtBroadphase();
-        _scenePhysics.solver = new btSequentialImpulseConstraintSolver();
-        _scenePhysics.world = new btDiscreteDynamicsWorld(_scenePhysics.dispatcher, _scenePhysics.broadPhase, _scenePhysics.solver, _scenePhysics.collisionConfig); 
-        _scenePhysics.world->setGravity({0.f, -9.81f, 0.f});
-
+        initPhysics();
         _entityRegistry.curEntityRegistry = &_entityRegistry.editEntityRegistry;
         _sceneState = SceneState::Edit;
-
         FBOAttachmentSpecification attachments = { FBOTextureFormat::RGBA8, FBOTextureFormat::R32I, FBOTextureFormat::DEPTH24STENCIL8 };
         _frameBuffer = std::make_unique<FBO>(windowWidth, windowHeight, attachments);
-
         _debugCamera = nullptr;
         _scriptDLLRegistry = nullptr;
         _isFocusedOnDebugCamera = true;
         _drawLightMeshes = true;
         _drawColliders = true;
         _name = "Unnamed";
+    }
+
+    void Scene::initPhysics() {
+        _scenePhysics.collisionConfig = new btDefaultCollisionConfiguration();
+        _scenePhysics.dispatcher = new btCollisionDispatcher(_scenePhysics.collisionConfig);
+        _scenePhysics.broadPhase = new btDbvtBroadphase();
+        _scenePhysics.solver = new btSequentialImpulseConstraintSolver();
+        _scenePhysics.world = new btDiscreteDynamicsWorld(_scenePhysics.dispatcher, _scenePhysics.broadPhase, _scenePhysics.solver, _scenePhysics.collisionConfig); 
+        _scenePhysics.world->setGravity({0.f, -9.81f, 0.f});
     }
 
     void Scene::setTransMat(const glm::mat4& transform, TransformMatrixOptions option) {
@@ -52,20 +53,26 @@ namespace TWE {
 
     void Scene::setState(SceneState state) {
         _sceneState = state;
-        // switch (_sceneState) {
-        // case SceneState::Edit:
-        //     _entityRegistry.curEntityRegistry = &_entityRegistry.editEntityRegistry;
-        //     break;
-        // case SceneState::Run:
-        //     copyEntityRegistry(_entityRegistry.editEntityRegistry, _entityRegistry.runEntityRegistry);
-        //     _entityRegistry.curEntityRegistry = &_entityRegistry.runEntityRegistry;
-        //     break;
-        // }
+        switch (_sceneState) {
+        case SceneState::Edit:
+            _isFocusedOnDebugCamera = true;
+            _entityRegistry.curEntityRegistry = &_entityRegistry.editEntityRegistry;
+            break;
+        case SceneState::Run:
+            _isFocusedOnDebugCamera = false;
+            resetPhysics(&_entityRegistry.runEntityRegistry);
+            resetScripts(&_entityRegistry.runEntityRegistry);
+            resetRegistry(&_entityRegistry.runEntityRegistry);
+            initPhysics();
+            copyEntityRegistry(_entityRegistry.editEntityRegistry, _entityRegistry.runEntityRegistry);
+            _entityRegistry.curEntityRegistry = &_entityRegistry.runEntityRegistry;
+            break;
+        }
     }
 
-    std::vector<Entity> Scene::unbindScript(DLLLoadData* dllData) {
+    std::vector<Entity> Scene::unbindScript(entt::registry* registry, DLLLoadData* dllData) {
         std::vector<Entity> res;
-        auto& view = _entityRegistry.curEntityRegistry->view<ScriptComponent>();
+        auto& view = registry->view<ScriptComponent>();
         for(auto entity : view) {
             auto& scriptComponent = view.get<ScriptComponent>(entity);
             if(scriptComponent.getBehaviorClassName() != dllData->scriptName)
@@ -77,60 +84,67 @@ namespace TWE {
         return res;
     }
 
-    void Scene::bindScript(DLLLoadData* dllData, std::vector<Entity>& entities) {
-        for(auto& entity : entities) {
-            auto behaviorFactory = DLLCreator::loadDLLFunc(*dllData);
-            Behavior* behavior = (Behavior*)behaviorFactory();
-            entity.getComponent<ScriptComponent>().bind(behavior, dllData->scriptName);
+    void Scene::bindScript(DLLLoadData* dllData, Entity& entity) {
+        if(!dllData || !dllData->isValid) {
+            entity.getComponent<ScriptComponent>().bind<Behavior>();
+            return;
         }
+        auto behaviorFactory = DLLCreator::loadDLLFunc(*dllData);
+        if(!behaviorFactory) {
+            entity.getComponent<ScriptComponent>().bind<Behavior>();
+            return;
+        }
+        Behavior* behavior = (Behavior*)behaviorFactory();
+        entity.getComponent<ScriptComponent>().bind(behavior, dllData->scriptName);
+    }
+
+    void Scene::bindScript(DLLLoadData* dllData, std::vector<Entity>& entities) {
+        for(auto& entity : entities)
+            bindScript(dllData, entity);
     }
 
     void Scene::validateScript(const std::string& scriptName) {
         auto scriptDLLData = _scriptDLLRegistry->get(scriptName);
         if(scriptDLLData && scriptDLLData->isValid) {
-            auto& entities = unbindScript(scriptDLLData);
+            auto& editEntities = unbindScript(&_entityRegistry.editEntityRegistry, scriptDLLData);
+            auto& runEntities = unbindScript(&_entityRegistry.runEntityRegistry, scriptDLLData);
             DLLCreator::freeDLLFunc(*scriptDLLData);
             _scriptDLLRegistry->erase(scriptName);
             auto dllData = new DLLLoadData(DLLCreator::compileScript(scriptName, scriptDLLData->scriptDirectoryPath));
-            if(dllData && dllData->isValid) {
-                _scriptDLLRegistry->add(scriptName, dllData);
-                bindScript(dllData, entities);
-            } else 
+            _scriptDLLRegistry->add(scriptName, dllData);
+            if(!dllData || !dllData->isValid)
                 std::cout << "Script " +  scriptName + " compile error!\n";
+            bindScript(dllData, editEntities);
         } else 
             std::cout << "Script " +  scriptName + " was not found in the script dll registry!\n";
     }
 
     void Scene::validateScripts() {
         auto& scriptDLLRegistryKeys = _scriptDLLRegistry->getKeys();
-        for(auto& scriptName : scriptDLLRegistryKeys) {
-            auto scriptDLLData = _scriptDLLRegistry->get(scriptName);
-            if(scriptDLLData && scriptDLLData->isValid) {
-                auto& entities = unbindScript(scriptDLLData);
-                DLLCreator::freeDLLFunc(*scriptDLLData);
-                _scriptDLLRegistry->erase(scriptName);
-                auto dllData = new DLLLoadData(DLLCreator::compileScript(scriptName, scriptDLLData->scriptDirectoryPath));
-                if(dllData && dllData->isValid) {
-                    _scriptDLLRegistry->add(scriptName, dllData);
-                    bindScript(dllData, entities);
-                } else 
-                    std::cout << "Script " +  scriptName + " compile error!\n";
-            } else 
-                std::cout << "Script " +  scriptName + " was not found in the script dll registry!\n";
-        }
+        for(auto& scriptName : scriptDLLRegistryKeys)
+            validateScript(scriptName);
     }
 
-    void Scene::reset() {
-        _entityRegistry.curEntityRegistry->each([&](entt::entity entity){
-            Entity instance = { entity, this };
-            if(instance.hasComponent<ScriptComponent>())
-                instance.getComponent<ScriptComponent>().unbind();
-            if(instance.hasComponent<PhysicsComponent>())
-                _scenePhysics.world->removeRigidBody(instance.getComponent<PhysicsComponent>().getRigidBody());
+    void Scene::resetRegistry(entt::registry* registry) {
+        registry->clear();
+        *registry = {};
+    }
+
+    void Scene::resetScripts(entt::registry* registry) {
+        registry->view<ScriptComponent>().each([&](entt::entity entity, ScriptComponent& scriptComponent){
+            scriptComponent.unbind();
         });
-        _entityRegistry.curEntityRegistry->clear();
-        *_entityRegistry.curEntityRegistry = {};
-        _sceneState = SceneState::Edit;
+    }
+
+    void Scene::resetPhysics(entt::registry* registry) {
+        registry->view<PhysicsComponent>().each([&](entt::entity entity, PhysicsComponent& physicsComponent){
+            if(!physicsComponent.getRigidBody())
+                return;
+            delete physicsComponent.getRigidBody()->getMotionState();
+            delete physicsComponent.getRigidBody()->getCollisionShape();
+            _scenePhysics.world->removeRigidBody(physicsComponent.getRigidBody());
+            delete physicsComponent.getRigidBody();
+        });
     }
 
     void Scene::setLight(const LightComponent& light, const TransformComponent& transform, const MeshRendererComponent& meshRenderer, const  uint32_t index) {
@@ -280,6 +294,7 @@ namespace TWE {
     void Scene::update() {
         switch (_sceneState) {
         case SceneState::Edit:
+        case SceneState::Pause:
             updateEditState();
             break;
         case SceneState::Run:
@@ -338,7 +353,8 @@ namespace TWE {
         if(entity.hasComponent<MeshRendererComponent>())
             entity.removeComponent<MeshRendererComponent>();
         if(entity.hasComponent<PhysicsComponent>()){
-            _scenePhysics.world->removeRigidBody(entity.getComponent<PhysicsComponent>().getRigidBody());
+            auto& physicsComponent = entity.getComponent<PhysicsComponent>();
+            physicsComponent.getDynamicsWorld()->removeRigidBody(physicsComponent.getRigidBody());
             entity.removeComponent<PhysicsComponent>();
         }
         if(entity.hasComponent<ScriptComponent>()) {
@@ -364,27 +380,51 @@ namespace TWE {
     }
 
     Entity Scene::copyEntity(Entity& entity, entt::registry& to) {
-        Entity instance = { to.create(), this};
-        instance.addComponent<TransformComponent>(entity.getComponent<TransformComponent>());
-        instance.addComponent<NameComponent>(entity.getComponent<NameComponent>());
-        instance.addComponent<CreationTypeComponent>(entity.getComponent<CreationTypeComponent>());
-        instance.addComponent<CameraComponent>(entity.getComponent<CameraComponent>());
-        instance.addComponent<LightComponent>(entity.getComponent<LightComponent>());
-        instance.addComponent<ScriptComponent>(entity.getComponent<ScriptComponent>());
+        entt::entity instance = to.create();
 
-        auto& meshComponent = entity.getComponent<MeshComponent>();
-        instance.addComponent<MeshComponent>(meshComponent.vao, meshComponent.vbo, meshComponent.ebo, meshComponent.registryId, meshComponent.texture.get());
+        to.emplace<TransformComponent>(instance, entity.getComponent<TransformComponent>());
+        to.emplace<NameComponent>(instance, entity.getComponent<NameComponent>());
+        to.emplace<CreationTypeComponent>(instance, entity.getComponent<CreationTypeComponent>());
+        if(entity.hasComponent<CameraComponent>())
+            to.emplace<CameraComponent>(instance, entity.getComponent<CameraComponent>());
+        if(entity.hasComponent<LightComponent>())
+            to.emplace<LightComponent>(instance, entity.getComponent<LightComponent>());
 
-        auto& meshRendererComponent = entity.getComponent<MeshRendererComponent>();
-        instance.addComponent<MeshRendererComponent>(meshRendererComponent.shader->getVertPath().c_str(), meshRendererComponent.shader->getFragPath().c_str(),
-            (int)instance.getSource(), meshRendererComponent.registryId);
+        if(entity.hasComponent<ScriptComponent>()) {
+            auto& scriptComponent = to.emplace<ScriptComponent>(instance);
+            auto scriptDLLData = _scriptDLLRegistry->get(entity.getComponent<ScriptComponent>().getBehaviorClassName());
+            if(!scriptDLLData || !scriptDLLData->isValid)
+                scriptComponent.bind<Behavior>();
+            else {
+                auto behaviorFactory = DLLCreator::loadDLLFunc(*scriptDLLData);
+                if(!behaviorFactory)
+                    scriptComponent.bind<Behavior>();
+                else {
+                    Behavior* behavior = (Behavior*)behaviorFactory();
+                    scriptComponent.bind(behavior, scriptDLLData->scriptName);
+                }
+            }
+        }
 
-        auto& physicsComponent = entity.getComponent<PhysicsComponent>();
-        instance.addComponent<PhysicsComponent>(_scenePhysics.world, physicsComponent.getColliderType(), 
-            physicsComponent.getShapeDimensions(), physicsComponent.getLocalScale(), physicsComponent.getPosition(),
-            physicsComponent.getRotation(), physicsComponent.getMass());
+        if(entity.hasComponent<MeshComponent>()) {
+            auto& meshComponent = entity.getComponent<MeshComponent>();
+            to.emplace<MeshComponent>(instance, meshComponent.vao, meshComponent.vbo, meshComponent.ebo, meshComponent.registryId, meshComponent.texture->getAttachments());
+        }
 
-        return instance;
+        if(entity.hasComponent<MeshRendererComponent>()) {
+            auto& meshRendererComponent = entity.getComponent<MeshRendererComponent>();
+            to.emplace<MeshRendererComponent>(instance, meshRendererComponent.shader->getVertPath().c_str(), meshRendererComponent.shader->getFragPath().c_str(),
+                (int)instance, meshRendererComponent.registryId);
+        }
+
+        if(entity.hasComponent<PhysicsComponent>()) {
+            auto& physicsComponent = entity.getComponent<PhysicsComponent>();
+            to.emplace<PhysicsComponent>(instance, _scenePhysics.world, physicsComponent.getColliderType(), 
+                physicsComponent.getShapeDimensions(), physicsComponent.getLocalScale(), physicsComponent.getPosition(),
+                physicsComponent.getRotation(), physicsComponent.getMass());
+        }
+
+        return { instance, this };
     }
 
     bool& Scene::getIsFocusedOnDebugCamera() { return _isFocusedOnDebugCamera; }

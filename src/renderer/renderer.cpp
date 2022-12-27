@@ -39,37 +39,6 @@ namespace TWE {
         glClearBufferfv(GL_COLOR, 1, red);
     }
 
-    Texture* Renderer::generateCubemapTexture(const std::vector<std::string>& texPaths) {
-        if(texPaths.size() != 6) {
-            std::cout << "Error loading a cubemap texture.\nTexture paths size has to be 6." << std::endl;
-            return nullptr;
-        }
-        uint32_t id;
-        glGenTextures(1, &id);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, id);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-        int width, height, chanInFile;
-        int i = 0;
-        TextureAttachmentSpecification attachments;
-        for(auto& texPath : texPaths){
-            auto imgBytes = stbi_load(texPath.c_str(), &width, &height, &chanInFile, 4);
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i++, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imgBytes);
-            stbi_image_free(imgBytes);
-            TextureSpecification textureSpecification(texPath, 0, TextureType::CubemapTexture, TextureInOutFormat::RGBA);
-            textureSpecification.id = id;
-            attachments.textureSpecifications.push_back(textureSpecification);
-        }
-        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-        Texture* texture = new Texture();
-        texture->setAttachments(attachments);
-        return texture;
-    }
-
     void Renderer::setViewport(int startX, int startY, int endX, int endY) {
         glViewport(startX, startY, endX, endY);
     }

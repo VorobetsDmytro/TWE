@@ -7,7 +7,7 @@ namespace TWE {
         ImGuiFileDialog::Instance()->SetFileStyle(IGFD_FileStyleByExtention, ".jpg", ImVec4(1.0f, 1.0f, 0.0f, 1.f));
     }
 
-    void GUIComponentsPanel::showComponentPanel(Entity& entity) {
+    void GUIComponentsPanel::showPanel(Entity& entity) {
         ImGui::Begin("Components");
         if(ImGui::IsMouseClicked(1) && ImGui::IsWindowHovered()) 
             ImGui::SetWindowFocus();
@@ -173,7 +173,15 @@ namespace TWE {
                 auto textureId = (void*)(typeid(Texture).hash_code());
                 if(ImGui::TreeNodeEx(id, flags, "Texture")) {
                     auto baseTexture = meshComponent.texture->getTextureSpecByTexNumber(0);
-                    int baseBtnPressed = GUIComponents::imageButton("Base", baseTexture ? (void*)(uint64_t)baseTexture->id : (void*)(uint64_t)0, { 20.f, 20.f });
+                    auto baseDragAndDropFunc = [&]() {
+                        if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(guiDragAndDropTypes[GUIDragAndDropType::DirectoryItem].c_str())) {
+                            const wchar_t* item = static_cast<const wchar_t*>(payload->Data);
+                            std::filesystem::path path(item);
+                            TextureSpecification textureSpecification(path.string(), 0, TextureType::Texture2D, TextureInOutFormat::RGBA);
+                            meshComponent.texture->setTexture(textureSpecification);
+                        }
+                    };
+                    int baseBtnPressed = GUIComponents::imageButton("Base", baseTexture ? (void*)(uint64_t)baseTexture->id : (void*)(uint64_t)0, { 20.f, 20.f }, baseDragAndDropFunc);
                     if(baseBtnPressed == 0)
                         ImGuiFileDialog::Instance()->OpenDialog("BaseTexture", "Choose File", ".png,.jpeg,.jpg", ".", 1, nullptr);
                     else if(baseBtnPressed == 1)
@@ -347,7 +355,7 @@ namespace TWE {
                 if(ImGui::BeginPopup(popUpId.c_str())) {
                     auto& availSize = ImGui::GetContentRegionAvail();
                     if(ImGui::Button("Remove component", { availSize.x, 0.f })) {
-                        _scene->getDynamicWorld()->removeRigidBody(physicsComponent.getRigidBody());
+                        physicsComponent.getDynamicsWorld()->removeRigidBody(physicsComponent.getRigidBody());
                         entity.removeComponent<PhysicsComponent>();
                         ImGui::CloseCurrentPopup();
                     }
@@ -378,9 +386,18 @@ namespace TWE {
                 }
                 if(ImGui::BeginPopup(popUpId.c_str())) {
                     auto& availSize = ImGui::GetContentRegionAvail();
+                    bool validateScriptFlag = _scene->_sceneState != SceneState::Edit;
+                    if(validateScriptFlag) {
+                        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+                    }
                     if(ImGui::Button("Validate", { availSize.x, 0.f })) {
                         _scene->validateScript(scriptComponent.getBehaviorClassName());
                         ImGui::CloseCurrentPopup();
+                    }
+                    if(validateScriptFlag) {
+                        ImGui::PopItemFlag();
+                        ImGui::PopStyleVar();
                     }
                     if(ImGui::Button("Remove component", { availSize.x, 0.f })) {
                         entity.getComponent<ScriptComponent>().unbind();

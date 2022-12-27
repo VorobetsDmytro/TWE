@@ -136,11 +136,11 @@ namespace TWE {
         return entity;
     }
 
-    Entity Shape::createCubemapEntity(Scene* scene, const TextureAttachmentSpecification& textureAtttachments) {
+    Entity Shape::createCubemapEntity(Scene* scene, TextureAttachmentSpecification& textureAtttachments) {
         std::vector<std::string> texturePaths;
         for(auto& textureSpec : textureAtttachments.textureSpecifications)
             texturePaths.push_back(textureSpec.imgPath);
-        Texture* texture = Renderer::generateCubemapTexture(texturePaths);
+        Texture* texture = Texture::generateCubemapTexture(textureAtttachments);
         if(!texture)
             return {};
         Entity entity = scene->createEntity();

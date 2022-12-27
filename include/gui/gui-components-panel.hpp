@@ -5,6 +5,7 @@
 #include "scene/shape.hpp"
 #include "registry/registry.hpp"
 #include "gui/gui-components.hpp"
+#include "gui/gui-drag-and-drop-type.hpp"
 
 #include <imgui.h>
 #include <imgui_stdlib.h>
@@ -15,7 +16,7 @@ namespace TWE {
     class GUIComponentsPanel {
     public:
         GUIComponentsPanel();
-        void showComponentPanel(Entity& entity);
+        void showPanel(Entity& entity);
         void setScene(Scene* scene);
     private:
         void showFileDialog(Entity& entity);

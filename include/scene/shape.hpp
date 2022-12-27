@@ -36,7 +36,7 @@ namespace TWE {
         Shape() = default;
         static Entity createCubeEntity(Scene* scene, const TextureAttachmentSpecification& textureAtttachments = {});
         static Entity createPlateEntity(Scene* scene, const TextureAttachmentSpecification& textureAtttachments = {});
-        static Entity createCubemapEntity(Scene* scene, const TextureAttachmentSpecification& textureAtttachments = {});
+        static Entity createCubemapEntity(Scene* scene, TextureAttachmentSpecification& textureAtttachments);
         static Entity createSpotLightEntity(Scene* scene, const glm::vec3& color = {1.f, 1.f, 1.f}, float innerRadius = 15.f, float outerRadius = 20.f, float constant = 1.f, float linear = 0.045f, float quadratic = 0.0075f);
         static Entity createPointLightEntity(Scene* scene, const glm::vec3& color = {1.f, 1.f, 1.f}, float constant = 1.f, float linear = 0.045f, float quadratic = 0.0075f);
         static Entity createDirLightEntity(Scene* scene, const glm::vec3& color = {1.f, 1.f, 1.f});

@@ -24,7 +24,8 @@
 namespace TWE {
     enum class SceneState {
         Edit,
-        Run
+        Run,
+        Pause
     };
 
     struct SceneRegistrySpecification {
@@ -34,7 +35,7 @@ namespace TWE {
     };
 
     struct ScenePhysicsSpecification {
-        btDynamicsWorld* world;
+        btDynamicsWorld* world = nullptr;
         btDispatcher* dispatcher;
         btConstraintSolver* solver;
         btCollisionConfiguration* collisionConfig;
@@ -53,7 +54,9 @@ namespace TWE {
         Scene(uint32_t windowWidth, uint32_t windowHeight);
         void update();
         void draw();
-        void reset();
+        void resetRegistry(entt::registry* registry);
+        void resetScripts(entt::registry* registry);
+        void resetPhysics(entt::registry* registry);
         void updateView(const glm::mat4& view, const glm::mat4& projection, const glm::vec3& pos);
         void validateScripts();
         void validateScript(const std::string& scriptName);
@@ -64,6 +67,9 @@ namespace TWE {
         void setRegistryLoader(std::function<void(Registry<Behavior>&)> registryLoader);
         void setState(SceneState state);
         void cleanEntity(Entity& entity);
+        void bindScript(DLLLoadData* dllData, Entity& entity);
+        void bindScript(DLLLoadData* dllData, std::vector<Entity>& entities);
+        std::vector<Entity> unbindScript(entt::registry* registry, DLLLoadData* dllData);
         Entity copyEntity(Entity& entity, entt::registry& to);
         Entity createEntity(const std::string& name = "Entity");
         [[nodiscard]] bool& getIsFocusedOnDebugCamera();
@@ -83,15 +89,14 @@ namespace TWE {
         void updatePhysics();
         void updateScripts();
         void updateLight();
-        void updateShadows(uint32_t windowWidth, uint32_t windowHeight);
         bool updateView();
+        void initPhysics();
+        void updateShadows(uint32_t windowWidth, uint32_t windowHeight);
         void setShadows(const LightComponent& lightComponent, const glm::mat4& lightSpaceMat, int index);
-        void bindScript(DLLLoadData* dllData, std::vector<Entity>& entities);
         void setTransMat(const glm::mat4& transform, TransformMatrixOptions option);
         void setLight(const LightComponent& light, const TransformComponent& transform, const MeshRendererComponent& meshRenderer, const  uint32_t index);
         void setViewPos(const glm::vec3& pos);
         void copyEntityRegistry(entt::registry& from, entt::registry& to);
-        [[nodiscard]] std::vector<Entity> unbindScript(DLLLoadData* dllData);
 
         SceneState _sceneState;
         SceneRegistrySpecification _entityRegistry;
@@ -110,6 +115,7 @@ namespace TWE {
         friend class Entity;
         friend class GUI;
         friend class GUIComponentsPanel;
+        friend class GUIDirectoryPanel;
         friend class SceneSerializer;
     };
 }

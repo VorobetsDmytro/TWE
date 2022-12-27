@@ -18,6 +18,7 @@ namespace TWE {
         MeshComponent(float* vertices, int vertSize, uint32_t* indices, int indSize, const std::string& registryId, Texture* texture);
         MeshComponent(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId, const TextureAttachmentSpecification& textureAtttachments = {});
         MeshComponent(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId, Texture* texture);
+        MeshComponent(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId, std::shared_ptr<Texture> texture);
         MeshComponent(const MeshComponent& mesh);
         void setMesh(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId);
         void setModelPath(const std::string& modelPath);

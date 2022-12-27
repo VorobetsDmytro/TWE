@@ -4,6 +4,8 @@ namespace TWE {
     std::string RegistryRecorder::_registryLoaderPath;
 
     void RegistryRecorder::recordScript(const std::string& className, const std::string& scriptDirectoryPath) {
+        if(!std::filesystem::exists(_registryLoaderPath))
+            return;
         std::vector<std::string> fileBody;
         std::ifstream is;
         is.open(_registryLoaderPath);
@@ -30,6 +32,35 @@ namespace TWE {
                 continue;
             }
             os << line << '\n';
+        }
+        os.close();
+    }
+
+    void RegistryRecorder::removeScript(const std::string& className) {
+        if(!std::filesystem::exists(_registryLoaderPath))
+            return;
+        std::vector<std::string> fileBody;
+        std::ifstream is;
+        is.open(_registryLoaderPath);
+        for(std::string line; std::getline(is, line);)
+            fileBody.push_back(line);
+        is.close();
+
+        std::ofstream os;
+        os.open(_registryLoaderPath, std::ios::trunc);
+        bool skipNext = false;
+        std::string includeName = "//" + className;
+        std::string registryAddName = "registry.add<" + className + ">(\"" + className + "\");";
+        for(auto& line : fileBody) {
+            if(skipNext) {
+                skipNext = false;
+                continue;
+            }
+            std::string trimLine = trim(line);
+            if(trimLine == includeName)
+                skipNext = true;
+            else if(trimLine != registryAddName)
+                os << line << '\n';
         }
         os.close();
     }

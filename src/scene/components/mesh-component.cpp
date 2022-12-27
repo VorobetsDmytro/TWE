@@ -23,6 +23,9 @@ namespace TWE {
         this->texture = std::make_shared<Texture>(*texture);
     }
 
+    MeshComponent::MeshComponent(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId, std::shared_ptr<Texture> texture) 
+     : vao(vao), vbo(vbo), ebo(ebo), registryId(registryId), texture(texture) {}
+
     MeshComponent::MeshComponent(const MeshComponent& mesh) {
         this->vao = mesh.vao;
         this->vbo = mesh.vbo;

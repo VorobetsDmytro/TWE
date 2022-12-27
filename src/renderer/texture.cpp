@@ -3,6 +3,10 @@
 namespace TWE {
     Texture::Texture(const TextureAttachmentSpecification& attachments)
     : _attachments(attachments) {
+        if(!_attachments.textureSpecifications.empty() && _attachments.textureSpecifications[0].texType == TextureType::CubemapTexture) {
+            generateCubemapTexture(_attachments);
+            return;
+        }
         for(auto& specification : _attachments.textureSpecifications)
             create(specification);
     }
@@ -91,6 +95,35 @@ namespace TWE {
             if(_attachments.textureSpecifications[i].texNumber == texNumber)
                 return i;
         return -1;
+    }
+
+    Texture* Texture::generateCubemapTexture(TextureAttachmentSpecification& attachments) {
+        if(attachments.textureSpecifications.size() != 6) {
+            std::cout << "Error loading a cubemap texture.\nTexture paths size has to be 6." << std::endl;
+            return nullptr;
+        }
+        uint32_t id;
+        glGenTextures(1, &id);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, id);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        int width, height, chanInFile;
+        int i = 0;
+        for(auto& spec : attachments.textureSpecifications) {
+            auto imgBytes = stbi_load(spec.imgPath.c_str(), &width, &height, &chanInFile, 4);
+            GLint inOutFormat = static_cast<GLint>(spec.inOutTexFormat);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i++, 0, inOutFormat, width, height, 0, inOutFormat, GL_UNSIGNED_BYTE, imgBytes);
+            stbi_image_free(imgBytes);
+            spec.id = id;
+        }
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+        Texture* texture = new Texture();
+        texture->setAttachments(attachments);
+        return texture;
     }
 
     uint32_t Texture::getId(int index) const noexcept { return _attachments.textureSpecifications[index].id; }

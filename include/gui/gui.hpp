@@ -4,9 +4,10 @@
 #include "scene/scene.hpp"
 #include "scene/scene-serializer.hpp"
 #include "gui/gui-components-panel.hpp"
+#include "gui/gui-directory-panel.hpp"
 #include "registry/registry.hpp"
-#include "stream/script-creator.hpp"
-#include "stream/registry-recorder.hpp"
+// #include "stream/script-creator.hpp"
+// #include "stream/registry-recorder.hpp"
 
 #include <glfw3.h>
 #include <imgui.h>
@@ -49,6 +50,7 @@ namespace TWE {
         void addInputText(const char* name, std::string& var);
         void addButton(const char* name, std::function<void()> func);
         void setScene(Scene* scene);
+        void setDirectoryRootPath(const std::string& rootPath);
         [[nodiscard]] bool getIsMouseOnViewport();
         [[nodiscard]] bool getIsFocusedOnViewport();
     private:
@@ -57,16 +59,15 @@ namespace TWE {
         void showTestPanel();
         void showViewportPanel();
         void showViewportStatePanel();
-        void showDirectoryPanel();
         void showFileDialog();
         void showSceneEntityPopup(const std::string& popupId);
         void showSceneMenuPopup(const std::string& popupId);
-        void showDirectoryMenuPopup(const std::string& popupId);
         bool showGizmo();
         void processInput();
         void selectEntity(Entity& entity);
         void unselectEntity();
         GUIComponentsPanel _components;
+        GUIDirectoryPanel _directory;
         GUISpecification _specification;
         std::vector<std::pair<const char*, bool&>> _checkBoxes;
         std::vector<std::pair<const char*, std::string&>> _inputTextes;
