@@ -1,4 +1,4 @@
 /.vscode
 /build
 /external
-/temp
+/test/scripts/temp

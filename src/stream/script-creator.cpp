@@ -28,10 +28,6 @@ namespace TWE {
     }
 
     bool ScriptCreator::validateScriptName(const std::string& scriptName) {
-        if(scriptName.empty())
-            return false;
-        if(std::regex_match(scriptName, std::regex("^[\\d,\\s,$-/:-?{-~!\"^_`\\[\\]]")))
-            return false;
-        return true;
+        return std::regex_match(scriptName, std::regex("^[a-zA-Z][a-zA-Z0-9]+"));
     }
 }

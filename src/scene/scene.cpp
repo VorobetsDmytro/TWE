@@ -39,16 +39,8 @@ namespace TWE {
         _name = name;
     }
 
-    void Scene::setScriptRegistry(Registry<Behavior>* scriptRegistry) {
-        _scriptRegistry = scriptRegistry;
-    }
-
     void Scene::setScriptDLLRegistry(Registry<DLLLoadData>* scriptDLLRegistry) {
         _scriptDLLRegistry = scriptDLLRegistry;
-    }
-
-    void Scene::setRegistryLoader(std::function<void(Registry<Behavior>&)> registryLoader) {
-        _registryLoader = registryLoader;
     }
 
     void Scene::setState(SceneState state) {
@@ -62,7 +54,7 @@ namespace TWE {
             _isFocusedOnDebugCamera = false;
             resetPhysics(&_entityRegistry.runEntityRegistry);
             resetScripts(&_entityRegistry.runEntityRegistry);
-            resetRegistry(&_entityRegistry.runEntityRegistry);
+            resetEntityRegistry(&_entityRegistry.runEntityRegistry);
             initPhysics();
             copyEntityRegistry(_entityRegistry.editEntityRegistry, _entityRegistry.runEntityRegistry);
             _entityRegistry.curEntityRegistry = &_entityRegistry.runEntityRegistry;
@@ -125,7 +117,18 @@ namespace TWE {
             validateScript(scriptName);
     }
 
-    void Scene::resetRegistry(entt::registry* registry) {
+    void Scene::reset() {
+        resetPhysics(&_entityRegistry.runEntityRegistry);
+        resetScripts(&_entityRegistry.runEntityRegistry);
+        resetEntityRegistry(&_entityRegistry.runEntityRegistry);
+        resetScripts(&_entityRegistry.editEntityRegistry);
+        resetEntityRegistry(&_entityRegistry.editEntityRegistry);
+        setState(SceneState::Edit);
+        _scriptDLLRegistry->clean();
+        initPhysics();
+    }
+
+    void Scene::resetEntityRegistry(entt::registry* registry) {
         registry->clear();
         *registry = {};
     }
@@ -413,8 +416,9 @@ namespace TWE {
 
         if(entity.hasComponent<MeshRendererComponent>()) {
             auto& meshRendererComponent = entity.getComponent<MeshRendererComponent>();
-            to.emplace<MeshRendererComponent>(instance, meshRendererComponent.shader->getVertPath().c_str(), meshRendererComponent.shader->getFragPath().c_str(),
+            auto& meshRendererComponentCopy = to.emplace<MeshRendererComponent>(instance, meshRendererComponent.shader->getVertPath().c_str(), meshRendererComponent.shader->getFragPath().c_str(),
                 (int)instance, meshRendererComponent.registryId);
+            meshRendererComponentCopy.setMaterial(meshRendererComponent.material);
         }
 
         if(entity.hasComponent<PhysicsComponent>()) {
@@ -434,7 +438,5 @@ namespace TWE {
     btDynamicsWorld* Scene::getDynamicWorld() const noexcept { return _scenePhysics.world; }
     std::string Scene::getName() const noexcept { return _name; }
     FBO* Scene::getFrameBuffer() const noexcept { return _frameBuffer.get(); }
-    Registry<Behavior>* Scene::getScriptRegistry() const noexcept { return _scriptRegistry; }
     Registry<DLLLoadData>* Scene::getScriptDLLRegistry() const noexcept { return _scriptDLLRegistry; }
-    std::function<void(Registry<Behavior>&)> Scene::getRegistryLoader() const noexcept { return _registryLoader; }
 }

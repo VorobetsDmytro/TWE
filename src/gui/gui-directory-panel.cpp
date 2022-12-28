@@ -2,13 +2,8 @@
 
 namespace TWE {
     GUIDirectoryPanel::GUIDirectoryPanel() {
-        _rootPath = "";
-        _curPath = _rootPath;
-        loadTextures();
-    }
-
-    GUIDirectoryPanel::GUIDirectoryPanel(const std::string& rootPath): _rootPath(rootPath) {
-        _curPath = _rootPath;
+        _projectData = new ProjectData();
+        _curPath = _projectData->rootPath;
         loadTextures();
     }
 
@@ -23,9 +18,13 @@ namespace TWE {
         _fileTexture->setTexture(fileSpec);
     }
 
-    void GUIDirectoryPanel::setRootPath(const std::string& rootPath) {
-        _rootPath = rootPath;
-        _curPath = _rootPath;
+    void GUIDirectoryPanel::setProjectData(ProjectData* projectData) {
+        _projectData = projectData;
+        _curPath = projectData->rootPath;
+    }
+
+    void GUIDirectoryPanel::setCurrentPath(const std::filesystem::path& curPath) {
+        _curPath = curPath;
     }
 
     void GUIDirectoryPanel::showPanel() {
@@ -48,13 +47,13 @@ namespace TWE {
 
     bool GUIDirectoryPanel::renderContent() {
         bool isInteracted = false;
-        int cleanPos = _rootPath.string().find(_rootPath.filename().string());
+        int cleanPos = _projectData->rootPath.string().find(_projectData->rootPath.filename().string());
         std::string curPath = _curPath.string().substr(cleanPos, _curPath.string().length());
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0, 10.f });
         std::string curPathTitle = "Current path: " + curPath;
         ImGui::Text(curPathTitle.c_str());
         ImGui::PopStyleVar();
-        if(_curPath != _rootPath) {
+        if(_curPath != _projectData->rootPath) {
             ImGui::SameLine();
             float backBtnHeight = 15.f;
             if(ImGui::Button("Back"))
@@ -96,8 +95,15 @@ namespace TWE {
                 if(ImGui::IsMouseDoubleClicked(0)) {
                     ImGui::SetWindowFocus();
                     isInteracted = true;
+                    std::string extension = path.extension().string();
                     if(entry.is_directory())
                         _curPath /= path.filename();
+                    else if(extension == ".scene") {
+                        _scene->reset();
+                        SceneSerializer::deserialize(_scene, path.string());
+                        _projectData->lastScenePath = path;
+                        ProjectCreator::save(_projectData);
+                    }
                 } else if(ImGui::IsMouseClicked(1)) {
                     ImGui::SetWindowFocus();
                     isInteracted = true;
@@ -119,8 +125,17 @@ namespace TWE {
         if(ImGui::BeginPopup(popupId.c_str())) {
             auto& availSize = ImGui::GetContentRegionAvail();
             std::string fileExtension = filePath.extension().string();
+            if(fileExtension == ".scene") {
+                if(ImGui::Button("Load scene", {availSize.x, 0.f})) {
+                    _scene->reset();
+                    SceneSerializer::deserialize(_scene, filePath.string());
+                    _projectData->lastScenePath = filePath;
+                    ProjectCreator::save(_projectData);
+                    ImGui::CloseCurrentPopup();
+                }
+            }
+            bool validateScriptFlag = _scene->_sceneState != SceneState::Edit;
             if(fileExtension == ".hpp") {
-                bool validateScriptFlag = _scene->_sceneState != SceneState::Edit;
                 if(validateScriptFlag) {
                     ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
                     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
@@ -135,6 +150,10 @@ namespace TWE {
                     ImGui::PopStyleVar();
                 }
             }
+            if(validateScriptFlag) {
+                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+            }
             if(ImGui::Button("Remove", {availSize.x, 0.f})) {
                 if(fileExtension == ".hpp") {
                     std::string fileName = filePath.stem().string();
@@ -145,14 +164,19 @@ namespace TWE {
                             _scene->unbindScript(&_scene->_entityRegistry.runEntityRegistry, scriptDLLData);
                             DLLCreator::freeDLLFunc(*scriptDLLData);
                             _scene->_scriptDLLRegistry->erase(fileName);
-                            _scene->_scriptRegistry->erase(fileName);
                             DLLCreator::removeScript(fileName);
-                            RegistryRecorder::removeScript(fileName);
                         }
                     }
                 }
-                std::filesystem::remove_all(filePath);
+                if(std::filesystem::is_directory(filePath) && !std::filesystem::is_empty(filePath))
+                    std::cout << "Not empty folder can't be deleted.\n";
+                else
+                    std::filesystem::remove(filePath);
                 ImGui::CloseCurrentPopup();
+            }
+            if(validateScriptFlag) {
+                ImGui::PopItemFlag();
+                ImGui::PopStyleVar();
             }
             ImGui::EndPopup();
         }
@@ -175,14 +199,13 @@ namespace TWE {
             if(ImGui::BeginMenu("Create script")) {
                 static std::string scriptName;
                 if(GUIComponents::inputAndButton("Script name", scriptName, "Create")) {
-                    auto checkScriptUniqName = _scene->_scriptRegistry->get(scriptName);
+                    auto checkScriptUniqName = _scene->_scriptDLLRegistry->get(scriptName);
                     if(!checkScriptUniqName) {
                         std::string scriptDirectoryPath = _curPath.string();
                         if(ScriptCreator::create(scriptName, scriptDirectoryPath)) {
                             auto dllData = new DLLLoadData(DLLCreator::compileScript(scriptName, scriptDirectoryPath));
                             if(dllData->isValid) {
                                 _scene->_scriptDLLRegistry->add(scriptName, dllData);
-                                RegistryRecorder::recordScript(scriptName, scriptDirectoryPath);
                             }
                             scriptName.clear();
                             ImGui::CloseCurrentPopup();

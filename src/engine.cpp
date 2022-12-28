@@ -1,15 +1,13 @@
 #include "engine.hpp"
 
 namespace TWE {
-    int Engine::wndWidth = 0.f;
-    int Engine::wndHeight = 0.f;
     std::shared_ptr<DebugCamera> Engine::debugCamera = std::make_shared<DebugCamera>(glm::vec3(0.f, 0.f, 0.f), 0.1f);
     std::shared_ptr<Scene> Engine::curScene;
-    Registry<Behavior> Engine::scriptRegistry;
     Registry<DLLLoadData> Engine::scriptDLLRegistry;
     Registry<MeshSpecification> Engine::meshRegistry;
     Registry<MeshRendererSpecification> Engine::meshRendererRegistry;
     std::unique_ptr<GUI> Engine::gui;
+    std::unique_ptr<ProjectData> Engine::projectData;
 
     Engine::Engine(int wndWidth, int wndHeight, const char* title, GLFWmonitor* monitor, GLFWwindow* share) {
         //glfw
@@ -41,16 +39,16 @@ namespace TWE {
         gui = std::make_unique<GUI>(window);
         //initialization vars
         srand(static_cast<unsigned>(time(0)));
-        Engine::wndWidth = wndWidth;
-        Engine::wndHeight = wndHeight;
+        windowTitle = title;
+        projectData = std::make_unique<ProjectData>();
         debugCamera->setPerspective(90.f, wndWidth, wndHeight);
         curScene = std::make_shared<TWE::Scene>(wndWidth, wndHeight);
         Shape::meshRegistry = &meshRegistry;
         Shape::meshRendererRegistry = &meshRendererRegistry;
         curScene->setDebugCamera(debugCamera.get());
         curScene->setScriptDLLRegistry(&scriptDLLRegistry);
-        curScene->setScriptRegistry(&scriptRegistry);
         gui->setScene(curScene.get());
+        gui->setProjectData(projectData.get());
         setVSync(true);
     }
 
@@ -110,9 +108,12 @@ namespace TWE {
 
     void Engine::start(){
         gui->addCheckbox("Debug camera focus", curScene->getIsFocusedOnDebugCamera());
+        std::string title;
         while(!glfwWindowShouldClose(window)){
             Renderer::cleanScreen({0.25f, 0.25f, 0.25f, 0.f});
             glfwPollEvents();
+            title = windowTitle + " - " + projectData->projectName + ": " + curScene->getName();
+            glfwSetWindowTitle(window, title.c_str());
             keyInput();
             curScene->update();
             gui->update();

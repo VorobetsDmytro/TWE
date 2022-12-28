@@ -3,7 +3,9 @@
 namespace TWE {
     void SceneSerializer::serialize(Scene* scene, const std::string& path) {
         nlohmann::json jsonMain;
-        jsonMain["Scene"] = scene->getName();
+        std::string sceneName = std::filesystem::path(path).stem().string();
+        scene->setName(sceneName);
+        jsonMain["Scene"] = sceneName;
         nlohmann::json jsonEntities = nlohmann::json::array();
         scene->_entityRegistry.editEntityRegistry.each([&](entt::entity entity) {
             Entity instance = { entity, scene };
@@ -45,7 +47,6 @@ namespace TWE {
                 }
                 break;
             }
-        scene->_registryLoader(*scene->_scriptRegistry);
         for(auto& [key, value] : items)
             if(key == "Entities") {
                 auto& entities = value.items();
@@ -483,13 +484,18 @@ namespace TWE {
         auto& scriptComponent = entity.getComponent<ScriptComponent>();
 
         std::string behaviorName = jsonComponent["BehaviorClassName"];
-        Behavior* behavior = scene->_scriptRegistry->get(behaviorName);
-        if(behavior) {
-            scriptComponent.bind(behavior, behaviorName);
-            scene->_scriptRegistry->erase(behaviorName);
-            scene->_registryLoader(*scene->_scriptRegistry);
-        } else
+        auto* dllData = scene->_scriptDLLRegistry->get(behaviorName);
+        if(!dllData || !dllData->isValid) {
             scriptComponent.bind<Behavior>();
+            return;
+        }
+        auto behaviorFactory = DLLCreator::loadDLLFunc(*dllData);
+        if(!behaviorFactory) {
+            scriptComponent.bind<Behavior>();
+            return;
+        }
+        Behavior* behavior = (Behavior*)behaviorFactory();
+        scriptComponent.bind(behavior, dllData->scriptName);
     }
 
     std::string SceneSerializer::deleteInvertedCommas(const std::string& str) {

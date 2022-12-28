@@ -2,11 +2,10 @@
 
 namespace TWE {
     std::string DLLCreator::_tempDir;
-    std::string DLLCreator::_openCLSDKPath;
     
     DLLLoadData DLLCreator::compileScript(const std::string& scriptName, const std::string& scriptDirectoryPath) {
         createScriptDirectory(_tempDir, scriptName);
-        createCMakeFile(_tempDir, scriptName, _openCLSDKPath);
+        createCMakeFile(_tempDir, scriptName);
         createCPPFile(_tempDir, scriptName, scriptDirectoryPath);
         std::string buildDir = _tempDir + '/' + scriptName + "/build"; 
         std::string generateCommand = "cmake -S " + _tempDir + '/' + scriptName + " -B " + buildDir ;
@@ -61,7 +60,7 @@ namespace TWE {
             std::filesystem::create_directory(buildDir);
     }
 
-    void DLLCreator::createCMakeFile(const std::string& tempDir, const std::string& scriptName, const std::string& openCLSDKPath) {
+    void DLLCreator::createCMakeFile(const std::string& tempDir, const std::string& scriptName) {
         std::string cmakeFilePath = tempDir + '/' + scriptName + "/CMakeLists.txt";
         if(std::filesystem::exists(cmakeFilePath))
             return;
@@ -75,8 +74,7 @@ namespace TWE {
 
         os << "file(GLOB_RECURSE LIBFILES\n";
         os << "\"../../lib/*.lib\"\n";
-        os << "\"../../external/*.lib\"\n";
-        os << "\"" << openCLSDKPath + "/lib/*.lib\")\n";
+        os << "\"../../external/*.lib\")\n";
 
         os << "add_library(" + scriptName << " MODULE ${CPPFILES})\n";
         os << "target_compile_features(" + scriptName + " PRIVATE cxx_std_17)\n";
@@ -93,8 +91,7 @@ namespace TWE {
         os << "\"../../external/assimp\"\n";
         os << "\"../../external/bullet3\"\n";
         os << "\"../../external/entt\"\n";
-        os << "\"../../external/json\"\n";
-        os << "\"" << openCLSDKPath + "/include\")\n";
+        os << "\"../../external/json\")\n";
 
         os << "target_link_libraries(" + scriptName + " PRIVATE ${LIBFILES})\n";
 
@@ -116,9 +113,8 @@ namespace TWE {
         os.close();
     }
 
-    void DLLCreator::initPaths(const std::string& tempDir, const std::string& openCLSDKPath) {
+    void DLLCreator::initPaths(const std::string& tempDir) {
         _tempDir = tempDir;
-        _openCLSDKPath = openCLSDKPath;
     }
 
     void DLLCreator::removeScript(const std::string& scriptName) {

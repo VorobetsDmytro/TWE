@@ -6,8 +6,7 @@
 #include "gui/gui-components-panel.hpp"
 #include "gui/gui-directory-panel.hpp"
 #include "registry/registry.hpp"
-// #include "stream/script-creator.hpp"
-// #include "stream/registry-recorder.hpp"
+#include "stream/project-creator.hpp"
 
 #include <glfw3.h>
 #include <imgui.h>
@@ -34,6 +33,7 @@ namespace TWE {
         GUISpecification() = default;
         Scene* _scene;
         Entity _selectedEntity;
+        ProjectData* projectData;
         GizmoOperation _gizmoOperation;
         int readPixelFBOData;
         bool isFileDialogOpen;
@@ -50,7 +50,7 @@ namespace TWE {
         void addInputText(const char* name, std::string& var);
         void addButton(const char* name, std::function<void()> func);
         void setScene(Scene* scene);
-        void setDirectoryRootPath(const std::string& rootPath);
+        void setProjectData(ProjectData* projectData);
         [[nodiscard]] bool getIsMouseOnViewport();
         [[nodiscard]] bool getIsFocusedOnViewport();
     private:

@@ -799,28 +799,28 @@
             }
         }
     ],
-    "Scene": "Unnamed",
+    "Scene": "testscene",
     "ScriptsDLL": [
         {
-            "DLLPath": "../../temp/CameraController/build/Debug/CameraController.dll",
+            "DLLPath": "../../test/scripts/temp/CameraController/build/Debug/CameraController.dll",
             "FactoryFuncName": "createCameraController",
             "ScriptDirectoryPath": "../../test/scripts",
             "ScriptName": "CameraController"
         },
         {
-            "DLLPath": "../../temp/DirBehavior/build/Debug/DirBehavior.dll",
+            "DLLPath": "../../test/scripts/temp/DirBehavior/build/Debug/DirBehavior.dll",
             "FactoryFuncName": "createDirBehavior",
             "ScriptDirectoryPath": "../../test/scripts",
             "ScriptName": "DirBehavior"
         },
         {
-            "DLLPath": "../../temp/RGBLight/build/Debug/RGBLight.dll",
+            "DLLPath": "../../test/scripts/temp/RGBLight/build/Debug/RGBLight.dll",
             "FactoryFuncName": "createRGBLight",
             "ScriptDirectoryPath": "../../test/scripts",
             "ScriptName": "RGBLight"
         },
         {
-            "DLLPath": "../../temp/RotateRGBCube/build/Debug/RotateRGBCube.dll",
+            "DLLPath": "../../test/scripts/temp/RotateRGBCube/build/Debug/RotateRGBCube.dll",
             "FactoryFuncName": "createRotateRGBCube",
             "ScriptDirectoryPath": "../../test/scripts",
             "ScriptName": "RotateRGBCube"

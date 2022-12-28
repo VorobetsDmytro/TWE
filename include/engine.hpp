@@ -21,6 +21,7 @@
 #include "entity/entity.hpp"
 #include "input/input.hpp"
 #include "registry/registry.hpp"
+#include "stream/project-creator.hpp"
 
 namespace TWE {
     class Engine {
@@ -33,12 +34,11 @@ namespace TWE {
         void setVSync(GLboolean isOn);
         GLboolean vSync;
         GLFWwindow* window;
-        static int wndWidth;
-        static int wndHeight;
+        std::string windowTitle;
         static std::unique_ptr<GUI> gui;
+        static std::unique_ptr<ProjectData> projectData;
         static std::shared_ptr<Scene> curScene;
         static std::shared_ptr<DebugCamera> debugCamera;
-        static Registry<Behavior> scriptRegistry;
         static Registry<DLLLoadData> scriptDLLRegistry;
         static Registry<MeshSpecification> meshRegistry;
         static Registry<MeshRendererSpecification> meshRendererRegistry;

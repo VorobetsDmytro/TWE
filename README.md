@@ -2,7 +2,7 @@
 
 The game engine based on OpenGL
 
-![image](https://user-images.githubusercontent.com/82779713/202850236-c5bcea15-d724-4844-a05c-278e392465ed.png)
+![TWE2022-12-27 193127](https://user-images.githubusercontent.com/82779713/209701495-714ab995-ecad-4477-a941-4d85389fef81.png)
 
 ## Requirements
 1. Visual Studio 16 2019
@@ -28,12 +28,6 @@ The next step is generating build files:
 
 Afterwards you have to build the project:
 >`cmake --build .`
-
-## Settings
-You can change the game settings in `"test.cpp"` file.
-
-## Start
-Execute `"*.exe"` file in the build directory.
 
 ## Author
 [Dmytro Vorobets](https://github.com/Parasik72)

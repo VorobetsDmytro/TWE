@@ -8,7 +8,7 @@ file(GLOB_RECURSE CPPFILES
 
 file(GLOB_RECURSE LIBFILES 
     "external/*.lib" 
-    "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.7/lib/*.lib" #Your OpenCL SDK lib path
+    # "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.7/lib/*.lib" #Your OpenCL SDK lib path
 )
 file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/Debug" "${CMAKE_BINARY_DIR}/Release")
 
@@ -28,7 +28,7 @@ target_include_directories(TWE PRIVATE
     "external/bullet3"
     "external/entt"
     "external/json"
-    "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.7/include" #Your OpenCL SDK include path
+    # "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.7/include" #Your OpenCL SDK include path
     "test"
 )
 target_link_libraries(TWE PRIVATE ${LIBFILES})

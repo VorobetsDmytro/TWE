@@ -19,7 +19,8 @@ namespace TWE {
         _specification.isFileDialogOpen = false;
         _specification.isMouseOnViewport = false;
         
-        ImGuiFileDialog::Instance()->SetFileStyle(IGFD_FileStyleByExtention, ".json", ImVec4(1.0f, 1.0f, 0.0f, 1.f));
+        ImGuiFileDialog::Instance()->SetFileStyle(IGFD_FileStyleByExtention, ".scene", ImVec4(1.0f, 1.0f, 0.0f, 1.f));
+        ImGuiFileDialog::Instance()->SetFileStyle(IGFD_FileStyleByExtention, ".project", ImVec4(1.0f, 1.0f, 0.0f, 1.f));
     }
 
     GUI::~GUI() {
@@ -66,10 +67,18 @@ namespace TWE {
         }
         if (ImGui::BeginMenuBar()) {
             if (ImGui::BeginMenu("File")) {
+                if(ImGui::MenuItem("New project"))
+                    ImGuiFileDialog::Instance()->OpenDialog("NewProject", "Choose File", ".project", ".", 1, nullptr);
+                if(ImGui::MenuItem("Open project"))
+                    ImGuiFileDialog::Instance()->OpenDialog("OpenProject", "Choose File", ".project", ".", 1, nullptr);
+                ImGui::Separator();
                 if(ImGui::MenuItem("Save scene"))
-                    ImGuiFileDialog::Instance()->OpenDialog("SaveScene", "Choose File", ".json", ".", 1, nullptr);
+                    SceneSerializer::serialize(_specification._scene, _specification.projectData->lastScenePath.string());
+                if(ImGui::MenuItem("Save scene as"))
+                    ImGuiFileDialog::Instance()->OpenDialog("SaveSceneAs", "Choose File", ".scene", 
+                        (_specification.projectData->rootPath.string() + '/').c_str(), 1, nullptr);
                 if(ImGui::MenuItem("Load scene"))
-                    ImGuiFileDialog::Instance()->OpenDialog("LoadScene", "Choose File", ".json", ".", 1, nullptr);
+                    ImGuiFileDialog::Instance()->OpenDialog("LoadScene", "Choose File", ".scene", ".", 1, nullptr);
                 ImGui::Separator();
                 bool validateScriptsFlag = _specification._scene->_sceneState != SceneState::Edit;
                 if(validateScriptsFlag) {
@@ -100,7 +109,8 @@ namespace TWE {
         showScenePanel();
         showTestPanel();
         showViewportPanel();
-        _directory.showPanel();
+        if(!_specification.projectData->rootPath.empty())
+            _directory.showPanel();
         _components.showPanel(_specification._selectedEntity);
         ImGui::End();
     }
@@ -311,10 +321,49 @@ namespace TWE {
     }
 
     void GUI::showFileDialog() {
-        if(ImGuiFileDialog::Instance()->Display("SaveScene"))  {
+        if(ImGuiFileDialog::Instance()->Display("NewProject"))  {
+            if(ImGuiFileDialog::Instance()->IsOk()) {
+                std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+                std::string projectName = std::filesystem::path(filePathName).stem().string();
+                std::string projectDir = std::filesystem::path(filePathName).parent_path().string();
+                if(ProjectCreator::create(projectName, projectDir)) {
+                    std::string projectFilePath = projectDir + '/' + projectName + '/' + projectName + ".project";
+                    auto projectData = ProjectCreator::load(projectFilePath);
+                    if(projectData) {
+                        DLLCreator::initPaths(projectData->dllTempDir.string());
+                        *_specification.projectData = *projectData;
+                        _directory.setCurrentPath(projectData->rootPath);
+                        _specification._scene->reset();
+                        if(!projectData->lastScenePath.empty())
+                            SceneSerializer::deserialize(_specification._scene, projectData->lastScenePath.string());
+                    }
+                }
+            }
+            ImGuiFileDialog::Instance()->Close();
+            return;
+        }
+        if(ImGuiFileDialog::Instance()->Display("OpenProject"))  {
+            if(ImGuiFileDialog::Instance()->IsOk()) {
+                std::string projectFilePath = ImGuiFileDialog::Instance()->GetFilePathName();
+                auto projectData = ProjectCreator::load(projectFilePath);
+                if(projectData) {
+                    DLLCreator::initPaths(projectData->dllTempDir.string());
+                    *_specification.projectData = *projectData;
+                    _directory.setCurrentPath(projectData->rootPath);
+                    _specification._scene->reset();
+                    if(!projectData->lastScenePath.empty())
+                        SceneSerializer::deserialize(_specification._scene, projectData->lastScenePath.string());
+                }
+            }
+            ImGuiFileDialog::Instance()->Close();
+            return;
+        }
+        if(ImGuiFileDialog::Instance()->Display("SaveSceneAs"))  {
             if(ImGuiFileDialog::Instance()->IsOk()) {
                 std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
                 SceneSerializer::serialize(_specification._scene, filePathName);
+                _specification.projectData->lastScenePath = filePathName;
+                ProjectCreator::save(_specification.projectData);
             }
             ImGuiFileDialog::Instance()->Close();
             return;
@@ -323,14 +372,10 @@ namespace TWE {
             if(ImGuiFileDialog::Instance()->IsOk()) {
                 std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
                 unselectEntity();
-                _specification._scene->resetPhysics(&_specification._scene->_entityRegistry.runEntityRegistry);
-                _specification._scene->resetScripts(&_specification._scene->_entityRegistry.runEntityRegistry);
-                _specification._scene->resetRegistry(&_specification._scene->_entityRegistry.runEntityRegistry);
-                _specification._scene->resetScripts(&_specification._scene->_entityRegistry.editEntityRegistry);
-                _specification._scene->resetRegistry(&_specification._scene->_entityRegistry.editEntityRegistry);
-                _specification._scene->setState(SceneState::Edit);
-                _specification._scene->initPhysics();
+                _specification._scene->reset();
                 SceneSerializer::deserialize(_specification._scene, filePathName);
+                _specification.projectData->lastScenePath = filePathName;
+                ProjectCreator::save(_specification.projectData);
             }
             ImGuiFileDialog::Instance()->Close();
             return;
@@ -420,6 +465,13 @@ namespace TWE {
                 unselectEntity();
             }
         }
+        if(Input::isKeyPressed(Keyboard::KEY_LEFT_CONTROL) && Input::isKeyPressed(Keyboard::KEY_S)) {
+            if(!_specification.projectData->lastScenePath.empty())
+                SceneSerializer::serialize(_specification._scene, _specification.projectData->lastScenePath.string());
+            else
+                ImGuiFileDialog::Instance()->OpenDialog("SaveSceneAs", "Choose File", ".scene", 
+                    (_specification.projectData->rootPath.string() + '/').c_str(), 1, nullptr);
+        }
     }
 
     void GUI::addCheckbox(const char* name, bool& var) {
@@ -440,8 +492,9 @@ namespace TWE {
         _directory.setScene(scene);
     }
 
-    void GUI::setDirectoryRootPath(const std::string& rootPath) {
-        _directory.setRootPath(rootPath);
+    void GUI::setProjectData(ProjectData* projectData) {
+        _specification.projectData = projectData;
+        _directory.setProjectData(projectData);
     }
 
     bool GUI::getIsMouseOnViewport() { return _specification.isMouseOnViewport; }

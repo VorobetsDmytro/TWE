@@ -2,11 +2,12 @@
 #define GUI_DIRECTORY_PANEL_HPP
 
 #include "scene/scene.hpp"
+#include "scene/scene-serializer.hpp"
 #include "registry/registry.hpp"
 #include "stream/script-creator.hpp"
+#include "stream/project-creator.hpp"
 #include "gui/gui-components.hpp"
 #include "gui/gui-drag-and-drop-type.hpp"
-#include "stream/registry-recorder.hpp"
 #include "renderer/texture.hpp"
 
 #include <imgui.h>
@@ -21,18 +22,19 @@ namespace TWE {
     class GUIDirectoryPanel {
     public:
         GUIDirectoryPanel();
-        GUIDirectoryPanel(const std::string& rootPath);
         void showPanel();
         void setScene(Scene* scene);
-        void setRootPath(const std::string& rootPath);
+        void setProjectData(ProjectData* projectData);
+        void setCurrentPath(const std::filesystem::path& curPath);
     private:
+        void loadScene(std::filesystem::path& scenePath);
         void loadTextures();
         void showDirectoryMenuPopup(const std::string& popupId);
         void showDirectoryFileMenuPopup(const std::string& popupId, std::filesystem::path& filePath);
         bool renderContent();
-        std::filesystem::path _rootPath;
         std::filesystem::path _curPath;
         Scene* _scene;
+        ProjectData* _projectData;
         Texture* _dirTexture;
         Texture* _fileTexture;
         std::string _dirImgPath;

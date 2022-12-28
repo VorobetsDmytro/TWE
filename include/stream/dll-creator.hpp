@@ -36,15 +36,14 @@ namespace TWE {
     class DLLCreator {
     public:
         static DLLLoadData compileScript(const std::string& scriptName, const std::string& scriptDirectoryPath);
-        static void initPaths(const std::string& tempDir, const std::string& openCLSDKPath);
+        static void initPaths(const std::string& tempDir);
         static void removeScript(const std::string& scriptName);
         [[nodiscard]] static PVoid loadDLLFunc(DLLLoadData& loadData);
         [[nodiscard]] static void freeDLLFunc(DLLLoadData& loadData);
     private:
         static std::string _tempDir;
-        static std::string _openCLSDKPath;
         static void createScriptDirectory(const std::string& tempDir, const std::string& scriptName);
-        static void createCMakeFile(const std::string& tempDir, const std::string& scriptName, const std::string& openCLSDKPath);
+        static void createCMakeFile(const std::string& tempDir, const std::string& scriptName);
         static void createCPPFile(const std::string& tempDir, const std::string& scriptName, const std::string& scriptDirectoryPath);
     };
 }

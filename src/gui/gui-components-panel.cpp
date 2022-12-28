@@ -100,10 +100,7 @@ namespace TWE {
             }
             if(!entity.hasComponent<ScriptComponent>()) {
                 if(ImGui::Button("Script component", {availSize.x, 0.f})) {
-                    std::string behaviorName = "Behavior";
-                    entity.addComponent<ScriptComponent>().bind(_scene->_scriptRegistry->get(behaviorName), behaviorName);
-                    _scene->_scriptRegistry->erase(behaviorName);
-                    _scene->_registryLoader(*_scene->_scriptRegistry);
+                    entity.addComponent<ScriptComponent>().bind<Behavior>();
                     ImGui::CloseCurrentPopup();
                 }
             }

@@ -3,15 +3,12 @@
 namespace TWE {
     Test::Test(int wndWidth, int wndHeight, const char* title, GLFWmonitor *monitor, GLFWwindow *share)
     :Engine(wndWidth, wndHeight, title, monitor, share){
-        RegistryLoader::load(scriptRegistry);
-        RegistryRecorder::initPaths("../../test/registry-loader.hpp");
-        DLLCreator::initPaths("../../temp", "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.7");
+        // DLLCreator::initPaths("../../temp");
         
-        gui->setDirectoryRootPath("../../test");
-        curScene->setRegistryLoader(&RegistryLoader::load);
+        // gui->setDirectoryRootPath("../../test");
         debugCamera->setPosition({0.f, 1.f, 6.f});
 
-        SceneSerializer::deserialize(curScene.get(), "../../test/scenes/testscene.json");
+        // SceneSerializer::deserialize(curScene.get(), "../../test/scenes/testscene.scene");
         setVSync(false);
 
         // RegistryRecorder::recordScript("../../test/registry-loader.hpp", "RotateRGBCube", "../../test/scripts");

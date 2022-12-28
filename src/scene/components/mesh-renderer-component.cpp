@@ -27,6 +27,10 @@ namespace TWE {
         shader->setUniform("id", entityId);
     }
 
+    void MeshRendererComponent::setMaterial(const Material& material) {
+        this->material = material;
+    }
+
     void MeshRendererComponent::updateMaterialUniform() {
         shader->setUniform("material.objColor", material.objColor);
         shader->setUniform("material.ambient", material.ambient);

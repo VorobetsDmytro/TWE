@@ -17,6 +17,7 @@ namespace TWE {
         T* get(const std::string& key);
         bool has(const std::string& key);
         void erase(const std::string& key);
+        void clean();
         [[nodiscard]] std::vector<std::string> getKeys();
         [[nodiscard]] std::vector<T*> getValues();
         [[nodiscard]] std::map<std::string, T*>& getSource();
@@ -70,6 +71,11 @@ namespace TWE {
         if(item == _registry.end())
             return;
         _registry.erase(key);
+    }
+
+    template<typename T>
+    void Registry<T>::clean() {
+        _registry.clear();
     }
 
     template<typename T>

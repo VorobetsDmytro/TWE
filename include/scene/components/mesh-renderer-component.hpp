@@ -15,6 +15,7 @@ namespace TWE {
         MeshRendererComponent(const MeshRendererComponent& meshRendererComponent);
         void updateMaterialUniform();
         void setShader(const char* vertexShaderPath, const char* fragmentShaderPath, const std::string& registryId);
+        void setMaterial(const Material& material);
         Material material;
         std::shared_ptr<Shader> shader;
         std::shared_ptr<Shader> colliderShader;
