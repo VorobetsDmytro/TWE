@@ -4,10 +4,7 @@ namespace TWE {
     GUI::GUI(GLFWwindow *window) {
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
-        // io.Fonts->AddFontDefault();
-        // static const ImWchar icons_ranges[] = { ICON_MIN_IGFS, ICON_MAX_IGFS, 0 };
-        // ImFontConfig icons_config; icons_config.MergeMode = true; icons_config.PixelSnapH = true;
-        // ImGui::GetIO().Fonts->AddFontFromFileTTF(FONT_ICON_FILE_NAME_IGFS, 15.0f, &icons_config, icons_ranges);
+        io.Fonts->AddFontFromFileTTF("../../include/gui/fonts/Roboto-Bold.ttf", 16.f);
         io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
         io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -18,6 +15,8 @@ namespace TWE {
         _specification._gizmoOperation = GizmoOperation::Translate;
         _specification.isFileDialogOpen = false;
         _specification.isMouseOnViewport = false;
+
+        _start.initialize();
         
         ImGuiFileDialog::Instance()->SetFileStyle(IGFD_FileStyleByExtention, ".scene", ImVec4(1.0f, 1.0f, 0.0f, 1.f));
         ImGuiFileDialog::Instance()->SetFileStyle(IGFD_FileStyleByExtention, ".project", ImVec4(1.0f, 1.0f, 0.0f, 1.f));
@@ -36,7 +35,6 @@ namespace TWE {
         ImGuizmo::BeginFrame();
 
         showDockSpace();
-        processInput();
         showFileDialog();
 
         ImGui::Render();
@@ -46,7 +44,9 @@ namespace TWE {
     void GUI::showDockSpace() {
         static bool opt_dockspace = true;
         static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None | ImGuiDockNodeFlags_PassthruCentralNode;
-        ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+        ImGuiWindowFlags window_flags =  ImGuiWindowFlags_NoDocking;
+        if(!_specification.projectData->rootPath.empty())
+            window_flags |= ImGuiWindowFlags_MenuBar;
         const ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(viewport->WorkPos);
         ImGui::SetNextWindowSize(viewport->WorkSize);
@@ -65,6 +65,11 @@ namespace TWE {
             ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
             ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
         }
+        if(_specification.projectData->rootPath.empty()) {
+            _start.showPanel();
+            ImGui::End();
+            return;
+        }
         if (ImGui::BeginMenuBar()) {
             if (ImGui::BeginMenu("File")) {
                 if(ImGui::MenuItem("New project"))
@@ -72,13 +77,16 @@ namespace TWE {
                 if(ImGui::MenuItem("Open project"))
                     ImGuiFileDialog::Instance()->OpenDialog("OpenProject", "Choose File", ".project", ".", 1, nullptr);
                 ImGui::Separator();
-                if(ImGui::MenuItem("Save scene"))
-                    SceneSerializer::serialize(_specification._scene, _specification.projectData->lastScenePath.string());
+                if(ImGui::MenuItem("Save scene")) {
+                    if(!_specification.projectData->lastScenePath.empty())
+                        SceneSerializer::serialize(_specification._scene, _specification.projectData->lastScenePath.string(), _specification.projectData);
+                    else
+                        ImGuiFileDialog::Instance()->OpenDialog("SaveSceneAs", "Choose File", ".scene", 
+                            (_specification.projectData->rootPath.string() + '/').c_str(), 1, nullptr);
+                }
                 if(ImGui::MenuItem("Save scene as"))
                     ImGuiFileDialog::Instance()->OpenDialog("SaveSceneAs", "Choose File", ".scene", 
                         (_specification.projectData->rootPath.string() + '/').c_str(), 1, nullptr);
-                if(ImGui::MenuItem("Load scene"))
-                    ImGuiFileDialog::Instance()->OpenDialog("LoadScene", "Choose File", ".scene", ".", 1, nullptr);
                 ImGui::Separator();
                 bool validateScriptsFlag = _specification._scene->_sceneState != SceneState::Edit;
                 if(validateScriptsFlag) {
@@ -91,6 +99,10 @@ namespace TWE {
                     ImGui::PopItemFlag();
                     ImGui::PopStyleVar();
                 }
+                ImGui::Separator();
+                if(ImGui::MenuItem("Build"))
+                    if(!_specification.projectData->lastScenePath.empty())
+                        BuildCreator::create(_specification.projectData, _specification.projectData->lastScenePath);
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Options")) {
@@ -109,9 +121,9 @@ namespace TWE {
         showScenePanel();
         showTestPanel();
         showViewportPanel();
-        if(!_specification.projectData->rootPath.empty())
-            _directory.showPanel();
+        _directory.showPanel();
         _components.showPanel(_specification._selectedEntity);
+        processInput();
         ImGui::End();
     }
 
@@ -328,7 +340,7 @@ namespace TWE {
                 std::string projectDir = std::filesystem::path(filePathName).parent_path().string();
                 if(ProjectCreator::create(projectName, projectDir)) {
                     std::string projectFilePath = projectDir + '/' + projectName + '/' + projectName + ".project";
-                    auto projectData = ProjectCreator::load(projectFilePath);
+                    auto projectData = ProjectCreator::load(projectFilePath, _specification._scene->_scriptDLLRegistry);
                     if(projectData) {
                         DLLCreator::initPaths(projectData->dllTempDir.string());
                         *_specification.projectData = *projectData;
@@ -345,14 +357,18 @@ namespace TWE {
         if(ImGuiFileDialog::Instance()->Display("OpenProject"))  {
             if(ImGuiFileDialog::Instance()->IsOk()) {
                 std::string projectFilePath = ImGuiFileDialog::Instance()->GetFilePathName();
-                auto projectData = ProjectCreator::load(projectFilePath);
+                _specification._scene->_scriptDLLRegistry->clean();
+                auto projectData = ProjectCreator::load(projectFilePath, _specification._scene->_scriptDLLRegistry);
                 if(projectData) {
-                    DLLCreator::initPaths(projectData->dllTempDir.string());
+                    std::filesystem::path dllTempDir = projectData->rootPath.string() + '/' + projectData->dllTempDir.string();
+                    DLLCreator::initPaths(dllTempDir.string());
                     *_specification.projectData = *projectData;
                     _directory.setCurrentPath(projectData->rootPath);
                     _specification._scene->reset();
-                    if(!projectData->lastScenePath.empty())
-                        SceneSerializer::deserialize(_specification._scene, projectData->lastScenePath.string());
+                    if(!projectData->lastScenePath.empty()) {
+                        std::filesystem::path lastScenePath = projectData->rootPath.string() + '/' + projectData->lastScenePath.string();
+                        SceneSerializer::deserialize(_specification._scene, lastScenePath.string());
+                    }
                 }
             }
             ImGuiFileDialog::Instance()->Close();
@@ -361,21 +377,9 @@ namespace TWE {
         if(ImGuiFileDialog::Instance()->Display("SaveSceneAs"))  {
             if(ImGuiFileDialog::Instance()->IsOk()) {
                 std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-                SceneSerializer::serialize(_specification._scene, filePathName);
+                SceneSerializer::serialize(_specification._scene, filePathName, _specification.projectData);
                 _specification.projectData->lastScenePath = filePathName;
-                ProjectCreator::save(_specification.projectData);
-            }
-            ImGuiFileDialog::Instance()->Close();
-            return;
-        }
-        if(ImGuiFileDialog::Instance()->Display("LoadScene"))  {
-            if(ImGuiFileDialog::Instance()->IsOk()) {
-                std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-                unselectEntity();
-                _specification._scene->reset();
-                SceneSerializer::deserialize(_specification._scene, filePathName);
-                _specification.projectData->lastScenePath = filePathName;
-                ProjectCreator::save(_specification.projectData);
+                ProjectCreator::save(_specification.projectData, _specification._scene->_scriptDLLRegistry);
             }
             ImGuiFileDialog::Instance()->Close();
             return;
@@ -467,7 +471,7 @@ namespace TWE {
         }
         if(Input::isKeyPressed(Keyboard::KEY_LEFT_CONTROL) && Input::isKeyPressed(Keyboard::KEY_S)) {
             if(!_specification.projectData->lastScenePath.empty())
-                SceneSerializer::serialize(_specification._scene, _specification.projectData->lastScenePath.string());
+                SceneSerializer::serialize(_specification._scene, _specification.projectData->lastScenePath.string(), _specification.projectData);
             else
                 ImGuiFileDialog::Instance()->OpenDialog("SaveSceneAs", "Choose File", ".scene", 
                     (_specification.projectData->rootPath.string() + '/').c_str(), 1, nullptr);
@@ -490,6 +494,7 @@ namespace TWE {
         _specification._scene = scene;
         _components.setScene(scene);
         _directory.setScene(scene);
+        _start.setScene(scene);
     }
 
     void GUI::setProjectData(ProjectData* projectData) {

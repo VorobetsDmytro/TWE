@@ -9,6 +9,8 @@
 #include <single_include/nlohmann/json.hpp>
 
 #include "stream/file.hpp"
+#include "stream/dll-creator.hpp"
+#include "registry/registry.hpp"
 
 namespace TWE {
     struct ProjectData {
@@ -24,9 +26,11 @@ namespace TWE {
     class ProjectCreator {
     public:
         static bool create(const std::string& projectName, const std::string& projectPath);
-        static bool save(ProjectData* projectData);
-        static ProjectData* load(const std::string& projectFilePath);
+        static bool save(ProjectData* projectData, Registry<DLLLoadData>* scriptDLLRegistry);
+        static ProjectData* load(const std::string& projectFilePath, Registry<DLLLoadData>* scriptDLLRegistry);
     private:
+        static void serializeScriptDLL(DLLLoadData* dllData, nlohmann::json& jsonScript, ProjectData* projectData);
+        static void deserializaScriptDLL(DLLLoadData* dllData, nlohmann::json& jsonScript, const std::filesystem::path& rootPath);
         static void createProjectFile(const std::string& projectName, const std::string& projectDirectoryPath);
         static bool validateProjectName(const std::string& projectName);
     };

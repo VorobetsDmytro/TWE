@@ -6,8 +6,10 @@ namespace TWE {
     Registry<DLLLoadData> Engine::scriptDLLRegistry;
     Registry<MeshSpecification> Engine::meshRegistry;
     Registry<MeshRendererSpecification> Engine::meshRendererRegistry;
-    std::unique_ptr<GUI> Engine::gui;
     std::unique_ptr<ProjectData> Engine::projectData;
+    #ifndef TWE_BUILD
+    std::unique_ptr<GUI> Engine::gui;
+    #endif
 
     Engine::Engine(int wndWidth, int wndHeight, const char* title, GLFWmonitor* monitor, GLFWwindow* share) {
         //glfw
@@ -15,7 +17,13 @@ namespace TWE {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        window = glfwCreateWindow(wndWidth, wndHeight, title, monitor, share);
+        #ifdef TWE_BUILD
+        monitor = glfwGetPrimaryMonitor();
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+        wndWidth = mode->width;
+        wndHeight = mode->height;
+        #endif
+        window = glfwCreateWindow(wndWidth, wndHeight, title, monitor, share);        
         if(!window){
             std::cout << "Error creating a window.\n";
             glfwTerminate();
@@ -36,7 +44,9 @@ namespace TWE {
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
         //imgui
+        #ifndef TWE_BUILD
         gui = std::make_unique<GUI>(window);
+        #endif
         //initialization vars
         srand(static_cast<unsigned>(time(0)));
         windowTitle = title;
@@ -47,9 +57,11 @@ namespace TWE {
         Shape::meshRendererRegistry = &meshRendererRegistry;
         curScene->setDebugCamera(debugCamera.get());
         curScene->setScriptDLLRegistry(&scriptDLLRegistry);
+        #ifndef TWE_BUILD
         gui->setScene(curScene.get());
         gui->setProjectData(projectData.get());
-        setVSync(true);
+        #endif
+        setVSync(false);
     }
 
     Engine::~Engine(){
@@ -83,12 +95,15 @@ namespace TWE {
 
     void Engine::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
         Input::mouseButtonCallback(window, button, action, mods);
+        #ifndef TWE_BUILD
         bool inputModeDissabled = button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS && gui->getIsFocusedOnViewport() && curScene->getIsFocusedOnDebugCamera();
         glfwSetInputMode(window, GLFW_CURSOR, inputModeDissabled ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+        #endif
     }
 
     void Engine::mouseCallback(GLFWwindow* window, double xpos, double ypos) {
         static bool debugCameraFlag = false;
+        #ifndef TWE_BUILD
         if(!gui->getIsFocusedOnViewport())
             return;
         Input::mouseCallback(window, xpos, ypos);
@@ -99,6 +114,9 @@ namespace TWE {
             glfwSetInputMode(window, GLFW_CURSOR, gui->getIsFocusedOnViewport() ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
         } else 
             debugCameraFlag = false;
+        #else
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        #endif
     }
 
     void Engine::framebufferSizeCallback(GLFWwindow* window, int width, int height) {
@@ -107,7 +125,21 @@ namespace TWE {
     }
 
     void Engine::start(){
+        #ifndef TWE_BUILD
         gui->addCheckbox("Debug camera focus", curScene->getIsFocusedOnDebugCamera());
+        #else
+        auto buildData = BuildCreator::load(TWE_BUILD);
+        if(buildData) {
+            std::filesystem::path projectFilePath = "../../" + buildData->projectFilePath.string();
+            auto projectData = ProjectCreator::load(projectFilePath.string(), &scriptDLLRegistry);
+            if(projectData) {
+                *this->projectData.get() = *projectData;
+                std::filesystem::path startScenePath = "../../" + buildData->startScenePath.string();
+                SceneSerializer::deserialize(curScene.get(), startScenePath.string());
+                curScene->getIsFocusedOnDebugCamera() = false;
+            }
+        }
+        #endif
         std::string title;
         while(!glfwWindowShouldClose(window)){
             Renderer::cleanScreen({0.25f, 0.25f, 0.25f, 0.f});
@@ -116,7 +148,9 @@ namespace TWE {
             glfwSetWindowTitle(window, title.c_str());
             keyInput();
             curScene->update();
+            #ifndef TWE_BUILD
             gui->update();
+            #endif
             glfwSwapBuffers(window);
             Time::calculate();
         }

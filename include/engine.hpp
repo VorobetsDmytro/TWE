@@ -16,12 +16,18 @@
 #include "scene/shape.hpp"
 #include "scene/scene.hpp"
 #include "scene/time.hpp"
-#include "gui/gui.hpp"
 #include "model-loader/model-loader.hpp"
 #include "entity/entity.hpp"
 #include "input/input.hpp"
 #include "registry/registry.hpp"
 #include "stream/project-creator.hpp"
+#include "stream/build-creator.hpp"
+
+#ifndef TWE_BUILD
+#include "gui/gui.hpp"
+#else
+#include "scene/scene-serializer.hpp"
+#endif
 
 namespace TWE {
     class Engine {
@@ -35,13 +41,15 @@ namespace TWE {
         GLboolean vSync;
         GLFWwindow* window;
         std::string windowTitle;
-        static std::unique_ptr<GUI> gui;
         static std::unique_ptr<ProjectData> projectData;
         static std::shared_ptr<Scene> curScene;
         static std::shared_ptr<DebugCamera> debugCamera;
         static Registry<DLLLoadData> scriptDLLRegistry;
         static Registry<MeshSpecification> meshRegistry;
         static Registry<MeshRendererSpecification> meshRendererRegistry;
+        #ifndef TWE_BUILD
+        static std::unique_ptr<GUI> gui;
+        #endif
     private:
         static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
         static void mouseCallback(GLFWwindow* window, double xpos, double ypos);

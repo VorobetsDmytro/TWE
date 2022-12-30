@@ -124,7 +124,6 @@ namespace TWE {
         resetScripts(&_entityRegistry.editEntityRegistry);
         resetEntityRegistry(&_entityRegistry.editEntityRegistry);
         setState(SceneState::Edit);
-        _scriptDLLRegistry->clean();
         initPhysics();
     }
 
@@ -243,10 +242,14 @@ namespace TWE {
         updateLight();
         _drawLightMeshes = _isFocusedOnDebugCamera;
         _drawColliders = _isFocusedOnDebugCamera;
+        #ifndef TWE_BUILD
         _frameBuffer->bind();
         Renderer::cleanScreen({});
         draw();
         _frameBuffer->unbind();
+        #else
+        draw();
+        #endif
     }
 
     void Scene::updateRunState() {
@@ -263,10 +266,14 @@ namespace TWE {
         updateLight();
         _drawLightMeshes = _isFocusedOnDebugCamera;
         _drawColliders = _isFocusedOnDebugCamera;
+        #ifndef TWE_BUILD
         _frameBuffer->bind();
         Renderer::cleanScreen({});
         draw();
         _frameBuffer->unbind();
+        #else
+        draw();
+        #endif
     }
 
     void Scene::updateScripts() {
@@ -295,6 +302,7 @@ namespace TWE {
     }  
 
     void Scene::update() {
+        #ifndef TWE_BUILD
         switch (_sceneState) {
         case SceneState::Edit:
         case SceneState::Pause:
@@ -304,6 +312,9 @@ namespace TWE {
             updateRunState();
             break;
         }
+        #else
+        updateRunState();
+        #endif
     }
 
     void Scene::draw() {

@@ -1,6 +1,1 @@
-{
-    "DLLTempDir": "D:\\labs\\cpp\\TWE\\test\\scripts\\temp",
-    "LastScenePath": "D:\\labs\\cpp\\TWE\\test\\scenes\\test2.scene",
-    "Project": "test",
-    "ProjectRootPath": "D:\\labs\\cpp\\TWE\\test"
-}
+{"DLLTempDir":"scripts\\temp","LastScenePath":"scenes\\test2.scene","Project":"test","ProjectRootPath":"D:\\labs\\cpp\\TWE\\test","ScriptsDLL":[{"DLLPath":"scripts\\temp\\CameraController\\build\\Debug\\CameraController.dll","FactoryFuncName":"createCameraController","ScriptDirectoryPath":"scripts","ScriptName":"CameraController"},{"DLLPath":"scripts\\temp\\DirBehavior\\build\\Debug\\DirBehavior.dll","FactoryFuncName":"createDirBehavior","ScriptDirectoryPath":"scripts","ScriptName":"DirBehavior"},{"DLLPath":"scripts\\temp\\RGBLight\\build\\Debug\\RGBLight.dll","FactoryFuncName":"createRGBLight","ScriptDirectoryPath":"scripts","ScriptName":"RGBLight"},{"DLLPath":"scripts\\temp\\RotateRGBCube\\build\\Debug\\RotateRGBCube.dll","FactoryFuncName":"createRotateRGBCube","ScriptDirectoryPath":"scripts","ScriptName":"RotateRGBCube"}]}

@@ -102,7 +102,7 @@ namespace TWE {
                         _scene->reset();
                         SceneSerializer::deserialize(_scene, path.string());
                         _projectData->lastScenePath = path;
-                        ProjectCreator::save(_projectData);
+                        ProjectCreator::save(_projectData, _scene->_scriptDLLRegistry);
                     }
                 } else if(ImGui::IsMouseClicked(1)) {
                     ImGui::SetWindowFocus();
@@ -130,7 +130,7 @@ namespace TWE {
                     _scene->reset();
                     SceneSerializer::deserialize(_scene, filePath.string());
                     _projectData->lastScenePath = filePath;
-                    ProjectCreator::save(_projectData);
+                    ProjectCreator::save(_projectData, _scene->_scriptDLLRegistry);
                     ImGui::CloseCurrentPopup();
                 }
             }
@@ -165,6 +165,7 @@ namespace TWE {
                             DLLCreator::freeDLLFunc(*scriptDLLData);
                             _scene->_scriptDLLRegistry->erase(fileName);
                             DLLCreator::removeScript(fileName);
+                            ProjectCreator::save(_projectData, _scene->_scriptDLLRegistry);
                         }
                     }
                 }
@@ -204,9 +205,9 @@ namespace TWE {
                         std::string scriptDirectoryPath = _curPath.string();
                         if(ScriptCreator::create(scriptName, scriptDirectoryPath)) {
                             auto dllData = new DLLLoadData(DLLCreator::compileScript(scriptName, scriptDirectoryPath));
-                            if(dllData->isValid) {
+                            if(dllData->isValid)
                                 _scene->_scriptDLLRegistry->add(scriptName, dllData);
-                            }
+                            ProjectCreator::save(_projectData, _scene->_scriptDLLRegistry);
                             scriptName.clear();
                             ImGui::CloseCurrentPopup();
                         }

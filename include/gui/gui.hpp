@@ -5,8 +5,10 @@
 #include "scene/scene-serializer.hpp"
 #include "gui/gui-components-panel.hpp"
 #include "gui/gui-directory-panel.hpp"
+#include "gui/gui-start-panel.hpp"
 #include "registry/registry.hpp"
 #include "stream/project-creator.hpp"
+#include "stream/build-creator.hpp"
 
 #include <glfw3.h>
 #include <imgui.h>
@@ -66,6 +68,7 @@ namespace TWE {
         void processInput();
         void selectEntity(Entity& entity);
         void unselectEntity();
+        GUIStartPanel _start;
         GUIComponentsPanel _components;
         GUIDirectoryPanel _directory;
         GUISpecification _specification;

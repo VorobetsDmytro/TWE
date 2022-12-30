@@ -45,6 +45,7 @@ namespace TWE {
         static void createScriptDirectory(const std::string& tempDir, const std::string& scriptName);
         static void createCMakeFile(const std::string& tempDir, const std::string& scriptName);
         static void createCPPFile(const std::string& tempDir, const std::string& scriptName, const std::string& scriptDirectoryPath);
+        static std::string fixPath(const std::string& path);
     };
 }
 

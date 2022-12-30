@@ -10,7 +10,7 @@ namespace TWE {
         std::string buildDir = _tempDir + '/' + scriptName + "/build"; 
         std::string generateCommand = "cmake -S " + _tempDir + '/' + scriptName + " -B " + buildDir ;
         if(system(generateCommand.c_str()) != 0) {
-            std::cout << "Failed to generate build files\n";
+            std::cout << "Failed to generate script build files\n";
             return {};
         }
         std::string buildCommand = "cmake --build " + buildDir;
@@ -63,39 +63,45 @@ namespace TWE {
     void DLLCreator::createCMakeFile(const std::string& tempDir, const std::string& scriptName) {
         std::string cmakeFilePath = tempDir + '/' + scriptName + "/CMakeLists.txt";
         if(std::filesystem::exists(cmakeFilePath))
-            return;
+            return;;
         std::ofstream os;
         os.open(cmakeFilePath);
         os << "cmake_minimum_required(VERSION 3.20)\n";
         os << "project(" + scriptName << ")\n";
 
         os << "file(GLOB_RECURSE CPPFILES\n";
-        os << "\"" + tempDir + "/" + scriptName + "/" + scriptName + ".cpp\")\n";
+        os << "\"" + fixPath(tempDir) + "/" + scriptName + "/" + scriptName + ".cpp\")\n";
 
         os << "file(GLOB_RECURSE LIBFILES\n";
-        os << "\"../../lib/*.lib\"\n";
-        os << "\"../../external/*.lib\")\n";
+        os << "\"" + fixPath("../../lib") + "/*.lib\"\n";
+        os << "\"" + fixPath("../../external") + "/*.lib\")\n";
 
         os << "add_library(" + scriptName << " MODULE ${CPPFILES})\n";
         os << "target_compile_features(" + scriptName + " PRIVATE cxx_std_17)\n";
         os << "target_include_directories(" + scriptName + " PRIVATE\n";
-        os << "\"../../include\"\n";
-        os << "\"../../external\"\n";
-        os << "\"../../external/GLFW\"\n";
-        os << "\"../../external/glad\"\n";
-        os << "\"../../external/stb\"\n";
-        os << "\"../../external/glm\"\n";
-        os << "\"../../external/imgui\"\n";
-        os << "\"../../external/imgui-filedialog\"\n";
-        os << "\"../../external/ImGuizmo\"\n";
-        os << "\"../../external/assimp\"\n";
-        os << "\"../../external/bullet3\"\n";
-        os << "\"../../external/entt\"\n";
-        os << "\"../../external/json\")\n";
+        os << "\"" + fixPath("../../include") + "\"\n";
+        os << "\"" + fixPath("../../external") + "\"\n";
+        os << "\"" + fixPath("../../external/GLFW") + "\"\n";
+        os << "\"" + fixPath("../../external/glad") + "\"\n";
+        os << "\"" + fixPath("../../external/stb") + "\"\n";
+        os << "\"" + fixPath("../../external/glm") + "\"\n";
+        os << "\"" + fixPath("../../external/imgui") + "\"\n";
+        os << "\"" + fixPath("../../external/imgui-filedialog") + "\"\n";
+        os << "\"" + fixPath("../../external/ImGuizmo") + "\"\n";
+        os << "\"" + fixPath("../../external/assimp") + "\"\n";
+        os << "\"" + fixPath("../../external/bullet3") + "\"\n";
+        os << "\"" + fixPath("../../external/entt") + "\"\n";
+        os << "\"" + fixPath("../../external/json") + "\")\n";
 
         os << "target_link_libraries(" + scriptName + " PRIVATE ${LIBFILES})\n";
 
         os.close();
+    }
+
+    std::string DLLCreator::fixPath(const std::string& path) {
+        std::string res = std::filesystem::absolute(path).string();
+        std::replace(res.begin(), res.end(), '\\', '/');
+        return res;
     }
 
     void DLLCreator::createCPPFile(const std::string& tempDir, const std::string& scriptName, const std::string& scriptDirectoryPath) {
