@@ -13,9 +13,6 @@ namespace TWE {
         std::filesystem::create_directory(projectDirectoryPath + "/textures");
         std::filesystem::create_directory(projectDirectoryPath + "/scripts");
         std::filesystem::create_directory(projectDirectoryPath + "/scripts/temp");
-        std::string projectShadersPath = projectDirectoryPath + "/shaders";
-        std::filesystem::create_directory(projectShadersPath);
-        std::filesystem::copy("../../shaders", projectShadersPath);
         createProjectFile(projectName, projectDirectoryPath);
         return true;
     }
@@ -26,9 +23,15 @@ namespace TWE {
         std::string jsonBodyStr = File::getBody(projectFilePath.c_str());
         nlohmann::json jsonMain = nlohmann::json::parse(jsonBodyStr);
         auto& scripts = jsonMain["ScriptsDLL"].items();
+        std::filesystem::path rootPath;
+        #ifndef TWE_BUILD
+        rootPath = (std::string)jsonMain["ProjectRootPath"];
+        #else
+        rootPath = "./";
+        #endif
         for(auto& [index, data] : scripts) {
             DLLLoadData* dllData = new DLLLoadData();
-            deserializaScriptDLL(dllData, data, jsonMain["ProjectRootPath"]);
+            deserializaScriptDLL(dllData, data, rootPath);
             scriptDLLRegistry->add(dllData->scriptName, dllData);
         }
         return new ProjectData(jsonMain["Project"], jsonMain["ProjectRootPath"], jsonMain["DLLTempDir"], jsonMain["LastScenePath"]);

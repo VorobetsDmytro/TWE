@@ -47,7 +47,7 @@ namespace TWE {
 
     void GUIComponentsPanel::showAddComponentMenu(Entity& entity) {
         ImGui::Dummy({0.f, 5.f});
-        std::string popUpId = "Add component";
+        std::string popUpId = guiPopups[GUIPopupIds::AddComponentPopup];
         if(ImGui::Button("Add component", { ImGui::GetContentRegionAvail().x, 20.f }))
             ImGui::OpenPopup(popUpId.c_str());
         float popUpWidth = 150.f;
@@ -94,7 +94,7 @@ namespace TWE {
                 if(ImGui::Button("Physics component", {availSize.x, 0.f})) {
                     auto& transformComponent = entity.getComponent<TransformComponent>();
                     auto& physicsComponent = entity.addComponent<PhysicsComponent>(_scene->getDynamicWorld(), ColliderType::Box, 
-                        glm::vec3{1.f, 1.f, 1.f}, transformComponent.size, transformComponent.position, transformComponent.rotation, 0.f);
+                        glm::vec3{1.f, 1.f, 1.f}, transformComponent.transform.size, transformComponent.transform.position, transformComponent.transform.rotation, 0.f);
                     ImGui::CloseCurrentPopup();
                 }
             }
@@ -125,25 +125,15 @@ namespace TWE {
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Transform")) {
                 auto& transformComponent = entity.getComponent<TransformComponent>();
-                bool hasPhysics = entity.hasComponent<PhysicsComponent>();
-                if(GUIComponents::dragFloat3("Position", transformComponent.position, 0.05f, 0.f)) {
-                    transformComponent.setPosition(transformComponent.position);
-                    if(hasPhysics)
-                        entity.getComponent<PhysicsComponent>().setPosition(transformComponent.position);
-                }
-                auto rotation = transformComponent.rotation * 180.f / PI;
-                if(GUIComponents::dragFloat3("Rotation", rotation, hasPhysics ? 1.5f : 0.5f, 0.f)) {
+                if(GUIComponents::dragFloat3("Position", transformComponent.transform.position, 0.05f, 0.f))
+                    transformComponent.setPosition(transformComponent.transform.position);
+                auto rotation = transformComponent.transform.rotation * 180.f / PI;
+                if(GUIComponents::dragFloat3("Rotation", rotation, 0.5f, 0.f)) {
                     rotation *= PI / 180.f;
                     transformComponent.setRotation(rotation);
-                    if(hasPhysics)
-                        entity.getComponent<PhysicsComponent>().setRotation(rotation);
                 }
-                if(GUIComponents::dragFloat3("Scale", transformComponent.size, 0.01f, 1.f, 0.01f, 999999.f)) {
-                    transformComponent.setSize(transformComponent.size);
-                    if(hasPhysics)
-                        entity.getComponent<PhysicsComponent>()
-                            .setSize(transformComponent.size);
-                }
+                if(GUIComponents::dragFloat3("Scale", transformComponent.transform.size, 0.01f, 1.f, 0.01f, 999999.f))
+                    transformComponent.setSize(transformComponent.transform.size);
                 ImGui::TreePop();
             }
         }
@@ -154,7 +144,7 @@ namespace TWE {
             auto id = (void*)(typeid(MeshComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Mesh")) {
-                std::string popUpId = "Mesh";
+                std::string popUpId = guiPopups[GUIPopupIds::MeshPopup];
                 if(ImGui::IsItemClicked(1))
                     ImGui::OpenPopup(popUpId.c_str());
                 auto& meshComponent = entity.getComponent<MeshComponent>();
@@ -205,7 +195,7 @@ namespace TWE {
             auto id = (void*)(typeid(MeshRendererComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Mesh Renderer")) {
-                std::string popUpId = "MeshRenderer";
+                std::string popUpId = guiPopups[GUIPopupIds::MeshRendererPopup];
                 if(ImGui::IsItemClicked(1))
                     ImGui::OpenPopup(popUpId.c_str());
                 auto& meshRendererComponent = entity.getComponent<MeshRendererComponent>();
@@ -245,7 +235,7 @@ namespace TWE {
             auto id = (void*)(typeid(CameraComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Camera")) {
-                std::string popUpId = "Camera";
+                std::string popUpId = guiPopups[GUIPopupIds::CameraPopup];
                 if(ImGui::IsItemClicked(1))
                     ImGui::OpenPopup(popUpId.c_str());
                 auto& cameraComponent = entity.getComponent<CameraComponent>();
@@ -295,7 +285,7 @@ namespace TWE {
             auto id = (void*)(typeid(LightComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Light")) {
-                std::string popUpId = "Light";
+                std::string popUpId = guiPopups[GUIPopupIds::LightPopup];
                 if(ImGui::IsItemClicked(1))
                     ImGui::OpenPopup(popUpId.c_str());
                 auto& lightComponent = entity.getComponent<LightComponent>();
@@ -337,18 +327,54 @@ namespace TWE {
             auto id = (void*)(typeid(PhysicsComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Physics")) {
-                std::string popUpId = "Physics";
+                std::string popUpId = guiPopups[GUIPopupIds::PhysicsPopup];
                 if(ImGui::IsItemClicked(1))
                     ImGui::OpenPopup(popUpId.c_str());
                 auto& physicsComponent = entity.getComponent<PhysicsComponent>();
-                auto mass = physicsComponent.getMass();
-                if(GUIComponents::dragFloat("Mass", mass, 0.01f, 0.f, 999999.f))
-                    physicsComponent.setMass(mass);
+                ColliderType colliderType = physicsComponent.getColliderType();
+
+                if(colliderType != ColliderType::TriangleMesh) {
+                    auto mass = physicsComponent.getMass();
+                    if(GUIComponents::dragFloat("Mass", mass, 0.01f, 0.f, 999999.f, 90.f))
+                        physicsComponent.setMass(mass);
+                }
+
+                int colliderTypeIndex = GUIComponents::combo("Collider type", colliderTypes[static_cast<int>(colliderType)], colliderTypes, 90.f);
+                if(colliderTypeIndex != -1) {
+                    ColliderType newColliderType = static_cast<ColliderType>(colliderTypeIndex);
+                    if(newColliderType == ColliderType::TriangleMesh) {
+                        if(entity.hasComponent<MeshComponent>()) {
+                            auto meshSpecification = Shape::meshRegistry->get(entity.getComponent<MeshComponent>().registryId);
+                            auto localScale = entity.getComponent<TransformComponent>().transform.size;
+                            physicsComponent.setColliderType(newColliderType, TriangleMeshSpecification{meshSpecification->vbo, meshSpecification->ebo});
+                            physicsComponent.setSize(localScale);
+                        }
+                    } else
+                        physicsComponent.setColliderType(newColliderType);
+                }
+
+                auto& shapeDimensions = physicsComponent.getShapeDimensions();
+                switch(colliderType) {
+                case ColliderType::Box:
+                    if(GUIComponents::dragFloat3("Scale", shapeDimensions, 0.01f, 1.f, 0.01f, 999999.f, 90.f))
+                        physicsComponent.setShapeDimensions(shapeDimensions);
+                    break;
+                case ColliderType::Sphere:
+                    if(GUIComponents::dragFloat("Radius", shapeDimensions.x, 0.01f, 0.01f, 999999.f, 90.f))
+                        physicsComponent.setShapeDimensions(shapeDimensions);
+                    break;
+                case ColliderType::Cylinder:
+                case ColliderType::Cone:
+                case ColliderType::Capsule:
+                    if(GUIComponents::dragFloat("Radius", shapeDimensions.x, 0.01f, 0.01f, 999999.f, 90.f))
+                        physicsComponent.setShapeDimensions(shapeDimensions);
+                    if(GUIComponents::dragFloat("Height", shapeDimensions.y, 0.01f, 0.01f, 999999.f, 90.f))
+                        physicsComponent.setShapeDimensions(shapeDimensions);
+                    break;
+                }
+
                 float popUpWidth = 150.f;
                 ImGui::SetNextWindowSize({popUpWidth, 0.f});
-                auto& shapeDimensions = physicsComponent.getShapeDimensions();
-                if(GUIComponents::dragFloat3("Scale", shapeDimensions, 0.01f, 1.f, 0.01f, 999999.f))
-                    physicsComponent.setShapeDimensions(shapeDimensions);
                 if(ImGui::BeginPopup(popUpId.c_str())) {
                     auto& availSize = ImGui::GetContentRegionAvail();
                     if(ImGui::Button("Remove component", { availSize.x, 0.f })) {
@@ -368,7 +394,7 @@ namespace TWE {
             auto id = (void*)(typeid(ScriptComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Script")) {
-                std::string popUpId = "Script";
+                std::string popUpId = guiPopups[GUIPopupIds::ScriptPopup];
                 if(ImGui::IsItemClicked(1))
                     ImGui::OpenPopup(popUpId.c_str());
                 auto& scriptComponent = entity.getComponent<ScriptComponent>();
@@ -377,9 +403,14 @@ namespace TWE {
                 int scriptIndex = GUIComponents::combo("Name", scriptComponent.getBehaviorClassName(), scriptRegistryKeys);
                 if(scriptIndex != -1) {
                     entity.getComponent<ScriptComponent>().unbind();
-                    auto behaviorFactory = DLLCreator::loadDLLFunc(*_scene->_scriptDLLRegistry->get(scriptRegistryKeys[scriptIndex])); 
-                    Behavior* behavior = (Behavior*)behaviorFactory();
-                    entity.getComponent<ScriptComponent>().bind(behavior, scriptRegistryKeys[scriptIndex]);
+                    auto dllData = _scene->_scriptDLLRegistry->get(scriptRegistryKeys[scriptIndex]);
+                    if(dllData && dllData->isValid) {
+                        auto behaviorFactory = DLLCreator::loadDLLFunc(*dllData);
+                        if(behaviorFactory) {
+                            Behavior* behavior = (Behavior*)behaviorFactory();
+                            entity.getComponent<ScriptComponent>().bind(behavior, scriptRegistryKeys[scriptIndex]);
+                        }
+                    }
                 }
                 if(ImGui::BeginPopup(popUpId.c_str())) {
                     auto& availSize = ImGui::GetContentRegionAvail();

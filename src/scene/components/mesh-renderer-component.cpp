@@ -6,9 +6,7 @@ namespace TWE {
     MeshRendererComponent::MeshRendererComponent(const char* vertexShaderPath, const char* fragmentShaderPath, int entityId, const std::string& registryId)
     : registryId(registryId), entityId(entityId) {
         shader = std::make_shared<Shader>(vertexShaderPath, fragmentShaderPath);
-        colliderShader = std::make_shared<Shader>(SHADER_PATHS[ShaderIndices::COLLIDER_VERT], SHADER_PATHS[ShaderIndices::COLLIDER_FRAG]);
         shader->setUniform("id", entityId);
-        colliderShader->setUniform("id", entityId);
         showCollider = false;
     }
 
@@ -17,7 +15,6 @@ namespace TWE {
         this->shader = meshRendererComponent.shader;
         this->registryId = meshRendererComponent.registryId;
         this->entityId = meshRendererComponent.entityId;
-        this->colliderShader = meshRendererComponent.colliderShader;
         this->showCollider = meshRendererComponent.showCollider;
     }
 

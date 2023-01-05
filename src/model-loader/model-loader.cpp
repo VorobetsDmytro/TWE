@@ -35,28 +35,30 @@ namespace TWE {
     }
 
     MeshComponent ModelLoader::procMesh(aiMesh* mesh, const aiScene* scene) {
-        std::vector<GLfloat> vertices;
         std::vector<GLuint> indices;
+        int vertSize = mesh->mNumVertices * 8;
+        float* vertices = new float[vertSize];
         std::vector<std::string> texturesPath;
+        int verticesIndex = 0;
         for(int i = 0; i < mesh->mNumVertices; ++i){
-            //verts
+            //vertex
             if(!mesh->mVertices)
                 continue;
-            vertices.push_back(mesh->mVertices[i].x);
-            vertices.push_back(mesh->mVertices[i].y);
-            vertices.push_back(mesh->mVertices[i].z);
+            vertices[verticesIndex++] = mesh->mVertices[i].x;
+            vertices[verticesIndex++] = mesh->mVertices[i].y;
+            vertices[verticesIndex++] = mesh->mVertices[i].z;
             //normals
-            vertices.push_back(mesh->mNormals ? mesh->mNormals[i].x : 0.f);
-            vertices.push_back(mesh->mNormals ? mesh->mNormals[i].y : 0.f);
-            vertices.push_back(mesh->mNormals ? mesh->mNormals[i].z : 0.f);
-            //texture
+            vertices[verticesIndex++] = mesh->mNormals ? mesh->mNormals[i].x : 0.f;
+            vertices[verticesIndex++] = mesh->mNormals ? mesh->mNormals[i].y : 0.f;
+            vertices[verticesIndex++] = mesh->mNormals ? mesh->mNormals[i].z : 0.f;
+            //texture coords
             if( mesh->mTextureCoords[0] ) {
-                vertices.push_back(mesh->mTextureCoords[0][i].x);
-                vertices.push_back(mesh->mTextureCoords[0][i].y);
+                vertices[verticesIndex++] = mesh->mTextureCoords[0][i].x;
+                vertices[verticesIndex++] = mesh->mTextureCoords[0][i].y;
             }
             else {
-                vertices.push_back(0.f);
-                vertices.push_back(0.f);
+                vertices[verticesIndex++] = 0.f;
+                vertices[verticesIndex++] = 0.f;
             }
         }
         for(int i = 0; i < mesh->mNumFaces; ++i){
@@ -78,7 +80,11 @@ namespace TWE {
             }
             texturesPath.insert(texturesPath.end(), diff.begin(), diff.end());
         }
-        return MeshComponent(vertices.data(), vertices.size() * sizeof(GLfloat), indices.data(), indices.size() * sizeof(GLuint), "Model mesh", textureAtttachments);
+        int indSize = indices.size();
+        uint32_t* copyIndices = new uint32_t[indSize];
+        for(int i = 0; i < indSize; ++i)
+            copyIndices[i] = indices[i];
+        return MeshComponent(vertices, vertSize * sizeof(GLfloat), copyIndices, indSize * sizeof(GLuint), "Model mesh", textureAtttachments);
     }
 
     void ModelLoader::procNode(aiNode* node, const aiScene* scene) {

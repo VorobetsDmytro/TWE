@@ -27,12 +27,12 @@ namespace TWE {
         _curPath = curPath;
     }
 
-    void GUIDirectoryPanel::showPanel() {
+    void GUIDirectoryPanel::showPanel(Entity& selectedEntity) {
         ImGui::Begin("Directory");
 
-        bool isInteracted = renderContent();
+        bool isInteracted = renderContent(selectedEntity);
 
-        std::string directoryMenuPopup = "DirectoryMenuPopup";
+        std::string directoryMenuPopup = guiPopups[GUIPopupIds::DirectoryMenuPopup];
         if(!isInteracted && ImGui::IsMouseClicked(1) && ImGui::IsWindowHovered()) {
             ImGui::SetWindowFocus();
             ImGui::OpenPopup(directoryMenuPopup.c_str());
@@ -45,7 +45,7 @@ namespace TWE {
         _scene = scene;
     }
 
-    bool GUIDirectoryPanel::renderContent() {
+    bool GUIDirectoryPanel::renderContent(Entity& selectedEntity) {
         bool isInteracted = false;
         int cleanPos = _projectData->rootPath.string().find(_projectData->rootPath.filename().string());
         std::string curPath = _curPath.string().substr(cleanPos, _curPath.string().length());
@@ -71,7 +71,7 @@ namespace TWE {
         ImTextureID dirTextureId = (void*)(uint64_t)_dirTexture->getId(0);
         ImTextureID fileTextureId = (void*)(uint64_t)_fileTexture->getId(0);
         static std::filesystem::path fileMenuPath;
-        std::string directoryFileMenuPopup = "DirectoryFileMenuPopup";
+        std::string directoryFileMenuPopup = guiPopups[GUIPopupIds::DirectoryFileMenuPopup];
         int i = 0;
         std::vector<std::filesystem::directory_entry> entries;
         for(auto& entry : dirIt)
@@ -99,9 +99,10 @@ namespace TWE {
                     if(entry.is_directory())
                         _curPath /= path.filename();
                     else if(extension == ".scene") {
+                        selectedEntity = {};
                         _scene->reset();
                         SceneSerializer::deserialize(_scene, path.string());
-                        _projectData->lastScenePath = path;
+                        _projectData->lastScenePath = std::filesystem::relative(path, _projectData->rootPath);
                         ProjectCreator::save(_projectData, _scene->_scriptDLLRegistry);
                     }
                 } else if(ImGui::IsMouseClicked(1)) {
@@ -115,11 +116,11 @@ namespace TWE {
 
             ImGui::NextColumn();
         }
-        showDirectoryFileMenuPopup(directoryFileMenuPopup, fileMenuPath);
+        showDirectoryFileMenuPopup(directoryFileMenuPopup, fileMenuPath, selectedEntity);
         return isInteracted;
     }
 
-    void GUIDirectoryPanel::showDirectoryFileMenuPopup(const std::string& popupId, std::filesystem::path& filePath) {
+    void GUIDirectoryPanel::showDirectoryFileMenuPopup(const std::string& popupId, std::filesystem::path& filePath, Entity& selectedEntity) {
         float popUpWidth = 150.f;
         ImGui::SetNextWindowSize({popUpWidth, 0.f});
         if(ImGui::BeginPopup(popupId.c_str())) {
@@ -127,9 +128,10 @@ namespace TWE {
             std::string fileExtension = filePath.extension().string();
             if(fileExtension == ".scene") {
                 if(ImGui::Button("Load scene", {availSize.x, 0.f})) {
+                    selectedEntity = {};
                     _scene->reset();
                     SceneSerializer::deserialize(_scene, filePath.string());
-                    _projectData->lastScenePath = filePath;
+                    _projectData->lastScenePath = std::filesystem::relative(filePath, _projectData->rootPath);
                     ProjectCreator::save(_projectData, _scene->_scriptDLLRegistry);
                     ImGui::CloseCurrentPopup();
                 }
@@ -154,14 +156,19 @@ namespace TWE {
                 ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
                 ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
             }
+            if(ImGui::Button("Show in explorer", {availSize.x, 0.f})) {
+                std::string cmdCommand = "explorer " + std::filesystem::absolute(filePath).parent_path().string();
+                system(cmdCommand.c_str());
+                ImGui::CloseCurrentPopup();
+            }
             if(ImGui::Button("Remove", {availSize.x, 0.f})) {
                 if(fileExtension == ".hpp") {
                     std::string fileName = filePath.stem().string();
                     if(_scene->_scriptDLLRegistry->has(fileName)) {
                         auto scriptDLLData = _scene->_scriptDLLRegistry->get(fileName);
                         if(scriptDLLData) {
-                            _scene->unbindScript(&_scene->_entityRegistry.editEntityRegistry, scriptDLLData);
-                            _scene->unbindScript(&_scene->_entityRegistry.runEntityRegistry, scriptDLLData);
+                            _scene->unbindScript(&_scene->_sceneRegistry.edit.entityRegistry, scriptDLLData);
+                            _scene->unbindScript(&_scene->_sceneRegistry.run.entityRegistry, scriptDLLData);
                             DLLCreator::freeDLLFunc(*scriptDLLData);
                             _scene->_scriptDLLRegistry->erase(fileName);
                             DLLCreator::removeScript(fileName);
@@ -193,6 +200,17 @@ namespace TWE {
                 if(GUIComponents::inputAndButton("Folder name", createFolderName, "Create")) {
                     std::filesystem::create_directory(_curPath / createFolderName);
                     createFolderName.clear();
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndMenu();
+            }
+            if(ImGui::BeginMenu("Create scene")) {
+                static std::string sceneName;
+                if(GUIComponents::inputAndButton("Scene name", sceneName, "Create")) {
+                    Scene* newScene = new Scene(0.f, 0.f);
+                    SceneSerializer::serialize(newScene, _curPath.string() + '/' + sceneName + ".scene", _projectData);
+                    delete newScene;
+                    sceneName.clear();
                     ImGui::CloseCurrentPopup();
                 }
                 ImGui::EndMenu();

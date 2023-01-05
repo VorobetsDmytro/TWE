@@ -11,9 +11,13 @@ namespace TWE {
         std::string buildDirPath = projectData->rootPath.string() + "/build";
         if(!std::filesystem::exists(buildDirPath))
             std::filesystem::create_directory(buildDirPath);
-        std::string buildFilePath = buildDirPath + '/' + projectData->projectName + ".build";
+        std::string debugPath = buildDirPath + "/Debug";
+        if(!std::filesystem::exists(debugPath))
+            std::filesystem::create_directory(debugPath);
+        std::string buildFilePath = debugPath + '/' + projectData->projectName + ".build";
         createBuildFile(projectData, buildFilePath, startScenePath);
         createCMakeFile(projectData, buildDirPath);
+        copyRootPathFiles(projectData, buildDirPath);
         std::string generateCommand = "cmake -S " + buildDirPath + " -B " + buildDirPath;
         if(system(generateCommand.c_str()) != 0) {
             std::cout << "Failed to generate project build files\n";
@@ -25,6 +29,27 @@ namespace TWE {
             return false;
         }
         return true;
+    }
+
+    void BuildCreator::copyRootPathFiles(ProjectData* projectData, const std::filesystem::path& buildDirPath) {
+        auto dirIt = std::filesystem::directory_iterator(projectData->rootPath);
+        std::string debugPath = buildDirPath.string() + "/Debug";
+        const auto copyOptions = std::filesystem::copy_options::update_existing
+                               | std::filesystem::copy_options::recursive;
+        for(auto& entry : dirIt) {
+            auto& path = entry.path();
+            if(path.filename().string() != "build") {
+                if(entry.is_directory()) {
+                    std::filesystem::path dirPath = debugPath + '/' + path.filename().string();
+                    std::filesystem::create_directory(dirPath);
+                    std::filesystem::copy(path, dirPath, copyOptions);
+                } else
+                    std::filesystem::copy(path, debugPath, copyOptions);
+            }
+        }
+        std::string projectShadersPath = debugPath + "/shaders";
+        std::filesystem::create_directory(projectShadersPath);
+        std::filesystem::copy("../../shaders", projectShadersPath, copyOptions);
     }
 
     void BuildCreator::createCMakeFile(ProjectData* projectData, const std::filesystem::path& buildDirPath) {
@@ -66,7 +91,7 @@ namespace TWE {
         os << "COMMAND ${CMAKE_COMMAND} -E copy " + fixPath("../../external") + "/assimp/bin/assimp-vc142-mtd.dll ${CMAKE_BINARY_DIR}/Debug\n";
         os << "COMMAND ${CMAKE_COMMAND} -E copy " + fixPath("../../external") + "/assimp/bin/assimp-vc142-mtd.dll ${CMAKE_BINARY_DIR}/Release)\n";
         os << "add_dependencies(" << projectData->projectName << " ASSIMPCopy)\n";
-        os << "target_compile_definitions(" << projectData->projectName << " PRIVATE TWE_BUILD=\"" << "../" + projectData->projectName + ".build" << "\")\n";
+        os << "target_compile_definitions(" << projectData->projectName << " PRIVATE TWE_BUILD=\"" << "./" + projectData->projectName + ".build" << "\")\n";
 
         os.close();
     }

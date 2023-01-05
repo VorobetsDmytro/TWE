@@ -3,6 +3,7 @@
 namespace TWE {
     Registry<MeshSpecification>* Shape::meshRegistry = nullptr;
     Registry<MeshRendererSpecification>* Shape::meshRendererRegistry = nullptr;
+    int Shape::meshCounter;
     float Shape::cubeVertices[] = {
         //front
         -0.5f, -0.5f, 0.5f,   0.0f,  0.0f, 1.0f,      0.f, 1.f, //left down     0
@@ -86,6 +87,18 @@ namespace TWE {
         20, 23, 22
     };
 
+    void Shape::reset() {
+        meshRegistry->clean();
+        meshRendererRegistry->clean();
+        meshCounter = 0;
+    }
+
+    void Shape::initialize(Registry<MeshSpecification>* meshRegistryT, Registry<MeshRendererSpecification>* meshRendererRegistryT) {
+        meshRegistry = meshRegistryT;
+        meshRendererRegistry = meshRendererRegistryT;
+        meshCounter = 0;
+    }
+
     Entity Shape::createCubeEntity(Scene* scene, const TextureAttachmentSpecification& textureAtttachments) {
         Entity entity = scene->createEntity();
         auto& creationType = entity.getComponent<CreationTypeComponent>();
@@ -137,9 +150,6 @@ namespace TWE {
     }
 
     Entity Shape::createCubemapEntity(Scene* scene, TextureAttachmentSpecification& textureAtttachments) {
-        std::vector<std::string> texturePaths;
-        for(auto& textureSpec : textureAtttachments.textureSpecifications)
-            texturePaths.push_back(textureSpec.imgPath);
         Texture* texture = Texture::generateCubemapTexture(textureAtttachments);
         if(!texture)
             return {};
@@ -263,7 +273,6 @@ namespace TWE {
     }
 
     std::vector<Entity> Shape::createModelEntity(Scene* scene, ModelLoaderData* modelLoaderData) {
-        static int meshCounter = 0;
         std::vector<Entity> models;
         entt::registry* registry = scene->getRegistry();
         for(auto& mesh : modelLoaderData->meshComponents){
@@ -274,11 +283,20 @@ namespace TWE {
             auto meshRendererSpecification = meshRendererRegistry->get(meshRendererId);
             if(!meshRendererSpecification)
                 meshRendererSpecification = registerMeshRendererSpecification(SHADER_PATHS[ShaderIndices::DEFAULT_VERT], SHADER_PATHS[ShaderIndices::DEFAULT_FRAG], meshRendererId);
-            std::string meshId = "Model mesh-" + std::to_string(meshCounter++);
+            auto meshSpecs = meshRegistry->getValues();
+            std::string meshId;
+            for(auto& spec : meshSpecs)
+                if(std::filesystem::absolute(spec->modelPath) == std::filesystem::absolute(modelLoaderData->fullPath)) {
+                    meshId = spec->meshId;
+                    break;
+                }
+            if(meshId.empty())
+                meshId = "Model mesh-" + std::to_string(meshCounter++);
             auto meshSpecification = meshRegistry->get(meshId);
             if(meshSpecification)
                 entity.addComponent<MeshComponent>(meshSpecification->vao, meshSpecification->vbo, meshSpecification->ebo, meshId);
             else {
+                mesh.registryId = meshId;
                 auto& meshComponent = entity.addComponent<MeshComponent>(mesh);
                 registerMeshSpecification(meshComponent.vao, meshComponent.vbo, meshComponent.ebo, EntityCreationType::Model, modelLoaderData->fullPath, meshId);
             }
@@ -301,6 +319,7 @@ namespace TWE {
         meshSpecification->ebo = ebo;
         meshSpecification->creationType = creationType;
         meshSpecification->modelPath = modelPath;
+        meshSpecification->meshId = id;
         return meshSpecification;
     }
 
@@ -310,7 +329,4 @@ namespace TWE {
         meshRendererSpecification->fragmentShaderPath = fragmentShaderPath;
         return meshRendererSpecification;
     }
-
-    std::pair<float*, int> Shape::getCubeVertices() { return { cubeVertices, sizeof(cubeVertices) }; }
-    std::pair<uint32_t*, int> Shape::getCubeIndices() { return { cubeIndices, sizeof(cubeIndices) }; }
 }

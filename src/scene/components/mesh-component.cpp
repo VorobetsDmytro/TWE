@@ -32,7 +32,7 @@ namespace TWE {
         this->ebo = mesh.ebo;
         this->texture = mesh.texture;
         this->registryId = mesh.registryId;
-        this->registryId = mesh.modelPath;
+        this->modelPath = mesh.modelPath;
     }
 
     void MeshComponent::setMesh(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId) {

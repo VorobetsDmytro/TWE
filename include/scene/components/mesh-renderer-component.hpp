@@ -18,7 +18,6 @@ namespace TWE {
         void setMaterial(const Material& material);
         Material material;
         std::shared_ptr<Shader> shader;
-        std::shared_ptr<Shader> colliderShader;
         std::string registryId;
         int entityId;
         bool showCollider;

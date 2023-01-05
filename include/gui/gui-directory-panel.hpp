@@ -7,7 +7,7 @@
 #include "stream/script-creator.hpp"
 #include "stream/project-creator.hpp"
 #include "gui/gui-components.hpp"
-#include "gui/gui-drag-and-drop-type.hpp"
+#include "gui/gui-types.hpp"
 #include "renderer/texture.hpp"
 
 #include <imgui.h>
@@ -22,7 +22,7 @@ namespace TWE {
     class GUIDirectoryPanel {
     public:
         GUIDirectoryPanel();
-        void showPanel();
+        void showPanel(Entity& selectedEntity);
         void setScene(Scene* scene);
         void setProjectData(ProjectData* projectData);
         void setCurrentPath(const std::filesystem::path& curPath);
@@ -30,8 +30,8 @@ namespace TWE {
         void loadScene(std::filesystem::path& scenePath);
         void loadTextures();
         void showDirectoryMenuPopup(const std::string& popupId);
-        void showDirectoryFileMenuPopup(const std::string& popupId, std::filesystem::path& filePath);
-        bool renderContent();
+        void showDirectoryFileMenuPopup(const std::string& popupId, std::filesystem::path& filePath, Entity& selectedEntity);
+        bool renderContent(Entity& selectedEntity);
         std::filesystem::path _curPath;
         Scene* _scene;
         ProjectData* _projectData;

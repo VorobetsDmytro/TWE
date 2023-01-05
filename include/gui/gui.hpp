@@ -6,6 +6,7 @@
 #include "gui/gui-components-panel.hpp"
 #include "gui/gui-directory-panel.hpp"
 #include "gui/gui-start-panel.hpp"
+#include "gui/gui-scene-panel.hpp"
 #include "registry/registry.hpp"
 #include "stream/project-creator.hpp"
 #include "stream/build-creator.hpp"
@@ -38,7 +39,6 @@ namespace TWE {
         ProjectData* projectData;
         GizmoOperation _gizmoOperation;
         int readPixelFBOData;
-        bool isFileDialogOpen;
         bool isMouseOnViewport;
         bool isFocusedOnViewport;
     };
@@ -57,13 +57,10 @@ namespace TWE {
         [[nodiscard]] bool getIsFocusedOnViewport();
     private:
         void showDockSpace();
-        void showScenePanel();
         void showTestPanel();
         void showViewportPanel();
         void showViewportStatePanel();
         void showFileDialog();
-        void showSceneEntityPopup(const std::string& popupId);
-        void showSceneMenuPopup(const std::string& popupId);
         bool showGizmo();
         void processInput();
         void selectEntity(Entity& entity);
@@ -71,6 +68,7 @@ namespace TWE {
         GUIStartPanel _start;
         GUIComponentsPanel _components;
         GUIDirectoryPanel _directory;
+        GUIScenePanel _scene;
         GUISpecification _specification;
         std::vector<std::pair<const char*, bool&>> _checkBoxes;
         std::vector<std::pair<const char*, std::string&>> _inputTextes;

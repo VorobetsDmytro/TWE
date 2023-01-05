@@ -8,18 +8,19 @@
 #include <memory>
 #include <string>
 #include <iostream>
-#include <btBulletDynamicsCommon.h>
-#include <LinearMath/btTransform.h>
-#include <LinearMath/btVector3.h>
 #include <entt/entt.hpp>
 
 #include "renderer/debug-camera.hpp"
 #include "renderer/camera.hpp"
+
 #include "time.hpp"
 #include "renderer/renderer.hpp"
 #include "input/input.hpp"
 #include "registry/registry.hpp"
 #include "stream/dll-creator.hpp"
+
+#include "scene/scene-bullet-debug-drawer.hpp"
+#include "scene/scene-physics.hpp"
 
 namespace TWE {
     enum class SceneState {
@@ -28,18 +29,16 @@ namespace TWE {
         Pause
     };
 
-    struct SceneRegistrySpecification {
-        entt::registry* curEntityRegistry = nullptr;
-        entt::registry editEntityRegistry;
-        entt::registry runEntityRegistry;
+    struct SceneStateSpecification {
+        entt::registry entityRegistry;
+        ScenePhysics physics;
+        int lastId = 0;
     };
 
-    struct ScenePhysicsSpecification {
-        btDynamicsWorld* world = nullptr;
-        btDispatcher* dispatcher;
-        btConstraintSolver* solver;
-        btCollisionConfiguration* collisionConfig;
-        btBroadphaseInterface* broadPhase;
+    struct SceneRegistrySpecification {
+        SceneStateSpecification* current = nullptr;
+        SceneStateSpecification edit;
+        SceneStateSpecification run;
     };
 
     struct SceneCameraSpecification {
@@ -66,7 +65,7 @@ namespace TWE {
         void bindScript(DLLLoadData* dllData, Entity& entity);
         void bindScript(DLLLoadData* dllData, std::vector<Entity>& entities);
         std::vector<Entity> unbindScript(entt::registry* registry, DLLLoadData* dllData);
-        Entity copyEntity(Entity& entity, entt::registry& to);
+        Entity copyEntity(Entity& entity, SceneStateSpecification& to);
         Entity createEntity(const std::string& name = "Entity");
         [[nodiscard]] bool& getIsFocusedOnDebugCamera();
         [[nodiscard]] bool getIsFocusedOnDebugCamera() const noexcept;
@@ -79,27 +78,27 @@ namespace TWE {
         [[nodiscard]] Registry<DLLLoadData>* getScriptDLLRegistry() const noexcept;
     private:
         void updateEditState();
+        void updatePositions();
+        void updateChildPosition(Entity& entity, ModelSpecification& ratioTransform, const glm::vec3& centerPositon);
         void updateRunState();
         void updatePhysics();
         void updateScripts();
         void updateLight();
         bool updateView();
-        void initPhysics();
         void resetEntityRegistry(entt::registry* registry);
         void resetScripts(entt::registry* registry);
         void resetPhysics(entt::registry* registry);
         void updateShadows(uint32_t windowWidth, uint32_t windowHeight);
         void setShadows(const LightComponent& lightComponent, const glm::mat4& lightSpaceMat, int index);
         void setTransMat(const glm::mat4& transform, TransformMatrixOptions option);
-        void setLight(const LightComponent& light, const TransformComponent& transform, const MeshRendererComponent& meshRenderer, const  uint32_t index);
+        void setLight(const LightComponent& light, TransformComponent& transform, const MeshRendererComponent& meshRenderer, const  uint32_t index);
         void setViewPos(const glm::vec3& pos);
-        void copyEntityRegistry(entt::registry& from, entt::registry& to);
+        void copySceneState(SceneStateSpecification& from, SceneStateSpecification& to);
 
         SceneState _sceneState;
-        SceneRegistrySpecification _entityRegistry;
+        SceneRegistrySpecification _sceneRegistry;
         std::unique_ptr<FBO> _frameBuffer;
         DebugCamera* _debugCamera;
-        ScenePhysicsSpecification _scenePhysics;
         SceneCameraSpecification _sceneCameraSpecification;
         bool _isFocusedOnDebugCamera;
         bool _drawLightMeshes;
@@ -111,6 +110,7 @@ namespace TWE {
         friend class GUI;
         friend class GUIComponentsPanel;
         friend class GUIDirectoryPanel;
+        friend class GUIScenePanel;
         friend class SceneSerializer;
     };
 }

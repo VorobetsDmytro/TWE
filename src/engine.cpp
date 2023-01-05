@@ -53,8 +53,7 @@ namespace TWE {
         projectData = std::make_unique<ProjectData>();
         debugCamera->setPerspective(90.f, wndWidth, wndHeight);
         curScene = std::make_shared<TWE::Scene>(wndWidth, wndHeight);
-        Shape::meshRegistry = &meshRegistry;
-        Shape::meshRendererRegistry = &meshRendererRegistry;
+        Shape::initialize(&meshRegistry, &meshRendererRegistry);
         curScene->setDebugCamera(debugCamera.get());
         curScene->setScriptDLLRegistry(&scriptDLLRegistry);
         #ifndef TWE_BUILD
@@ -130,11 +129,11 @@ namespace TWE {
         #else
         auto buildData = BuildCreator::load(TWE_BUILD);
         if(buildData) {
-            std::filesystem::path projectFilePath = "../../" + buildData->projectFilePath.string();
+            std::filesystem::path projectFilePath = "./" + buildData->projectFilePath.string();
             auto projectData = ProjectCreator::load(projectFilePath.string(), &scriptDLLRegistry);
             if(projectData) {
                 *this->projectData.get() = *projectData;
-                std::filesystem::path startScenePath = "../../" + buildData->startScenePath.string();
+                std::filesystem::path startScenePath = "./" + buildData->startScenePath.string();
                 SceneSerializer::deserialize(curScene.get(), startScenePath.string());
                 curScene->getIsFocusedOnDebugCamera() = false;
             }

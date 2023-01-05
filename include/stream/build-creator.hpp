@@ -25,6 +25,7 @@ namespace TWE {
         static bool create(ProjectData* projectData, const std::filesystem::path& startScenePath);
         static BuildData* load(const std::filesystem::path& buildFilePath);
     private:
+        static void copyRootPathFiles(ProjectData* projectData, const std::filesystem::path& buildDirPath);
         static void createCMakeFile(ProjectData* projectData, const std::filesystem::path& buildDirPath);
         static void createBuildFile(ProjectData* projectData, const std::filesystem::path& buildFilePath, const std::filesystem::path& startScenePath);
         static std::string fixPath(const std::string& path);

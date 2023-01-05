@@ -8,11 +8,13 @@ namespace TWE {
         jsonMain["Scene"] = sceneName;
         jsonMain["RootPath"] = projectData->rootPath;
         nlohmann::json jsonEntities = nlohmann::json::array();
-        scene->_entityRegistry.editEntityRegistry.each([&](entt::entity entity) {
-            Entity instance = { entity, scene };
+        auto& view = scene->_sceneRegistry.edit.entityRegistry.view<NameComponent>();
+        int size = view.size();
+        for(int i = size - 1; i >= 0; --i) {
+            Entity instance = { view[i], scene };
             if(instance.hasComponent<NameComponent>())
-                serializeEntity(instance, jsonEntities, projectData);
-        });
+                serializeEntity(instance, jsonEntities, projectData, scene);
+        }
         jsonMain["Entities"] = jsonEntities;
         File::save(path.c_str(), jsonMain.dump());
     }
@@ -26,7 +28,7 @@ namespace TWE {
         #ifndef TWE_BUILD
         rootPath = (std::string)jsonMain["RootPath"];
         #else
-        rootPath = "../../";
+        rootPath = "./";
         #endif
         scene->setName(jsonMain["Scene"]);
         auto& entities = jsonMain["Entities"].items();
@@ -34,11 +36,36 @@ namespace TWE {
             Entity instance = deserializeCreationTypeComponent(scene, components, rootPath);
             deserializeEntity(scene, instance, components, rootPath);
         }
+        revalidateParentChildsComponent(scene);
     }
 
-    void SceneSerializer::serializeEntity(Entity& entity, nlohmann::json& jsonEntities, ProjectData* projectData) {
+    void SceneSerializer::revalidateParentChildsComponent(Scene* scene) {
+        int lastId = -1;
+        scene->_sceneRegistry.edit.entityRegistry.view<ParentChildsComponent>().each([&](entt::entity entityOut, ParentChildsComponent& parentChildsComponent){
+            std::vector<entt::entity> childs;
+            scene->_sceneRegistry.edit.entityRegistry.view<IDComponent>().each([&](entt::entity entityIn, IDComponent& idComponent) {
+                if(idComponent.id > lastId)
+                    lastId = idComponent.id;
+                if(entityOut == entityIn)
+                    return;
+                if(parentChildsComponent.parent == (entt::entity)idComponent.id) {
+                    parentChildsComponent.parent = entityIn;
+                    return;
+                }
+                for(auto childId : parentChildsComponent.childs)
+                    if(childId == (entt::entity)idComponent.id) {
+                        childs.push_back(entityIn);
+                        return;
+                    }
+            });
+            parentChildsComponent.childs = childs;
+        });
+        scene->_sceneRegistry.edit.lastId = ++lastId;
+    }
+
+    void SceneSerializer::serializeEntity(Entity& entity, nlohmann::json& jsonEntities, ProjectData* projectData, Scene* scene) {
         nlohmann::json jsonEntity;
-        jsonEntity["Entity ID"] = entity.getSource();
+        jsonEntity["Entity ID"] = entity.getComponent<IDComponent>().id;
         serializeCreationTypeComponent(entity, jsonEntity);
         serializeNameComponent(entity, jsonEntity);
         serializeTransformComponent(entity, jsonEntity);
@@ -48,6 +75,7 @@ namespace TWE {
         serializeLightComponent(entity, jsonEntity);
         serializePhysicsComponent(entity, jsonEntity);
         serializeScriptComponent(entity, jsonEntity);
+        serializeParentChildsComponent(entity, jsonEntity, scene);
         jsonEntities.push_back(jsonEntity);
     }
 
@@ -61,6 +89,8 @@ namespace TWE {
             deserializeLightComponent(entity, key, value);
             deserializePhysicsComponent(scene, entity, key, value);
             deserializeScriptComponent(scene, entity, key, value);
+            deserializeParentChildsComponent(entity, key, value);
+            deserializeIDComponent(entity, key, value);
         }
     }
 
@@ -144,21 +174,21 @@ namespace TWE {
         nlohmann::json jsonTransformComponent;
 
         nlohmann::json jsonPosition = nlohmann::json::array();
-        jsonPosition.push_back(transformComponent.position.x);
-        jsonPosition.push_back(transformComponent.position.y);
-        jsonPosition.push_back(transformComponent.position.z);
+        jsonPosition.push_back(transformComponent.transform.position.x);
+        jsonPosition.push_back(transformComponent.transform.position.y);
+        jsonPosition.push_back(transformComponent.transform.position.z);
         jsonTransformComponent["Position"] = jsonPosition;
 
         nlohmann::json jsonRotation = nlohmann::json::array();
-        jsonRotation.push_back(transformComponent.rotation.x);
-        jsonRotation.push_back(transformComponent.rotation.y);
-        jsonRotation.push_back(transformComponent.rotation.z);
+        jsonRotation.push_back(transformComponent.transform.rotation.x);
+        jsonRotation.push_back(transformComponent.transform.rotation.y);
+        jsonRotation.push_back(transformComponent.transform.rotation.z);
         jsonTransformComponent["Rotation"] = jsonRotation;
 
         nlohmann::json jsonSize = nlohmann::json::array();
-        jsonSize.push_back(transformComponent.size.x);
-        jsonSize.push_back(transformComponent.size.y);
-        jsonSize.push_back(transformComponent.size.z);
+        jsonSize.push_back(transformComponent.transform.size.x);
+        jsonSize.push_back(transformComponent.transform.size.y);
+        jsonSize.push_back(transformComponent.transform.size.z);
         jsonTransformComponent["Size"] = jsonSize;
 
         jsonEntity["TransformComponent"] = jsonTransformComponent;
@@ -172,13 +202,19 @@ namespace TWE {
         auto& transformComponent = entity.getComponent<TransformComponent>();
 
         nlohmann::json jsonPosition = jsonComponent["Position"];
-        transformComponent.setPosition({jsonPosition[0], jsonPosition[1], jsonPosition[2]});
+        glm::vec3 position = {jsonPosition[0], jsonPosition[1], jsonPosition[2]};
+        transformComponent.setPosition(position);
+        transformComponent.preTransform.position = position;
 
         nlohmann::json jsonRotation = jsonComponent["Rotation"];
-        transformComponent.setRotation({jsonRotation[0], jsonRotation[1], jsonRotation[2]});
+        glm::vec3 rotation = {jsonRotation[0], jsonRotation[1], jsonRotation[2]};
+        transformComponent.setRotation(rotation);
+        transformComponent.preTransform.rotation = rotation;
 
         nlohmann::json jsonSize = jsonComponent["Size"];
-        transformComponent.setSize({jsonSize[0], jsonSize[1], jsonSize[2]});
+        glm::vec3 size = {jsonSize[0], jsonSize[1], jsonSize[2]};
+        transformComponent.setSize(size);
+        transformComponent.preTransform.size = size;
     }
 
     void SceneSerializer::serializeMeshComponent(Entity& entity, nlohmann::json& jsonEntity, ProjectData* projectData) {
@@ -395,12 +431,11 @@ namespace TWE {
         jsonPosition.push_back(position.z());
         jsonPhysicsComponent["Position"] = jsonPosition;
 
-        auto& rotation = transform.getRotation();
+        auto& rotation = physicsComponent.getRotation();
         nlohmann::json jsonRotation = nlohmann::json::array();
-        jsonRotation.push_back(rotation.x());
-        jsonRotation.push_back(rotation.y());
-        jsonRotation.push_back(rotation.z());
-        jsonRotation.push_back(rotation.w());
+        jsonRotation.push_back(rotation.x);
+        jsonRotation.push_back(rotation.y);
+        jsonRotation.push_back(rotation.z);
         jsonPhysicsComponent["Rotation"] = jsonRotation;
 
         auto& size = physicsComponent.getShapeDimensions();
@@ -409,6 +444,13 @@ namespace TWE {
         jsonSize.push_back(size.y);
         jsonSize.push_back(size.z);
         jsonPhysicsComponent["Size"] = jsonSize;
+
+        auto& localScale = physicsComponent.getLocalScale();
+        nlohmann::json jsonLocalScale = nlohmann::json::array();
+        jsonLocalScale.push_back(localScale.x);
+        jsonLocalScale.push_back(localScale.y);
+        jsonLocalScale.push_back(localScale.z);
+        jsonPhysicsComponent["LocalScale"] = jsonLocalScale;
 
         jsonEntity["PhysicsComponent"] = jsonPhysicsComponent;
     }
@@ -421,13 +463,20 @@ namespace TWE {
         nlohmann::json jsonPosition = jsonComponent["Position"];
         nlohmann::json jsonRotation = jsonComponent["Rotation"];
         nlohmann::json jsonSize = jsonComponent["Size"];
+        nlohmann::json jsonLocalScale = jsonComponent["LocalScale"];
         ColliderType type = static_cast<ColliderType>(jsonComponent["Type"]);
         glm::vec3 size = {jsonSize[0], jsonSize[1], jsonSize[2]};
+        glm::vec3 localScale = {jsonLocalScale[0], jsonLocalScale[1], jsonLocalScale[2]};
         glm::vec3 position = {jsonPosition[0], jsonPosition[1], jsonPosition[2]};
         glm::vec3 rotation = {jsonRotation[0], jsonRotation[1], jsonRotation[2]};
         float mass = jsonComponent["Mass"];
-        auto& sizeTransform = entity.getComponent<TransformComponent>().size;
-        auto& physicsComponent = entity.addComponent<PhysicsComponent>(scene->getDynamicWorld(), type, size, sizeTransform, position, rotation, mass);
+        if(type != ColliderType::TriangleMesh)
+            entity.addComponent<PhysicsComponent>(scene->getDynamicWorld(), type, size, localScale, position, rotation, mass);
+        else {
+            auto& meshComponent = entity.getComponent<MeshComponent>();
+            TriangleMeshSpecification triangleMesh = { meshComponent.vbo, meshComponent.ebo };
+            entity.addComponent<PhysicsComponent>(scene->getDynamicWorld(), type, triangleMesh, localScale, position, rotation);
+        }
     }
 
     void SceneSerializer::serializeScriptComponent(Entity& entity, nlohmann::json& jsonEntity) {
@@ -461,6 +510,47 @@ namespace TWE {
         }
         Behavior* behavior = (Behavior*)behaviorFactory();
         scriptComponent.bind(behavior, dllData->scriptName);
+    }
+
+    void SceneSerializer::serializeParentChildsComponent(Entity& entity, nlohmann::json& jsonEntity, Scene* scene) {
+        auto& parentChildsComponent = entity.getComponent<ParentChildsComponent>();
+        nlohmann::json jsonParentChildsComponent;
+
+        entt::entity parentId = entt::null;
+        if(parentChildsComponent.parent != entt::null) {
+            Entity parentEntity = { parentChildsComponent.parent, scene };
+            auto& idComponent = parentEntity.getComponent<IDComponent>();
+            parentId = (entt::entity)idComponent.id;
+        }
+        jsonParentChildsComponent["Parent"] = parentId;
+
+        nlohmann::json jsonChilds = nlohmann::json::array();
+        for(auto child : parentChildsComponent.childs) {
+            Entity childEntity = { child, scene };
+            auto& idComponent = childEntity.getComponent<IDComponent>();
+            jsonChilds.push_back(idComponent.id);
+        }
+        jsonParentChildsComponent["Childs"] = jsonChilds;
+
+        jsonEntity["ParentChildsComponent"] = jsonParentChildsComponent;
+    }
+
+    void SceneSerializer::deserializeParentChildsComponent(Entity& entity, const std::string& key, nlohmann::json& jsonComponent) {
+        if(key != "ParentChildsComponent")
+            return;
+        auto& parentChildsComponent = entity.getComponent<ParentChildsComponent>();
+
+        parentChildsComponent.parent = jsonComponent["Parent"];
+        
+        for(entt::entity childEntity : jsonComponent["Childs"])
+            parentChildsComponent.childs.push_back(childEntity);
+    }
+
+    void SceneSerializer::deserializeIDComponent(Entity& entity, const std::string& key, nlohmann::json& jsonComponent) {
+        if(key != "Entity ID")
+            return;
+        auto& idComponent = entity.getComponent<IDComponent>();
+        idComponent.id = jsonComponent;
     }
 
     std::string SceneSerializer::deleteInvertedCommas(const std::string& str) {

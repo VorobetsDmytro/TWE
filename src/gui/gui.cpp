@@ -13,7 +13,6 @@ namespace TWE {
         ImGui_ImplOpenGL3_Init("#version 330");
         _specification._scene = nullptr;
         _specification._gizmoOperation = GizmoOperation::Translate;
-        _specification.isFileDialogOpen = false;
         _specification.isMouseOnViewport = false;
 
         _start.initialize();
@@ -73,9 +72,11 @@ namespace TWE {
         if (ImGui::BeginMenuBar()) {
             if (ImGui::BeginMenu("File")) {
                 if(ImGui::MenuItem("New project"))
-                    ImGuiFileDialog::Instance()->OpenDialog("NewProject", "Choose File", ".project", ".", 1, nullptr);
+                    ImGuiFileDialog::Instance()->OpenDialog("NewProject", "Choose File", ".project", 
+                        (_specification.projectData->rootPath.string() + '/').c_str(), 1, nullptr);
                 if(ImGui::MenuItem("Open project"))
-                    ImGuiFileDialog::Instance()->OpenDialog("OpenProject", "Choose File", ".project", ".", 1, nullptr);
+                    ImGuiFileDialog::Instance()->OpenDialog("OpenProject", "Choose File", ".project", 
+                        (_specification.projectData->rootPath.string() + '/').c_str(), 1, nullptr);
                 ImGui::Separator();
                 if(ImGui::MenuItem("Save scene")) {
                     if(!_specification.projectData->lastScenePath.empty())
@@ -118,10 +119,10 @@ namespace TWE {
             }
             ImGui::EndMenuBar();
         }
-        showScenePanel();
         showTestPanel();
         showViewportPanel();
-        _directory.showPanel();
+        _scene.showPanel(_specification._selectedEntity);
+        _directory.showPanel(_specification._selectedEntity);
         _components.showPanel(_specification._selectedEntity);
         processInput();
         ImGui::End();
@@ -140,102 +141,6 @@ namespace TWE {
         if(_specification._selectedEntity.hasComponent<MeshRendererComponent>())
             _specification._selectedEntity.getComponent<MeshRendererComponent>().showCollider = false;
         _specification._selectedEntity = {};
-    }
-
-    void GUI::showScenePanel() {
-        ImGui::Begin("Scene");
-        if(ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered()) {
-            unselectEntity();
-            ImGuiFileDialog::Instance()->Close();
-        }
-        bool canOpenWindowPopup = true;
-        std::string entityPopup = "EntityPopup";
-        if(_specification._scene) {
-            _specification._scene->_entityRegistry.curEntityRegistry->view<NameComponent>().each([&](entt::entity entity, NameComponent& nameComponent){
-                auto id = (void*)entity;
-                Entity entityInstance = {entity, _specification._scene};
-                ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | (_specification._selectedEntity == entityInstance ? ImGuiTreeNodeFlags_Selected : 0);
-                bool isOpened = ImGui::TreeNodeEx(id, flags, nameComponent.getName().c_str());
-                if(ImGui::IsItemClicked(0) || ImGui::IsItemClicked(1)) {
-                    selectEntity(entityInstance);selectEntity(entityInstance);
-                    ImGuiFileDialog::Instance()->Close();
-                }
-                if(ImGui::IsItemClicked(1)) {
-                    ImGui::OpenPopup(entityPopup.c_str());
-                    canOpenWindowPopup = false;
-                    ImGuiFileDialog::Instance()->Close();
-                }
-                if(isOpened)
-                    ImGui::TreePop();
-            });
-        }
-        std::string menuPopup = "MenuPopup";
-        if(ImGui::IsMouseClicked(1) && ImGui::IsWindowHovered()) {
-            ImGui::SetWindowFocus();
-            if(canOpenWindowPopup)
-                ImGui::OpenPopup(menuPopup.c_str());
-        }
-        showSceneMenuPopup(menuPopup);
-        showSceneEntityPopup(entityPopup);
-        ImGui::End();
-    }
-
-    void GUI::showSceneEntityPopup(const std::string& popupId) {
-        float popUpWidth = 150.f;
-        ImGui::SetNextWindowSize({popUpWidth, 0.f});
-        if(ImGui::BeginPopup(popupId.c_str())) {
-            auto& availSize = ImGui::GetContentRegionAvail();
-            if(ImGui::Button("Remove", {availSize.x, 0.f})) {
-                _specification._selectedEntity.destroy();
-                unselectEntity();
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::EndPopup();
-        }
-    }
-
-    void GUI::showSceneMenuPopup(const std::string& popupId) {
-        float popUpWidth = 150.f;
-        ImGui::SetNextWindowSize({popUpWidth, 0.f});
-        if(ImGui::BeginPopup(popupId.c_str())) {
-            auto& availSize = ImGui::GetContentRegionAvail();
-            if(ImGui::BeginMenu("Create entity")) {
-                if(ImGui::Button("Entity", {availSize.x, 0.f})) {
-                    selectEntity(_specification._scene->createEntity());
-                    ImGui::CloseCurrentPopup();
-                }       
-                if(ImGui::Button("Cube", {availSize.x, 0.f})) {
-                    selectEntity(Shape::createCubeEntity(_specification._scene));
-                    ImGui::CloseCurrentPopup();
-                }       
-                if(ImGui::Button("Plate", {availSize.x, 0.f})) {
-                    selectEntity(Shape::createPlateEntity(_specification._scene));
-                    ImGui::CloseCurrentPopup();
-                }       
-                if(ImGui::Button("Camera", {availSize.x, 0.f})) {
-                    selectEntity(Shape::createCameraEntity(_specification._scene));
-                    ImGui::CloseCurrentPopup();
-                }       
-                if(ImGui::Button("Point Light", {availSize.x, 0.f})) {
-                    selectEntity(Shape::createPointLightEntity(_specification._scene));
-                    ImGui::CloseCurrentPopup();
-                }            
-                if(ImGui::Button("Spot Light", {availSize.x, 0.f})) {
-                    selectEntity(Shape::createSpotLightEntity(_specification._scene));
-                    ImGui::CloseCurrentPopup();
-                }            
-                if(ImGui::Button("Dir Light", {availSize.x, 0.f})) {
-                    selectEntity(Shape::createDirLightEntity(_specification._scene));
-                    ImGui::CloseCurrentPopup();
-                }
-                if(ImGui::Button("Model", {availSize.x, 0.f})) {
-                    ImGuiFileDialog::Instance()->OpenDialog("LoadModel", "Choose File", ".obj,.fbx", ".", 1, nullptr);
-                    ImGui::CloseCurrentPopup();
-                }
-                ImGui::EndMenu();
-            }
-            ImGui::EndPopup();
-        }
     }
 
     void GUI::showTestPanel() {
@@ -315,13 +220,13 @@ namespace TWE {
         mousePos.x -= minBound.x;
         mousePos.y -= minBound.y;
         mousePos.y = viewPortSize.y - mousePos.y;
-        if(_specification._scene->getIsFocusedOnDebugCamera() && !_specification.isFileDialogOpen) {
+        if(_specification._scene->getIsFocusedOnDebugCamera() && !ImGuiFileDialog::Instance()->IsOpened()) {
             bool isUsing = showGizmo();
             if(mousePos.x >= 0.f && mousePos.y >= 0.f && mousePos.x < viewPortSize.x && mousePos.y < viewPortSize.y) {
                 _specification.isMouseOnViewport = true;
-                if(!isUsing && !ImGuiFileDialog::Instance()->IsOpened() && ImGui::IsMouseClicked(0)) {
+                if(!isUsing && ImGui::IsWindowFocused() && ImGui::IsMouseClicked(0)) {
                     int data = _specification._scene->_frameBuffer->readPixel(1, (int)mousePos.x, (int)mousePos.y);
-                    if(data == -1 || !_specification._scene->_entityRegistry.curEntityRegistry->valid((entt::entity)data))
+                    if(data == -1 || !_specification._scene->_sceneRegistry.current->entityRegistry.valid((entt::entity)data))
                         unselectEntity();
                     else
                         selectEntity(Entity{ (entt::entity)data, _specification._scene });
@@ -339,13 +244,15 @@ namespace TWE {
                 std::string projectName = std::filesystem::path(filePathName).stem().string();
                 std::string projectDir = std::filesystem::path(filePathName).parent_path().string();
                 if(ProjectCreator::create(projectName, projectDir)) {
+                    unselectEntity();
+                    _specification._scene->reset();
+                    _specification._scene->_scriptDLLRegistry->clean();
                     std::string projectFilePath = projectDir + '/' + projectName + '/' + projectName + ".project";
                     auto projectData = ProjectCreator::load(projectFilePath, _specification._scene->_scriptDLLRegistry);
                     if(projectData) {
                         DLLCreator::initPaths(projectData->dllTempDir.string());
                         *_specification.projectData = *projectData;
                         _directory.setCurrentPath(projectData->rootPath);
-                        _specification._scene->reset();
                         if(!projectData->lastScenePath.empty())
                             SceneSerializer::deserialize(_specification._scene, projectData->lastScenePath.string());
                     }
@@ -357,6 +264,8 @@ namespace TWE {
         if(ImGuiFileDialog::Instance()->Display("OpenProject"))  {
             if(ImGuiFileDialog::Instance()->IsOk()) {
                 std::string projectFilePath = ImGuiFileDialog::Instance()->GetFilePathName();
+                unselectEntity();
+                _specification._scene->reset();
                 _specification._scene->_scriptDLLRegistry->clean();
                 auto projectData = ProjectCreator::load(projectFilePath, _specification._scene->_scriptDLLRegistry);
                 if(projectData) {
@@ -364,8 +273,7 @@ namespace TWE {
                     DLLCreator::initPaths(dllTempDir.string());
                     *_specification.projectData = *projectData;
                     _directory.setCurrentPath(projectData->rootPath);
-                    _specification._scene->reset();
-                    if(!projectData->lastScenePath.empty()) {
+                    if(!projectData->lastScenePath.empty() && std::filesystem::exists(projectData->rootPath / projectData->lastScenePath)) {
                         std::filesystem::path lastScenePath = projectData->rootPath.string() + '/' + projectData->lastScenePath.string();
                         SceneSerializer::deserialize(_specification._scene, lastScenePath.string());
                     }
@@ -384,15 +292,6 @@ namespace TWE {
             ImGuiFileDialog::Instance()->Close();
             return;
         }
-        if(ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey"))  {
-            if(ImGuiFileDialog::Instance()->IsOk()) {
-                std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-                std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
-            }
-            _specification.isFileDialogOpen = false;
-            ImGuiFileDialog::Instance()->Close();
-            return;
-        }
         if(ImGuiFileDialog::Instance()->Display("LoadModel"))  {
             if(ImGuiFileDialog::Instance()->IsOk()) {
                 std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
@@ -404,7 +303,32 @@ namespace TWE {
                         selectEntity(modelEntities.back());
                 }
             }
-            _specification.isFileDialogOpen = false;
+            ImGuiFileDialog::Instance()->Close();
+            return;
+        }
+        if(ImGuiFileDialog::Instance()->Display("LoadCubemap"))  {
+            if(ImGuiFileDialog::Instance()->IsOk()) {
+                auto& selection = ImGuiFileDialog::Instance()->GetSelection();
+                if(selection.size() == 6) {
+                    static std::vector<std::string> positions = {
+                        "posx", "negx",
+                        "posy", "negy",
+                        "posz", "negz",
+                    };
+                    TextureAttachmentSpecification attachemnts;
+                    for(auto& item : positions)
+                        for(auto& [key, value] : selection) {
+                            auto position = std::filesystem::path(key).stem().string();
+                            if(item == position) {
+                                TextureSpecification specification(value, 0, TextureType::CubemapTexture, TextureInOutFormat::RGBA);
+                                attachemnts.textureSpecifications.push_back(specification);
+                                break;
+                            }
+                        }
+                    if(attachemnts.textureSpecifications.size() == 6)
+                        selectEntity(Shape::createCubemapEntity(_specification._scene, attachemnts));
+                }
+            }
             ImGuiFileDialog::Instance()->Close();
             return;
         }
@@ -426,7 +350,7 @@ namespace TWE {
         glm::mat4 cameraView = camera->getView(_specification._scene->_sceneCameraSpecification.position, 
             _specification._scene->_sceneCameraSpecification.forward, _specification._scene->_sceneCameraSpecification.up);
         auto& selectedEntityTransform = _specification._selectedEntity.getComponent<TransformComponent>();
-        auto selectedEntityModel = selectedEntityTransform.model;
+        auto selectedEntityModel = selectedEntityTransform.getModel();
 
         ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), static_cast<ImGuizmo::OPERATION>(_specification._gizmoOperation),
                              ImGuizmo::LOCAL, glm::value_ptr(selectedEntityModel));
@@ -436,16 +360,17 @@ namespace TWE {
         if(isUsing) {
             glm::vec3 position, rotation, size;
             Math::decomposeTransform(selectedEntityModel, position, rotation, size);
-            bool hasPhysics = _specification._selectedEntity.hasComponent<PhysicsComponent>();
-            selectedEntityTransform.setPosition(position);
-            if(hasPhysics)
-                _specification._selectedEntity.getComponent<PhysicsComponent>().setPosition(position);
-            selectedEntityTransform.setRotation(rotation);
-            if(hasPhysics)
-                _specification._selectedEntity.getComponent<PhysicsComponent>().setRotation(glm::quat(rotation));
-            selectedEntityTransform.setSize(size);
-            if(hasPhysics)
-                _specification._selectedEntity.getComponent<PhysicsComponent>().setSize(size);
+            switch (_specification._gizmoOperation) {
+            case GizmoOperation::Translate:
+                selectedEntityTransform.setPosition(position);
+                break;
+            case GizmoOperation::Rotate:
+                selectedEntityTransform.setRotation(rotation);
+                break;
+            case GizmoOperation::Scale:
+                selectedEntityTransform.setSize(size);
+                break;
+            }
         }
 
         return isUsing;
@@ -465,13 +390,16 @@ namespace TWE {
         }
         if(_specification._selectedEntity.getSource() != entt::null) {
             if(Input::isKeyPressed(Keyboard::KEY_DELETE)) {
+                if(_specification._selectedEntity.hasComponent<MeshRendererComponent>())
+                    _specification._selectedEntity.getComponent<MeshRendererComponent>().showCollider = false;
                 _specification._selectedEntity.destroy();
-                unselectEntity();
             }
         }
         if(Input::isKeyPressed(Keyboard::KEY_LEFT_CONTROL) && Input::isKeyPressed(Keyboard::KEY_S)) {
-            if(!_specification.projectData->lastScenePath.empty())
-                SceneSerializer::serialize(_specification._scene, _specification.projectData->lastScenePath.string(), _specification.projectData);
+            if(!_specification.projectData->lastScenePath.empty()) {
+                std::filesystem::path scenePath = _specification.projectData->rootPath.string() + '/' + _specification.projectData->lastScenePath.string();
+                SceneSerializer::serialize(_specification._scene, scenePath.string(), _specification.projectData);
+            }
             else
                 ImGuiFileDialog::Instance()->OpenDialog("SaveSceneAs", "Choose File", ".scene", 
                     (_specification.projectData->rootPath.string() + '/').c_str(), 1, nullptr);
@@ -495,6 +423,7 @@ namespace TWE {
         _components.setScene(scene);
         _directory.setScene(scene);
         _start.setScene(scene);
+        _scene.setScene(scene);
     }
 
     void GUI::setProjectData(ProjectData* projectData) {

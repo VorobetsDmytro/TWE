@@ -35,22 +35,22 @@ namespace TWE {
 
     template<typename T>
     bool Entity::hasComponent() {
-        return _scene->_entityRegistry.curEntityRegistry->any_of<T>(_entity);
+        return _scene->_sceneRegistry.current->entityRegistry.any_of<T>(_entity);
     }
 
     template<typename T>
     T& Entity::getComponent() {
-        return _scene->_entityRegistry.curEntityRegistry->get<T>(_entity);
+        return _scene->_sceneRegistry.current->entityRegistry.get<T>(_entity);
     }
 
     template<typename T, typename ...Args>
     T& Entity::addComponent(Args&&... args) {
-        return _scene->_entityRegistry.curEntityRegistry->emplace<T>(_entity, std::forward<Args>(args)...);
+        return _scene->_sceneRegistry.current->entityRegistry.emplace<T>(_entity, std::forward<Args>(args)...);
     }
 
     template<typename T>
     void Entity::removeComponent() {
-        _scene->_entityRegistry.curEntityRegistry->remove<T>(_entity);
+        _scene->_sceneRegistry.current->entityRegistry.remove<T>(_entity);
     }
 
     template<typename T>

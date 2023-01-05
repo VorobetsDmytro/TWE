@@ -5,7 +5,7 @@
 #include "scene/shape.hpp"
 #include "registry/registry.hpp"
 #include "gui/gui-components.hpp"
-#include "gui/gui-drag-and-drop-type.hpp"
+#include "gui/gui-types.hpp"
 
 #include <imgui.h>
 #include <imgui_stdlib.h>

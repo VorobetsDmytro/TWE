@@ -22,7 +22,7 @@ namespace TWE {
         static void serialize(Scene* scene, const std::string& path, ProjectData* projectData);
         static void deserialize(Scene* scene, const std::string& path);
     private:
-        static void serializeEntity(Entity& entity, nlohmann::json& jsonEntities, ProjectData* projectData);
+        static void serializeEntity(Entity& entity, nlohmann::json& jsonEntities, ProjectData* projectData, Scene* scene);
         static void serializeCreationTypeComponent(Entity& entity, nlohmann::json& jsonEntity);
         static void serializeNameComponent(Entity& entity, nlohmann::json& jsonEntity);
         static void serializeTransformComponent(Entity& entity, nlohmann::json& jsonEntity);
@@ -32,7 +32,7 @@ namespace TWE {
         static void serializeLightComponent(Entity& entity, nlohmann::json& jsonEntity);
         static void serializePhysicsComponent(Entity& entity, nlohmann::json& jsonEntity);
         static void serializeScriptComponent(Entity& entity, nlohmann::json& jsonEntity);
-        // static void serializeScriptDLL(DLLLoadData* dllData, nlohmann::json& jsonScript, ProjectData* projectData);
+        static void serializeParentChildsComponent(Entity& entity, nlohmann::json& jsonEntity, Scene* scene);
 
         static void deserializeEntity(Scene* scene, Entity& entity, nlohmann::json& jsonComponents, const std::filesystem::path& rootPath);
         static void deserializeNameComponent(Entity& entity, const std::string& key, nlohmann::json& jsonComponent);
@@ -42,8 +42,11 @@ namespace TWE {
         static void deserializeLightComponent(Entity& entity, const std::string& key, nlohmann::json& jsonComponent);
         static void deserializePhysicsComponent(Scene* scene, Entity& entity, const std::string& key, nlohmann::json& jsonComponent);
         static void deserializeScriptComponent(Scene* scene, Entity& entity, const std::string& key, nlohmann::json& jsonComponent);
+        static void deserializeParentChildsComponent(Entity& entity, const std::string& key, nlohmann::json& jsonComponent);
+        static void deserializeIDComponent(Entity& entity, const std::string& key, nlohmann::json& jsonComponent);
         [[nodiscard]] static Entity deserializeCreationTypeComponent(Scene* scene, nlohmann::json& jsonComponent, const std::filesystem::path& rootPath);
-        // static void deserializaScriptDLL(DLLLoadData* dllData, nlohmann::json& jsonScript, const std::filesystem::path& rootPath);
+
+        static void revalidateParentChildsComponent(Scene* scene);
 
         [[nodiscard]] static std::string deleteInvertedCommas(const std::string& str);
     };

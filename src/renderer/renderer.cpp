@@ -2,9 +2,9 @@
 
 namespace TWE {
     void Renderer::execute(MeshComponent* meshComponent, MeshRendererComponent* meshRendererComponent, TransformComponent* transformComponent, 
-    int lightsCount, PhysicsComponent* physicsComponent) {
+    int lightsCount, PhysicsComponent* physicsComponent, bool drawColliders) {
         meshRendererComponent->shader->use();
-        meshRendererComponent->shader->setUniform(TRANS_MAT_OPTIONS[TransformMatrixOptions::MODEL], transformComponent->model);
+        meshRendererComponent->shader->setUniform(TRANS_MAT_OPTIONS[TransformMatrixOptions::MODEL], transformComponent->getModel());
         meshRendererComponent->shader->setUniform("hasTexture", !meshComponent->texture->getAttachments().textureSpecifications.empty());
         meshRendererComponent->shader->setUniform("lightCount", lightsCount);
         meshRendererComponent->updateMaterialUniform();
@@ -13,22 +13,12 @@ namespace TWE {
         glDrawElements(GL_TRIANGLES, meshComponent->ebo->getSize() / sizeof(int), GL_UNSIGNED_INT, (void*)0);
         meshComponent->vao->unbind();
         if(physicsComponent) {
-            auto cubeMesh = Shape::meshRegistry->get("Cube mesh");
-            if(!cubeMesh) {
-                auto& cubeVertices = Shape::getCubeVertices();
-                auto& cubeIndices = Shape::getCubeIndices();
-                MeshComponent mc = MeshComponent(cubeVertices.first, cubeVertices.second, cubeIndices.first, cubeIndices.second, "Cube mesh");
-                cubeMesh = Shape::registerMeshSpecification(mc.vao, mc.vbo, mc.ebo, EntityCreationType::Cube, "", "Cube mesh");
-            }
-            cubeMesh->vao->bind();
-            meshRendererComponent->colliderShader->use();
-            auto& model = physicsComponent->getModel();
-            meshRendererComponent->colliderShader->setUniform(TRANS_MAT_OPTIONS[TransformMatrixOptions::MODEL], model);
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            glLineWidth(2.f);
-            glDrawElements(GL_TRIANGLES, cubeMesh->ebo->getSize() / sizeof(int), GL_UNSIGNED_INT, (void*)0);
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            cubeMesh->vao->unbind();
+            auto* rigidBody = physicsComponent->getRigidBody();
+            int collisionFlags = rigidBody->getCollisionFlags();
+            if(drawColliders && collisionFlags & btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT)
+                rigidBody->setCollisionFlags(collisionFlags ^ btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT);
+            else if(!drawColliders && !(collisionFlags & btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT))
+                rigidBody->setCollisionFlags(collisionFlags ^ btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT);
         }
     }
 
@@ -43,9 +33,9 @@ namespace TWE {
         glViewport(startX, startY, endX, endY);
     }
 
-    void Renderer::setLight(MeshRendererComponent& meshRendererComponent, const LightComponent& light, const TransformComponent& transform, 
+    void Renderer::setLight(MeshRendererComponent& meshRendererComponent, const LightComponent& light, TransformComponent& transform, 
     const MeshRendererComponent& meshRenderer, const std::string& lightIndex) {
-        meshRendererComponent.shader->setUniform((lightIndex + ".pos").c_str(), transform.position);
+        meshRendererComponent.shader->setUniform((lightIndex + ".pos").c_str(), transform.transform.position);
         meshRendererComponent.shader->setUniform((lightIndex + ".direction").c_str(), transform.getForward());
         meshRendererComponent.shader->setUniform((lightIndex + ".color").c_str(), light.color);
         meshRendererComponent.shader->setUniform((lightIndex + ".cutOff").c_str(), glm::cos(glm::radians(light.innerRadius)));
@@ -69,7 +59,7 @@ namespace TWE {
 
     void Renderer::generateDepthMap(LightComponent& lightComponent, const TransformComponent& transformComponent, const glm::mat4& lightProjection, 
     const glm::mat4& lightView, Scene* scene) {
-        scene->updateView(lightView, lightProjection, transformComponent.position);
+        scene->updateView(lightView, lightProjection, transformComponent.transform.position);
         auto& depthMapSize = lightComponent.getDepthMapSize();
         FBO* fbo = lightComponent.getFBO();
         glActiveTexture(GL_TEXTURE31);
