@@ -4,7 +4,7 @@
 #include <glfw3.h>
 
 namespace TWE {
-    enum class Action {
+    enum Action {
         RELEASE = GLFW_RELEASE,            
         PRESS   = GLFW_PRESS  ,            
         REPEAT  = GLFW_REPEAT ,            

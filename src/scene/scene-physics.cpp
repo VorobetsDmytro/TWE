@@ -16,6 +16,35 @@ namespace TWE {
     void ScenePhysics::debugDrawWorld() {
         _world->debugDrawWorld();
     }
+
+    void ScenePhysics::checkCollisionsDetection() {
+        int numManifolds = _world->getDispatcher()->getNumManifolds();
+        for (int i = 0; i < numManifolds; i++) {
+            btPersistentManifold* contactManifold = _world->getDispatcher()->getManifoldByIndexInternal(i);
+            const btCollisionObject* obA = contactManifold->getBody0();
+            const btCollisionObject* obB = contactManifold->getBody1();
+            int numContacts = contactManifold->getNumContacts();
+            for (int j = 0; j < numContacts; j++) {
+                btManifoldPoint& manifoldPoint = contactManifold->getContactPoint(j);
+                if(manifoldPoint.getDistance() < 0.f) {
+                    if (std::find(collisions[obA->getUserIndex()].begin(), collisions[obA->getUserIndex()].end(), 
+                    obB) == collisions[obA->getUserIndex()].end())
+                        collisions[obA->getUserIndex()].emplace_back(obB);
+                }
+            }
+        }
+    }
+
+    std::vector<const btCollisionObject*> ScenePhysics::getCollisionDetection(const btCollisionObject* obj) {
+        auto item = collisions.find(obj->getUserIndex());
+        if(item == collisions.end())
+            return {};
+        return item->second;
+    }
+
+    void ScenePhysics::cleanCollisionDetection() {
+        collisions.clear();
+    }
     
     btDynamicsWorld* ScenePhysics::getDynamicWorld() const noexcept { return _world; }
     SceneBulletDebugDrawer* ScenePhysics::getDebugDrawer() const noexcept { return _debugDrawer; }

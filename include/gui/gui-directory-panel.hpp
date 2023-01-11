@@ -17,6 +17,7 @@
 #include <vector>
 #include <algorithm>
 #include <filesystem>
+#include <algorithm>
 
 namespace TWE {
     class GUIDirectoryPanel {

@@ -6,7 +6,8 @@
 
 namespace TWE {
     enum GUIDragAndDropType {
-        DirectoryItem
+        DirectoryItem,
+        EntityItem
     };
 
     extern std::vector<std::string> guiDragAndDropTypes;

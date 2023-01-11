@@ -3,6 +3,7 @@
 
 #include <string>
 #include <glm.hpp>
+#include <btBulletDynamicsCommon.h>
 
 #include "entity.hpp"
 #include "input/input.hpp"
@@ -11,14 +12,41 @@ namespace TWE {
     struct InputSpecification {
     public:
         InputSpecification() = default;
-        InputSpecification(bool* keyboardPressedKeys, bool* mousePressedButtons, float* mouseOffset)
-            : keyboardPressedKeys(keyboardPressedKeys), mousePressedButtons(mousePressedButtons), mouseOffset(mouseOffset) {}
-        bool isKeyPressed(Keyboard key) { return keyboardPressedKeys[key]; }
-        bool isMouseButtonPressed(Mouse button) { return mousePressedButtons[button]; }
+        InputSpecification(bool* keyboardPressedKeys, bool* mousePressedButtons, float* mouseOffset, int* keyboardPressedActions, int* mousePressedActions)
+            : keyboardPressedKeys(keyboardPressedKeys), mousePressedButtons(mousePressedButtons), 
+              mouseOffset(mouseOffset), keyboardPressedActions(keyboardPressedActions), mousePressedActions(mousePressedActions) {}
+        bool isKeyPressed(Keyboard key) { 
+            if(keyboardPressedKeys[key] && keyboardPressedActions[key] == Action::PRESS)
+                keyboardPressedActions[key] = Action::REPEAT;
+            return keyboardPressedKeys[key];
+        }
+        bool isKeyPressedOnce(Keyboard key) {
+            if(keyboardPressedKeys[key] && keyboardPressedActions[key] == Action::PRESS) {
+                keyboardPressedActions[key] = Action::REPEAT;
+                return true;
+            }
+            return false;
+        }
+        bool isMouseButtonPressed(Mouse button) { 
+            if(mousePressedButtons[button] && mousePressedActions[button] == Action::PRESS)
+                mousePressedActions[button] = Action::REPEAT;
+            return mousePressedButtons[button];
+        }
+        bool isMouseButtonPressedOnce(Mouse button) {
+            if(mousePressedButtons[button] && mousePressedActions[button] == Action::PRESS) {
+                mousePressedActions[button] = Action::REPEAT;
+                return true;
+            }
+            return false;
+        }
+        Action keyAction(Keyboard key) { return static_cast<Action>(keyboardPressedActions[key]); }
+        Action mouseButtonAction(Mouse button) { return static_cast<Action>(mousePressedActions[button]); }
         glm::vec2 getMouseOffset() { return { mouseOffset[0], mouseOffset[1] }; }
     private:
         bool* keyboardPressedKeys;
+        int* keyboardPressedActions;
         bool* mousePressedButtons;
+        int* mousePressedActions;
         float* mouseOffset;
     };
 
@@ -26,6 +54,7 @@ namespace TWE {
     public:
         virtual void start() {}
         virtual void update(float deltaTime) {}
+        virtual void collisionDetection(Entity collidedEntity, const btCollisionObject* collisionObj) {}
     protected:
         template<typename T>
         bool hasComponent();
@@ -38,11 +67,11 @@ namespace TWE {
         template<typename T = void>
         void destroy();
         InputSpecification input;
-    private:
-        void setInput(bool* keyboardPressedKeys, bool* mousePressedButtons, float* mouseOffset) {
-            input = { keyboardPressedKeys, mousePressedButtons, mouseOffset };
-        }
         Entity gameObject;
+    private:
+        void setInput(bool* keyboardPressedKeys, bool* mousePressedButtons, float* mouseOffset, int* keyboardPressedActions, int* mousePressedActions) {
+            input = { keyboardPressedKeys, mousePressedButtons, mouseOffset, keyboardPressedActions, mousePressedActions };
+        }
         friend class ScriptComponent;
         friend class Scene;
     };

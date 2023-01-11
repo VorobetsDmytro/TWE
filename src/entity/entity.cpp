@@ -18,5 +18,6 @@ namespace TWE {
         return !(*this == other);
     }
 
+    Scene* Entity::getScene() { return _scene; }
     entt::entity Entity::getSource() const noexcept { return _entity; }
 }

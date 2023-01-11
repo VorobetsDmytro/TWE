@@ -27,5 +27,7 @@ Afterwards you have to build the project:
 ## Settings
 To working with scripts you have to set a CMake default generator as MSVC`(recommended Visual Studio 16 2019)`
 
+Afterwards you have to compile a lib for scripts compilation`(check "test/scripts/cmake-file-for-scripts-creation-example")` using CMake file. Create a `lib` folder in the root of `TWE` project and move a `TWELIB.lib` file there.
+
 ## Author
 [Dmytro Vorobets](https://github.com/Parasik72)

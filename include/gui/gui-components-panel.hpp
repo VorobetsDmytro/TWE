@@ -3,9 +3,12 @@
 
 #include "scene/scene.hpp"
 #include "scene/shape.hpp"
-#include "registry/registry.hpp"
+
 #include "gui/gui-components.hpp"
 #include "gui/gui-types.hpp"
+
+#include "registry/registry.hpp"
+#include "undo-redo/ur-commands/ur-commands.hpp"
 
 #include <imgui.h>
 #include <imgui_stdlib.h>
@@ -29,6 +32,7 @@ namespace TWE {
         void showPhysicsComponent(Entity& entity);
         void showScriptComponent(Entity& entity);
         void showAddComponentMenu(Entity& entity);
+        void showSeparator();
         Scene* _scene;
     };
 }

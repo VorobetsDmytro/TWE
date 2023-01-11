@@ -1,13 +1,12 @@
 #include "scene/components/mesh-renderer-component.hpp"
 
 namespace TWE {
-    MeshRendererComponent::MeshRendererComponent(): showCollider(false) {}
+    MeshRendererComponent::MeshRendererComponent() {}
 
     MeshRendererComponent::MeshRendererComponent(const char* vertexShaderPath, const char* fragmentShaderPath, int entityId, const std::string& registryId)
     : registryId(registryId), entityId(entityId) {
         shader = std::make_shared<Shader>(vertexShaderPath, fragmentShaderPath);
         shader->setUniform("id", entityId);
-        showCollider = false;
     }
 
     MeshRendererComponent::MeshRendererComponent(const MeshRendererComponent& meshRendererComponent) {
@@ -15,7 +14,6 @@ namespace TWE {
         this->shader = meshRendererComponent.shader;
         this->registryId = meshRendererComponent.registryId;
         this->entityId = meshRendererComponent.entityId;
-        this->showCollider = meshRendererComponent.showCollider;
     }
 
     void MeshRendererComponent::setShader(const char* vertexShaderPath, const char* fragmentShaderPath, const std::string& registryId) {

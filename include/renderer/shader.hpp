@@ -17,8 +17,6 @@ namespace TWE {
     enum ShaderIndices {
         DEFAULT_VERT,
         DEFAULT_FRAG,
-        LIGHT_VERT,
-        LIGHT_FRAG,
         CUBEMAP_VERT,
         CUBEMAP_FRAG,
         COLLIDER_VERT,
@@ -27,7 +25,7 @@ namespace TWE {
 
     extern const char* TRANS_MAT_OPTIONS[3];
 
-    extern const char* SHADER_PATHS[8];
+    extern const char* SHADER_PATHS[6];
 
     class Shader {
     public:

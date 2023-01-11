@@ -10,7 +10,6 @@ namespace TWE {
         _debugCamera = nullptr;
         _scriptDLLRegistry = nullptr;
         _isFocusedOnDebugCamera = true;
-        _drawLightMeshes = true;
         _drawColliders = true;
         _name = "Unnamed";
     }
@@ -43,6 +42,7 @@ namespace TWE {
         case SceneState::Run:
             _isFocusedOnDebugCamera = false;
             _sceneRegistry.run.lastId = 0;
+            _sceneRegistry.run.urControl.reset();
             resetPhysics(&_sceneRegistry.run.entityRegistry);
             resetScripts(&_sceneRegistry.run.entityRegistry);
             resetEntityRegistry(&_sceneRegistry.run.entityRegistry);
@@ -117,6 +117,8 @@ namespace TWE {
         setState(SceneState::Edit);
         _sceneRegistry.run.lastId = 0;
         _sceneRegistry.edit.lastId = 0;
+        _sceneRegistry.run.urControl.reset();
+        _sceneRegistry.edit.urControl.reset();
         Shape::reset();
     }
 
@@ -142,13 +144,11 @@ namespace TWE {
         });
     }
 
-    void Scene::setLight(const LightComponent& light, TransformComponent& transform, const MeshRendererComponent& meshRenderer, const  uint32_t index) {
+    void Scene::setLight(const LightComponent& light, TransformComponent& transform, const  uint32_t index) {
         std::string lightIndex = "lights[]";
         lightIndex.insert(lightIndex.length() - 1, std::to_string(index));
         _sceneRegistry.current->entityRegistry.view<MeshRendererComponent>().each([&](entt::entity entity, MeshRendererComponent& meshRendererComponent){
-            if(_sceneRegistry.current->entityRegistry.any_of<LightComponent>(entity))
-                return;
-            Renderer::setLight(meshRendererComponent, light, transform, meshRenderer, lightIndex);
+            Renderer::setLight(meshRendererComponent, light, transform, lightIndex);
         });
     }
 
@@ -168,7 +168,6 @@ namespace TWE {
     void Scene::updateShadows(uint32_t windowWidth, uint32_t windowHeight) {
         glm::mat4& lightProjection = glm::ortho(-20.0f, 20.0f, -20.0f, 20.0f, 0.1f, 500.f);
         int lightIndex = -1;
-        _drawLightMeshes = false;
         _drawColliders = false;
         _sceneRegistry.current->entityRegistry.view<LightComponent, TransformComponent>().each([&](entt::entity entity, LightComponent& lightComponent, 
         TransformComponent& transformComponent){
@@ -205,9 +204,13 @@ namespace TWE {
             _sceneCameraSpecification.up = _debugCamera->getUp();
         }
         else {
-            auto& camsView = _sceneRegistry.current->entityRegistry.view<CameraComponent, TransformComponent>();
+            auto& camsView = _sceneRegistry.current->entityRegistry.view<TransformComponent>();
             for(auto camEntity : camsView) {
-                auto& [cameraComponent, transformComponent] = camsView.get<CameraComponent, TransformComponent>(camEntity);
+                Entity entity = { camEntity, this };
+                if(!entity.hasComponent<CameraComponent>())
+                    continue;
+                auto& transformComponent = entity.getComponent<TransformComponent>();
+                auto& cameraComponent = entity.getComponent<CameraComponent>();
                 if(cameraComponent.isFocusedOn()){
                     _sceneCameraSpecification.camera = cameraComponent.getSource();
                     _sceneCameraSpecification.position = transformComponent.transform.position;
@@ -225,7 +228,7 @@ namespace TWE {
     }
 
     void Scene::updateEditState() {
-        updatePositions();
+        updateTransforms();
         auto& fboSize = _frameBuffer->getSize();
         updateShadows(fboSize.first, fboSize.second);
         if(!updateView()) {
@@ -235,13 +238,13 @@ namespace TWE {
             return;
         }
         updateLight();
-        _drawLightMeshes = _isFocusedOnDebugCamera;
         _drawColliders = _isFocusedOnDebugCamera;
         #ifndef TWE_BUILD
         _frameBuffer->bind();
         Renderer::cleanScreen({});
         draw();
-        _sceneRegistry.current->physics.debugDrawWorld();
+        if(_drawColliders)
+            _sceneRegistry.current->physics.debugDrawWorld();
         _frameBuffer->unbind();
         #else
         draw();
@@ -249,9 +252,10 @@ namespace TWE {
     }
 
     void Scene::updateRunState() {
-        updatePositions();
         updatePhysics();
         updateScripts();
+        updateTransforms();
+        _sceneRegistry.current->physics.cleanCollisionDetection();
         auto& fboSize = _frameBuffer->getSize();
         updateShadows(fboSize.first, fboSize.second);
         if(!updateView()) {
@@ -261,13 +265,13 @@ namespace TWE {
             return;
         }
         updateLight();
-        _drawLightMeshes = _isFocusedOnDebugCamera;
         _drawColliders = _isFocusedOnDebugCamera;
         #ifndef TWE_BUILD
         _frameBuffer->bind();
         Renderer::cleanScreen({});
         draw();
-        _sceneRegistry.current->physics.debugDrawWorld();
+        if(_drawColliders)
+            _sceneRegistry.current->physics.debugDrawWorld();
         _frameBuffer->unbind();
         #else
         draw();
@@ -283,6 +287,14 @@ namespace TWE {
                     scriptComponent.initialize(entity, this);
                     scriptComponent._instance->start();
                 }
+                if(scriptComponent._instance->gameObject.hasComponent<PhysicsComponent>()) {
+                    auto& physicsComponent = scriptComponent._instance->gameObject.getComponent<PhysicsComponent>();
+                    auto collisions = _sceneRegistry.current->physics.getCollisionDetection(physicsComponent.getRigidBody());
+                    for(auto collisionObj : collisions){
+                        auto userPointer = (PhysicsUserPointer*)collisionObj->getUserPointer();
+                        scriptComponent._instance->collisionDetection(Entity{userPointer->entity, this}, collisionObj);
+                    }
+                }
                 scriptComponent._instance->update(Time::getDeltaTime());
             } catch(const std::runtime_error& e) {
                 std::cerr << e.what() << "\n";
@@ -293,13 +305,13 @@ namespace TWE {
 
     void Scene::updateLight() {
         uint32_t lightIndex = 0;
-        _sceneRegistry.current->entityRegistry.view<LightComponent, TransformComponent, MeshRendererComponent>()
-            .each([&](entt::entity entity, LightComponent& lightComponent, TransformComponent& transformComponent, MeshRendererComponent& meshRendererComponent){
-                setLight(lightComponent, transformComponent, meshRendererComponent, lightIndex++);
+        _sceneRegistry.current->entityRegistry.view<LightComponent, TransformComponent>()
+            .each([&](entt::entity entity, LightComponent& lightComponent, TransformComponent& transformComponent){
+                setLight(lightComponent, transformComponent, lightIndex++);
             });
     } 
 
-    void Scene::updatePositions() {
+    void Scene::updateTransforms() {
         _sceneRegistry.current->entityRegistry.view<TransformComponent>().each([&](entt::entity entity, TransformComponent& transformComponent){
             if(transformComponent.preTransform == transformComponent.transform)
                 return;
@@ -312,7 +324,7 @@ namespace TWE {
             );
             for(auto& child : parentChildsComponent.childs) {
                 Entity childInstance = { child, this };
-                updateChildPosition(childInstance, ratioTransform, transformComponent.transform.position);
+                updateChildsTransform(childInstance, ratioTransform, transformComponent.transform.position);
             }
             if(instance.hasComponent<PhysicsComponent>()) {
                 auto& physicsComponent = instance.getComponent<PhysicsComponent>();
@@ -331,7 +343,7 @@ namespace TWE {
         });
     } 
 
-    void Scene::updateChildPosition(Entity& entity, ModelSpecification& ratioTransform, const glm::vec3& centerPositon) {
+    void Scene::updateChildsTransform(Entity& entity, ModelSpecification& ratioTransform, const glm::vec3& centerPositon) {
         auto& transformComponent = entity.getComponent<TransformComponent>();
         bool hasPhysics = entity.hasComponent<PhysicsComponent>();
         PhysicsComponent* physicsComponent;
@@ -357,7 +369,7 @@ namespace TWE {
         auto& parentChildsComponent = entity.getComponent<ParentChildsComponent>();
         for(auto& child : parentChildsComponent.childs) {
             Entity childInstance = { child, this };
-            updateChildPosition(childInstance, ratioTransform, centerPositon);
+            updateChildsTransform(childInstance, ratioTransform, centerPositon);
         }
         transformComponent.preTransform = transformComponent.transform;
     }
@@ -382,16 +394,6 @@ namespace TWE {
         auto& lightEnteties = _sceneRegistry.current->entityRegistry.view<LightComponent>();
         _sceneRegistry.current->entityRegistry.view<MeshComponent, MeshRendererComponent, TransformComponent>()
             .each([&](entt::entity entity, MeshComponent& meshComponent, MeshRendererComponent& meshRendererComponent, TransformComponent& transformComponent){
-                if(_sceneRegistry.current->entityRegistry.any_of<LightComponent>(entity))
-                    if(!_drawLightMeshes)
-                        return;
-                Entity instance = { entity, this };
-                if(instance.hasComponent<PhysicsComponent>()) {
-                    auto& physicsComponent = instance.getComponent<PhysicsComponent>();
-                    Renderer::execute(&meshComponent, &meshRendererComponent, &transformComponent, lightEnteties.size(), 
-                        &physicsComponent, _drawColliders && meshRendererComponent.showCollider);
-                    return;
-                }
                 Renderer::execute(&meshComponent, &meshRendererComponent, &transformComponent, lightEnteties.size());
             });
     }
@@ -414,6 +416,7 @@ namespace TWE {
             physicsComponent.setNeedUpdate(false);
         });
         _sceneRegistry.current->physics.getDynamicWorld()->stepSimulation(Time::getDeltaTime());
+        _sceneRegistry.current->physics.checkCollisionsDetection();
     }
 
     void Scene::cleanEntity(Entity& entity) {
@@ -438,6 +441,7 @@ namespace TWE {
         }
         entity.removeComponent<TransformComponent>();
         entity.removeComponent<NameComponent>();
+        entity.removeComponent<IDComponent>();
 
         auto& parentChildsComponent = entity.getComponent<ParentChildsComponent>();
         if(parentChildsComponent.parent != entt::null) {
@@ -461,24 +465,30 @@ namespace TWE {
         _sceneRegistry.current->entityRegistry.emplace<CreationTypeComponent>(entity);
         _sceneRegistry.current->entityRegistry.emplace<ParentChildsComponent>(entity);
         _sceneRegistry.current->entityRegistry.emplace<IDComponent>(entity, _sceneRegistry.current->lastId++);
+        _sceneRegistry.current->entityRegistry.emplace<EmptyComponent>(entity);
         return { entity, this };
     }
 
     void Scene::copySceneState(SceneStateSpecification& from, SceneStateSpecification& to) {
-        auto& view = from.entityRegistry.view<NameComponent>();
+        auto& view = from.entityRegistry.view<EmptyComponent>();
         int size = view.size();
         for(int i = size - 1; i >= 0; --i)
-            copyEntity(Entity{ view[i], this }, to);
+            copyEntityState(Entity{ view[i], this }, to);
     }
 
-    Entity Scene::copyEntity(Entity& entity, SceneStateSpecification& to) {
+    Entity Scene::copyEntityState(Entity& entity, SceneStateSpecification& to) {
         entt::entity instance = to.entityRegistry.create();
 
-        to.entityRegistry.emplace<TransformComponent>(instance, entity.getComponent<TransformComponent>());
-        to.entityRegistry.emplace<NameComponent>(instance, entity.getComponent<NameComponent>());
-        to.entityRegistry.emplace<CreationTypeComponent>(instance, entity.getComponent<CreationTypeComponent>());
-        to.entityRegistry.emplace<ParentChildsComponent>(instance, entity.getComponent<ParentChildsComponent>());
-        to.entityRegistry.emplace<IDComponent>(instance, entity.getComponent<IDComponent>());
+        if(entity.hasComponent<TransformComponent>())
+            to.entityRegistry.emplace<TransformComponent>(instance, entity.getComponent<TransformComponent>());
+        if(entity.hasComponent<NameComponent>())
+            to.entityRegistry.emplace<NameComponent>(instance, entity.getComponent<NameComponent>());
+        if(entity.hasComponent<CreationTypeComponent>())
+            to.entityRegistry.emplace<CreationTypeComponent>(instance, entity.getComponent<CreationTypeComponent>());
+        if(entity.hasComponent<ParentChildsComponent>())
+            to.entityRegistry.emplace<ParentChildsComponent>(instance, entity.getComponent<ParentChildsComponent>());
+        if(entity.hasComponent<IDComponent>())
+            to.entityRegistry.emplace<IDComponent>(instance, entity.getComponent<IDComponent>());
         if(entity.hasComponent<CameraComponent>())
             to.entityRegistry.emplace<CameraComponent>(instance, entity.getComponent<CameraComponent>());
         if(entity.hasComponent<LightComponent>())
@@ -518,13 +528,14 @@ namespace TWE {
             auto& physicsComponent = entity.getComponent<PhysicsComponent>();
             if(physicsComponent.getColliderType() != ColliderType::TriangleMesh) {
                 auto shapeDimensions = physicsComponent.getShapeDimensions() / physicsComponent.getLocalScale();
-                to.entityRegistry.emplace<PhysicsComponent>(instance, to.physics.getDynamicWorld(), physicsComponent.getColliderType(), 
+                auto& physxComp = to.entityRegistry.emplace<PhysicsComponent>(instance, to.physics.getDynamicWorld(), physicsComponent.getColliderType(), 
                     shapeDimensions, physicsComponent.getLocalScale(), physicsComponent.getPosition(),
-                    physicsComponent.getRotation(), physicsComponent.getMass());
+                    physicsComponent.getRotation(), physicsComponent.getMass(), instance);
+                physxComp.setIsRotated(physicsComponent.getIsRotated());
             } else {
                 to.entityRegistry.emplace<PhysicsComponent>(instance, to.physics.getDynamicWorld(), physicsComponent.getColliderType(), 
                     physicsComponent.getTriangleMesh(), physicsComponent.getLocalScale(), physicsComponent.getPosition(),
-                    physicsComponent.getRotation());
+                    physicsComponent.getRotation(), instance);
             }
         }
 
@@ -532,11 +543,10 @@ namespace TWE {
     }
 
     bool& Scene::getIsFocusedOnDebugCamera() { return _isFocusedOnDebugCamera; }
-    bool Scene::getIsFocusedOnDebugCamera() const noexcept { return _isFocusedOnDebugCamera; }
-    bool Scene::getDrawLightMeshes() const noexcept { return _drawLightMeshes; }
     entt::registry* Scene::getRegistry() const noexcept { return &_sceneRegistry.current->entityRegistry; }
     btDynamicsWorld* Scene::getDynamicWorld() const noexcept { return _sceneRegistry.current->physics.getDynamicWorld(); }
     std::string Scene::getName() const noexcept { return _name; }
     FBO* Scene::getFrameBuffer() const noexcept { return _frameBuffer.get(); }
     Registry<DLLLoadData>* Scene::getScriptDLLRegistry() const noexcept { return _scriptDLLRegistry; }
+    SceneStateSpecification* Scene::getSceneStateSpecification() { return _sceneRegistry.current; }
 }

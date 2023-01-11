@@ -2,7 +2,7 @@
 
 namespace TWE {
     void Renderer::execute(MeshComponent* meshComponent, MeshRendererComponent* meshRendererComponent, TransformComponent* transformComponent, 
-    int lightsCount, PhysicsComponent* physicsComponent, bool drawColliders) {
+    int lightsCount) {
         meshRendererComponent->shader->use();
         meshRendererComponent->shader->setUniform(TRANS_MAT_OPTIONS[TransformMatrixOptions::MODEL], transformComponent->getModel());
         meshRendererComponent->shader->setUniform("hasTexture", !meshComponent->texture->getAttachments().textureSpecifications.empty());
@@ -12,14 +12,6 @@ namespace TWE {
         meshComponent->texture->bind();
         glDrawElements(GL_TRIANGLES, meshComponent->ebo->getSize() / sizeof(int), GL_UNSIGNED_INT, (void*)0);
         meshComponent->vao->unbind();
-        if(physicsComponent) {
-            auto* rigidBody = physicsComponent->getRigidBody();
-            int collisionFlags = rigidBody->getCollisionFlags();
-            if(drawColliders && collisionFlags & btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT)
-                rigidBody->setCollisionFlags(collisionFlags ^ btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT);
-            else if(!drawColliders && !(collisionFlags & btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT))
-                rigidBody->setCollisionFlags(collisionFlags ^ btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT);
-        }
     }
 
     void Renderer::cleanScreen(const glm::vec4& color) {
@@ -33,8 +25,7 @@ namespace TWE {
         glViewport(startX, startY, endX, endY);
     }
 
-    void Renderer::setLight(MeshRendererComponent& meshRendererComponent, const LightComponent& light, TransformComponent& transform, 
-    const MeshRendererComponent& meshRenderer, const std::string& lightIndex) {
+    void Renderer::setLight(MeshRendererComponent& meshRendererComponent, const LightComponent& light, TransformComponent& transform, const std::string& lightIndex) {
         meshRendererComponent.shader->setUniform((lightIndex + ".pos").c_str(), transform.transform.position);
         meshRendererComponent.shader->setUniform((lightIndex + ".direction").c_str(), transform.getForward());
         meshRendererComponent.shader->setUniform((lightIndex + ".color").c_str(), light.color);
@@ -61,7 +52,7 @@ namespace TWE {
     const glm::mat4& lightView, Scene* scene) {
         scene->updateView(lightView, lightProjection, transformComponent.transform.position);
         auto& depthMapSize = lightComponent.getDepthMapSize();
-        FBO* fbo = lightComponent.getFBO();
+        auto fbo = lightComponent.getFBO();
         glActiveTexture(GL_TEXTURE31);
         glBindTexture(GL_TEXTURE_2D, lightComponent.getDepthTextureId());
         Renderer::setViewport(0, 0, depthMapSize.first, depthMapSize.second);

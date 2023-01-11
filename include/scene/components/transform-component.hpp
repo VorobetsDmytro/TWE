@@ -20,6 +20,9 @@ namespace TWE {
                 && this->rotation == modelSpecification.rotation
                 && this->size == modelSpecification.size;
         }
+        bool operator!=(const ModelSpecification& modelSpecification) {
+            return !(*this == modelSpecification);
+        }
         glm::vec3 position = glm::vec3(0.f);
         glm::vec3 rotation = glm::vec3(0.f);
         glm::vec3 size = glm::vec3(1.f);
@@ -43,6 +46,7 @@ namespace TWE {
         [[nodiscard]] glm::vec3 getUp();
         ModelSpecification transform;
     private:
+        [[nodiscard]] glm::vec3 getZeroRotationAroundPos(const glm::vec3& centerPosition);
         bool needRecache;
         glm::mat4 model;
         ModelSpecification preTransform;

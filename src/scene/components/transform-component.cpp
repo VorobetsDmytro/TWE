@@ -53,19 +53,26 @@ namespace TWE {
     }
 
     void TransformComponent::rotateAroundOrigin(const glm::vec3& angles, const glm::vec3& centerPosition, bool acceptToChilds) {
+        glm::vec3 zeroPos = getZeroRotationAroundPos(centerPosition);
+        this->transform.rotation += angles;
         auto translate1 = glm::translate(glm::mat4(1.f), -centerPosition);
-        auto rotation = glm::toMat4(glm::quat(angles));
+        auto rotation = glm::toMat4(glm::quat(this->transform.rotation));
         auto translate2 = glm::translate(glm::mat4(1.f), centerPosition);
         auto transform = translate2 * rotation * translate1;
-        transform *= glm::translate(glm::mat4(1.f), this->transform.position);
-        transform = glm::scale(transform, this->transform.size);
-        Math::decomposeTransform(transform, this->transform.position, glm::vec3{}, glm::vec3{});
-        this->transform.rotation += angles;
+        this->transform.position = transform * glm::vec4(zeroPos, 1.f);
         if(!acceptToChilds) {
             preTransform.rotation = this->transform.rotation;
             preTransform.position = this->transform.position;
         }
         needRecache = true;
+    }
+
+    glm::vec3 TransformComponent::getZeroRotationAroundPos(const glm::vec3& centerPosition) {
+        auto translate1 = glm::translate(glm::mat4(1.f), -centerPosition);
+        auto rotation = glm::inverse(glm::toMat4(glm::quat(this->transform.rotation)));
+        auto translate2 = glm::translate(glm::mat4(1.f), centerPosition);
+        auto transform = translate2 * rotation * translate1;
+        return transform * glm::vec4(this->transform.position, 1.f);
     }
 
     void TransformComponent::setSize(const glm::vec3& size, bool acceptToChilds) {

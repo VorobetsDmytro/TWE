@@ -25,10 +25,13 @@ namespace TWE {
                        float linear = 0.045f, float quadratic = 0.0075f, LightType type = LightType::Point);
         LightComponent(const LightComponent& light);
         void setType(LightType type);
+        void setFBO(std::shared_ptr<FBO> fbo);
         void setCastShadows(bool castShadows);
         [[nodiscard]] std::pair<uint32_t, uint32_t> getDepthMapSize();
-        [[nodiscard]] FBO* getFBO();
+        [[nodiscard]] std::shared_ptr<FBO> getFBO();
         [[nodiscard]] uint32_t getDepthTextureId() const noexcept;
+        [[nodiscard]] bool operator==(const LightComponent& lightComponent);
+        [[nodiscard]] bool operator!=(const LightComponent& lightComponent);
         float innerRadius;
         float outerRadius;
         float constant;

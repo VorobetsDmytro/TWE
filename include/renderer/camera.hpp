@@ -13,6 +13,16 @@ namespace TWE {
     };
 
     struct PerspectiveSpecification {
+        bool operator==(const PerspectiveSpecification& spec) {
+            return this->fov == spec.fov
+                && this->wndWidth == spec.wndWidth
+                && this->wndHeight == spec.wndHeight
+                && this->nearDepth == spec.nearDepth
+                && this->farDepth == spec.farDepth;
+        }
+        bool operator!=(const PerspectiveSpecification& spec) {
+            return !(*this == spec);
+        }
         float fov;
         int wndWidth;
         int wndHeight;
@@ -21,6 +31,17 @@ namespace TWE {
     };
 
     struct OrthographicSpecification {
+        bool operator==(const OrthographicSpecification& spec) {
+            return this->left == spec.left
+                && this->right == spec.right
+                && this->bottom == spec.bottom
+                && this->top == spec.top
+                && this->nearDepth == spec.nearDepth
+                && this->farDepth == spec.farDepth;
+        }
+        bool operator!=(const OrthographicSpecification& spec) {
+            return !(*this == spec);
+        }
         float left;
         float right;
         float bottom;
@@ -43,6 +64,8 @@ namespace TWE {
         [[nodiscard]] CameraProjectionType getType() const noexcept;
         [[nodiscard]] PerspectiveSpecification getPerspectiveSpecification() const noexcept;
         [[nodiscard]] OrthographicSpecification getOrthographicSpecification() const noexcept;
+        [[nodiscard]] bool operator==(const Camera& camera);
+        [[nodiscard]] bool operator!=(const Camera& camera);
     protected:
         glm::mat4 projection;
         PerspectiveSpecification perspectiveSpecification;

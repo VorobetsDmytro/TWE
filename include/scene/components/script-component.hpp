@@ -27,7 +27,8 @@ namespace TWE {
         }
         void initialize(entt::entity entity, Scene* scene) {
             _instance->gameObject = { entity, scene };
-            _instance->setInput(Input::keyboardPressedKeys, Input::mousePressedButtons, Input::mouseOffset);
+            _instance->setInput(Input::keyboardPressedKeys, Input::mousePressedButtons, Input::mouseOffset, 
+                Input::keyboardPressedActions, Input::mousePressedActions);
             _isInitialized = true;
         }
         [[nodiscard]] std::string getBehaviorClassName() const noexcept {

@@ -29,6 +29,17 @@ namespace TWE {
         return glm::lookAt(pos, pos + forward, up);
     }
 
+    bool Camera::operator==(const Camera& camera) {
+        return this->projection == camera.projection
+            && this->type == camera.type
+            && this->perspectiveSpecification == camera.perspectiveSpecification
+            && this->orthographicSpecification == camera.orthographicSpecification;
+    }
+
+    bool Camera::operator!=(const Camera& camera) {
+        return !(*this == camera);
+    }
+
     glm::mat4 Camera::getProjection() noexcept { return projection; }
     const glm::mat4& Camera::getProjection() const noexcept { return projection; }
     CameraProjectionType Camera::getType() const noexcept { return type; };

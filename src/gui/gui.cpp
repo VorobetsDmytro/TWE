@@ -131,15 +131,15 @@ namespace TWE {
     void GUI::selectEntity(Entity& entity) {
         unselectEntity();
         _specification._selectedEntity = entity;
-        if(_specification._selectedEntity.hasComponent<MeshRendererComponent>())
-            _specification._selectedEntity.getComponent<MeshRendererComponent>().showCollider = true;
+        if(_specification._selectedEntity.hasComponent<PhysicsComponent>())
+            _specification._selectedEntity.getComponent<PhysicsComponent>().setShowCollider(true);
     }
 
     void GUI::unselectEntity() {
         if(_specification._selectedEntity.getSource() == entt::null)
             return;
-        if(_specification._selectedEntity.hasComponent<MeshRendererComponent>())
-            _specification._selectedEntity.getComponent<MeshRendererComponent>().showCollider = false;
+        if(_specification._selectedEntity.hasComponent<PhysicsComponent>())
+            _specification._selectedEntity.getComponent<PhysicsComponent>().setShowCollider(false);
         _specification._selectedEntity = {};
     }
 
@@ -224,7 +224,7 @@ namespace TWE {
             bool isUsing = showGizmo();
             if(mousePos.x >= 0.f && mousePos.y >= 0.f && mousePos.x < viewPortSize.x && mousePos.y < viewPortSize.y) {
                 _specification.isMouseOnViewport = true;
-                if(!isUsing && ImGui::IsWindowFocused() && ImGui::IsMouseClicked(0)) {
+                if(!isUsing && !_scene.isSceneEntityPopupOpen() && ImGui::IsMouseClicked(0)) {
                     int data = _specification._scene->_frameBuffer->readPixel(1, (int)mousePos.x, (int)mousePos.y);
                     if(data == -1 || !_specification._scene->_sceneRegistry.current->entityRegistry.valid((entt::entity)data))
                         unselectEntity();
@@ -299,8 +299,12 @@ namespace TWE {
                 ModelLoaderData* model = mLoader.loadModel(filePathName);
                 if(model){
                     auto& modelEntities = Shape::createModelEntity(_specification._scene, model);
-                    if(!modelEntities.empty())
+                    if(!modelEntities.empty()) {
                         selectEntity(modelEntities.back());
+                        _scene.addEntityToSelected(_specification._selectedEntity);
+                        _specification._scene->_sceneRegistry.current->urControl.execute(new CreateEntityCommand(_specification._selectedEntity, 
+                            [&](){ unselectEntity(); }));
+                    }
                 }
             }
             ImGuiFileDialog::Instance()->Close();
@@ -325,8 +329,12 @@ namespace TWE {
                                 break;
                             }
                         }
-                    if(attachemnts.textureSpecifications.size() == 6)
+                    if(attachemnts.textureSpecifications.size() == 6) {
                         selectEntity(Shape::createCubemapEntity(_specification._scene, attachemnts));
+                        _scene.addEntityToSelected(_specification._selectedEntity);
+                        _specification._scene->_sceneRegistry.current->urControl.execute(new CreateEntityCommand(_specification._selectedEntity, 
+                            [&](){ unselectEntity(); }));
+                    }
                 }
             }
             ImGuiFileDialog::Instance()->Close();
@@ -357,20 +365,38 @@ namespace TWE {
 
         bool isUsing = ImGuizmo::IsUsing();
 
+        static bool addToURControl = false;
+        static TransformComponent oldState;
+        static TransformComponent newState;
+        if(!addToURControl)
+            oldState = selectedEntityTransform;
+
         if(isUsing) {
             glm::vec3 position, rotation, size;
             Math::decomposeTransform(selectedEntityModel, position, rotation, size);
             switch (_specification._gizmoOperation) {
             case GizmoOperation::Translate:
+                addToURControl = true;
                 selectedEntityTransform.setPosition(position);
+                newState = selectedEntityTransform;
                 break;
             case GizmoOperation::Rotate:
+                addToURControl = true;
                 selectedEntityTransform.setRotation(rotation);
+                newState = selectedEntityTransform;
                 break;
             case GizmoOperation::Scale:
+                addToURControl = true;
                 selectedEntityTransform.setSize(size);
+                newState = selectedEntityTransform;
                 break;
             }
+        }
+        if(Input::mouseButtonAction(Mouse::MOUSE_BUTTON_LEFT) == Action::RELEASE && addToURControl) {
+            addToURControl = false;
+            if(oldState.transform != newState.transform)
+                _specification._scene->_sceneRegistry.current->urControl.execute(
+                    new ChangeTransformComponentState(_specification._selectedEntity, oldState, newState));
         }
 
         return isUsing;
@@ -379,30 +405,40 @@ namespace TWE {
     void GUI::processInput() {
         if(_specification.isFocusedOnViewport && !Input::isMouseButtonPressed(Mouse::MOUSE_BUTTON_RIGHT) 
         && _specification._selectedEntity.getSource() != entt::null) {
-            if(Input::isKeyPressed(Keyboard::KEY_Q))
+            if(Input::isKeyPressedOnce(Keyboard::KEY_Q))
                 _specification._gizmoOperation = GizmoOperation::None;
-            if(Input::isKeyPressed(Keyboard::KEY_W))
+            if(Input::isKeyPressedOnce(Keyboard::KEY_W))
                 _specification._gizmoOperation = GizmoOperation::Translate;
-            if(Input::isKeyPressed(Keyboard::KEY_E))
+            if(Input::isKeyPressedOnce(Keyboard::KEY_E))
                 _specification._gizmoOperation = GizmoOperation::Rotate;
-            if(Input::isKeyPressed(Keyboard::KEY_R))
+            if(Input::isKeyPressedOnce(Keyboard::KEY_R))
                 _specification._gizmoOperation = GizmoOperation::Scale;
         }
-        if(_specification._selectedEntity.getSource() != entt::null) {
-            if(Input::isKeyPressed(Keyboard::KEY_DELETE)) {
-                if(_specification._selectedEntity.hasComponent<MeshRendererComponent>())
-                    _specification._selectedEntity.getComponent<MeshRendererComponent>().showCollider = false;
-                _specification._selectedEntity.destroy();
-            }
+        if(Input::isKeyPressedOnce(Keyboard::KEY_DELETE)) {
+            auto removeEntity = _specification._selectedEntity;
+            unselectEntity();
+            _specification._scene->_sceneRegistry.current->urControl.execute(new RemoveEntityCommand(removeEntity, 
+                [&](){
+                    unselectEntity();
+                }
+            ));
         }
-        if(Input::isKeyPressed(Keyboard::KEY_LEFT_CONTROL) && Input::isKeyPressed(Keyboard::KEY_S)) {
-            if(!_specification.projectData->lastScenePath.empty()) {
-                std::filesystem::path scenePath = _specification.projectData->rootPath.string() + '/' + _specification.projectData->lastScenePath.string();
-                SceneSerializer::serialize(_specification._scene, scenePath.string(), _specification.projectData);
+        if(Input::isKeyPressed(Keyboard::KEY_LEFT_CONTROL)) {
+            if(Input::isKeyPressedOnce(Keyboard::KEY_Z))
+                _specification._scene->_sceneRegistry.current->urControl.undo();
+            if(Input::isKeyPressedOnce(Keyboard::KEY_Y))
+                _specification._scene->_sceneRegistry.current->urControl.redo();
+            if(Input::isKeyPressedOnce(Keyboard::KEY_D))
+                _specification._scene->_sceneRegistry.current->urControl.execute(new CopyEntityCommand(_specification._selectedEntity, {}, [&](){ unselectEntity(); }));
+            if(Input::isKeyPressedOnce(Keyboard::KEY_S)) {
+                if(!_specification.projectData->lastScenePath.empty()) {
+                    std::filesystem::path scenePath = _specification.projectData->rootPath.string() + '/' + _specification.projectData->lastScenePath.string();
+                    SceneSerializer::serialize(_specification._scene, scenePath.string(), _specification.projectData);
+                }
+                else
+                    ImGuiFileDialog::Instance()->OpenDialog("SaveSceneAs", "Choose File", ".scene", 
+                        (_specification.projectData->rootPath.string() + '/').c_str(), 1, nullptr);
             }
-            else
-                ImGuiFileDialog::Instance()->OpenDialog("SaveSceneAs", "Choose File", ".scene", 
-                    (_specification.projectData->rootPath.string() + '/').c_str(), 1, nullptr);
         }
     }
 

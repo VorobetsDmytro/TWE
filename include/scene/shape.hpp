@@ -50,6 +50,8 @@ namespace TWE {
         static Registry<MeshSpecification>* meshRegistry;
         static Registry<MeshRendererSpecification>* meshRendererRegistry;
     private:
+        static void fillMeshRegistry();
+        static void fillMeshRendererRegistry();
         static int meshCounter;
         static float cubeVertices[];
         static uint32_t cubeIndices[];

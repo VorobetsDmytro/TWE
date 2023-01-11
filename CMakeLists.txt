@@ -34,5 +34,3 @@ add_custom_target(ASSIMPCopy
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/external/assimp/bin/assimp-vc142-mtd.dll ${CMAKE_BINARY_DIR}/Release
 )
 add_dependencies(TWE ASSIMPCopy)
-
-# target_compile_definitions(TWE PRIVATE TWE_BUILD)

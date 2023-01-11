@@ -9,8 +9,9 @@ namespace TWE {
     class CameraComponent {
     public:
         CameraComponent();
-        ~CameraComponent();
         CameraComponent(const CameraComponent& cameraComponent);
+        ~CameraComponent();
+        void setSource(const Camera& source);
         void setFocuse(bool isFocusedOn);
         [[nodiscard]] bool isFocusedOn() const noexcept;
         [[nodiscard]] Camera* getSource();

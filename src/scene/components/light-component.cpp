@@ -30,15 +30,35 @@ namespace TWE {
         this->castShadows = castShadows;
     }
 
+    void LightComponent::setFBO(std::shared_ptr<FBO> fbo) {
+        _fbo = fbo;
+    }
+
     void LightComponent::createDepthMap() {
         FBOAttachmentSpecification attachments = { FBOTextureFormat::DEPTH24STENCIL8 };
         _fbo = std::make_shared<FBO>(4096, 4096, attachments);
         auto mapSize = _fbo->getSize();
     }
 
+    bool LightComponent::operator==(const LightComponent& lightComponent) {
+        return this->innerRadius == lightComponent.innerRadius
+            && this->outerRadius == lightComponent.outerRadius
+            && this->constant == lightComponent.constant
+            && this->linear == lightComponent.linear
+            && this->quadratic == lightComponent.quadratic
+            && this->type == lightComponent.type
+            && this->_fbo == lightComponent._fbo
+            && this->color == lightComponent.color
+            && this->castShadows == lightComponent.castShadows;
+    }
+
+    bool LightComponent::operator!=(const LightComponent& lightComponent) {
+        return !(*this == lightComponent);
+    }
+
     std::pair<uint32_t, uint32_t> LightComponent::getDepthMapSize() { return _fbo->getSize(); }
 
-    FBO* LightComponent::getFBO() { return _fbo.get(); }
+    std::shared_ptr<FBO> LightComponent::getFBO() { return _fbo; }
 
     uint32_t LightComponent::getDepthTextureId() const noexcept { return _fbo->getDepthAttachment(); }
 

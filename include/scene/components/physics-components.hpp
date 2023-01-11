@@ -8,6 +8,7 @@
 #include "btBulletDynamicsCommon.h"
 #include "LinearMath/btTransform.h"
 #include "LinearMath/btVector3.h"
+#include "entt/entt.hpp"
 
 #include "twe-math/twe-math.hpp"
 #include "renderer/vao.hpp"
@@ -39,13 +40,18 @@ namespace TWE {
         std::shared_ptr<EBO> ebo = nullptr;
     };
 
+    struct PhysicsUserPointer {
+        PhysicsUserPointer(entt::entity entity): entity(entity){}
+        entt::entity entity;
+    };
+
     class PhysicsComponent {
     public:
         PhysicsComponent();
         PhysicsComponent(btDynamicsWorld* dynamicsWorld, ColliderType colliderType, const glm::vec3& shapeSize, const glm::vec3& localScale, const glm::vec3& pos, 
-            const glm::vec3& rotation, float mass);
+            const glm::vec3& rotation, float mass, entt::entity entity);
         PhysicsComponent(btDynamicsWorld* dynamicsWorld, ColliderType colliderType, TriangleMeshSpecification& triangleMeshSpecification, 
-            const glm::vec3& localScale, const glm::vec3& pos, const glm::vec3& rotation);
+            const glm::vec3& localScale, const glm::vec3& pos, const glm::vec3& rotation, entt::entity entity);
         PhysicsComponent(const PhysicsComponent& physics);
         void setMass(float mass);
         void setPosition(const glm::vec3& pos);
@@ -56,11 +62,15 @@ namespace TWE {
         void setColliderType(ColliderType type, TriangleMeshSpecification& triangleMeshSpecification);
         void setShapeDimensions(const glm::vec3& size);
         void setNeedUpdate(bool needUpdate);
+        void setIsRotated(bool isRotated);
+        void setShowCollider(bool show);
+        void setRigidBody(btRigidBody* rigidBody);
         [[nodiscard]] float getMass() const noexcept;
         [[nodiscard]] btRigidBody* getRigidBody() const noexcept;
         [[nodiscard]] btDynamicsWorld* getDynamicsWorld() const noexcept;
         [[nodiscard]] ColliderType getColliderType() const noexcept;
         [[nodiscard]] bool getNeedUpdate() const noexcept;
+        [[nodiscard]] bool getIsRotated();
         [[nodiscard]] glm::vec3 getShapeDimensions();
         [[nodiscard]] glm::vec3 getLocalScale();
         [[nodiscard]] glm::vec3 getPosition();

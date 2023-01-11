@@ -5,13 +5,17 @@ namespace TWE {
         _isFocusedOn = true;
     }
 
+    CameraComponent::CameraComponent(const CameraComponent& cameraComponent) {
+        this->_camera = cameraComponent._camera;
+        this->_isFocusedOn = cameraComponent._isFocusedOn;
+    }
+
     CameraComponent::~CameraComponent() {
         _isFocusedOn = false;
     }
 
-    CameraComponent::CameraComponent(const CameraComponent& cameraComponent) {
-        this->_camera = cameraComponent._camera;
-        this->_isFocusedOn = cameraComponent._isFocusedOn;
+    void CameraComponent::setSource(const Camera& source) {
+        _camera = source;
     }
 
     void CameraComponent::setFocuse(bool isFocusedOn) {

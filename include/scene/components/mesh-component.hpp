@@ -14,6 +14,7 @@
 namespace TWE {
     class MeshComponent {
     public:
+        MeshComponent() = default;
         MeshComponent(float* vertices, int vertSize, uint32_t* indices, int indSize, const std::string& registryId, const TextureAttachmentSpecification& textureAtttachments = {});
         MeshComponent(float* vertices, int vertSize, uint32_t* indices, int indSize, const std::string& registryId, Texture* texture);
         MeshComponent(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId, const TextureAttachmentSpecification& textureAtttachments = {});

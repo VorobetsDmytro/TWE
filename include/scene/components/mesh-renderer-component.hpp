@@ -20,7 +20,6 @@ namespace TWE {
         std::shared_ptr<Shader> shader;
         std::string registryId;
         int entityId;
-        bool showCollider;
     };
 }
 

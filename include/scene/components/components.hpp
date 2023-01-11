@@ -12,5 +12,6 @@
 #include "creation-type-component.hpp"
 #include "parent-childs-component.hpp"
 #include "id-component.hpp"
+#include "empty-component.hpp"
 
 #endif

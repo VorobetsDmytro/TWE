@@ -452,6 +452,8 @@ namespace TWE {
         jsonLocalScale.push_back(localScale.z);
         jsonPhysicsComponent["LocalScale"] = jsonLocalScale;
 
+        jsonPhysicsComponent["IsRotated"] = physicsComponent.getIsRotated();
+
         jsonEntity["PhysicsComponent"] = jsonPhysicsComponent;
     }
 
@@ -469,13 +471,16 @@ namespace TWE {
         glm::vec3 localScale = {jsonLocalScale[0], jsonLocalScale[1], jsonLocalScale[2]};
         glm::vec3 position = {jsonPosition[0], jsonPosition[1], jsonPosition[2]};
         glm::vec3 rotation = {jsonRotation[0], jsonRotation[1], jsonRotation[2]};
+        bool isRotated = jsonComponent["IsRotated"];
         float mass = jsonComponent["Mass"];
-        if(type != ColliderType::TriangleMesh)
-            entity.addComponent<PhysicsComponent>(scene->getDynamicWorld(), type, size, localScale, position, rotation, mass);
+        if(type != ColliderType::TriangleMesh) {
+            auto& physicsComponent = entity.addComponent<PhysicsComponent>(scene->getDynamicWorld(), type, size, localScale, position, rotation, mass, entity.getSource());
+            physicsComponent.setIsRotated(isRotated);
+        }
         else {
             auto& meshComponent = entity.getComponent<MeshComponent>();
             TriangleMeshSpecification triangleMesh = { meshComponent.vbo, meshComponent.ebo };
-            entity.addComponent<PhysicsComponent>(scene->getDynamicWorld(), type, triangleMesh, localScale, position, rotation);
+            entity.addComponent<PhysicsComponent>(scene->getDynamicWorld(), type, triangleMesh, localScale, position, rotation, entity.getSource());
         }
     }
 

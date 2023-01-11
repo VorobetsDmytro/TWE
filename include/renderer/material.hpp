@@ -14,6 +14,8 @@ namespace TWE {
                 float shininess = 64.f);
         Material(const Material& material);
         Material& operator=(const Material& material);
+        bool operator==(const Material& material);
+        bool operator!=(const Material& material);
         glm::vec3 objColor;
         float ambient;
         float diffuse;

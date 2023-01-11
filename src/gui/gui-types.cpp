@@ -2,7 +2,8 @@
 
 namespace TWE {
     std::vector<std::string> guiDragAndDropTypes = {
-        "DirectoryItem"
+        "DirectoryItem",
+        "EntityItem"
     };
 
     std::vector<std::string> guiPopups = {

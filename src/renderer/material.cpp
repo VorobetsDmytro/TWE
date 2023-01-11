@@ -20,4 +20,16 @@ namespace TWE {
         this->shininess = material.shininess;
         return *this;
     }
+
+    bool Material::operator==(const Material& material) {
+        return this->objColor == material.objColor
+            && this->ambient == material.ambient
+            && this->diffuse == material.diffuse
+            && this->specular == material.specular
+            && this->shininess == material.shininess;
+    }
+
+    bool Material::operator!=(const Material& material) {
+        return !(*this == material);
+    }
 }

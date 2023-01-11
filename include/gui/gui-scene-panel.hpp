@@ -5,6 +5,7 @@
 #include "scene/shape.hpp"
 #include "gui/gui-components.hpp"
 #include "gui/gui-types.hpp"
+#include "undo-redo/ur-commands/ur-commands.hpp"
 
 #include <imgui.h>
 #include <imgui_stdlib.h>
@@ -17,6 +18,8 @@ namespace TWE {
         GUIScenePanel() = default;
         void showPanel(Entity& selectedEntity);
         void setScene(Scene* scene);
+        void addEntityToSelected(Entity& selectedEntity);
+        bool isSceneEntityPopupOpen();
     private:
         void showSceneEntity(Entity& entity, Entity& selectedEntity);
         void showSceneEntityPopup(const std::string& popupId, Entity& selectedEntity);
@@ -24,8 +27,11 @@ namespace TWE {
         bool showCreateEntityMenu(Entity& selectedEntity);
         void selectEntity(Entity& entity, Entity& selectedEntity);
         void unselectEntity(Entity& entity);
+        void showSeparator(Entity& entity, bool isUpper = false);
         Scene* _scene;
-        bool canOpenWindowPopup;
+        bool _canOpenWindowPopup;
+        bool _showSceneEntityPopup;
+        Entity _showSceneEntity;
     };
 }
 

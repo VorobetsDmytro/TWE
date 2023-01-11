@@ -27,6 +27,7 @@ namespace TWE {
 
         bool operator==(const Entity& other);
         bool operator!=(const Entity& other);
+        [[nodiscard]] Scene* getScene();
         [[nodiscard]] entt::entity getSource() const noexcept;
     private:
         entt::entity _entity;

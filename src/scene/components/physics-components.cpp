@@ -4,7 +4,7 @@ namespace TWE {
     PhysicsComponent::PhysicsComponent(): _colliderType(ColliderType::None), _needUpdate(true) {}
 
     PhysicsComponent::PhysicsComponent(btDynamicsWorld* dynamicsWorld, ColliderType colliderType, const glm::vec3& shapeSize, 
-    const glm::vec3& localScale, const glm::vec3& pos, const glm::vec3& rotation, float mass)
+    const glm::vec3& localScale, const glm::vec3& pos, const glm::vec3& rotation, float mass, entt::entity entity)
     : _colliderType(colliderType), _dynamicsWorld(dynamicsWorld), _needUpdate(true) {
         btCollisionShape* shape = createShape(colliderType, shapeSize);
         if(!shape)
@@ -22,14 +22,15 @@ namespace TWE {
         _rigidBody = new btRigidBody(constrInfo);
         _rigidBody->setUserPointer(this);
         int collisionFlags = _rigidBody->getCollisionFlags();
-        _rigidBody->setCollisionFlags(collisionFlags ^ btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT);
+        _rigidBody->setCollisionFlags(collisionFlags ^ btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT ^ btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
         
         dynamicsWorld->addRigidBody(_rigidBody);
         setRotation(rotation);
+        _rigidBody->setUserPointer(new PhysicsUserPointer{entity});
     }
 
     PhysicsComponent::PhysicsComponent(btDynamicsWorld* dynamicsWorld, ColliderType colliderType, TriangleMeshSpecification& triangleMeshSpecification, 
-    const glm::vec3& localScale, const glm::vec3& pos, const glm::vec3& rotation)
+    const glm::vec3& localScale, const glm::vec3& pos, const glm::vec3& rotation, entt::entity entity)
     : _colliderType(colliderType), _dynamicsWorld(dynamicsWorld), _triangleMesh(triangleMeshSpecification) {
         btCollisionShape* shape = createShape(colliderType, triangleMeshSpecification);
         if(!shape)
@@ -48,6 +49,7 @@ namespace TWE {
         dynamicsWorld->addRigidBody(_rigidBody);
         setPosition(pos);
         setRotation(rotation);
+        _rigidBody->setUserPointer(new PhysicsUserPointer{entity});
     }
 
     PhysicsComponent::PhysicsComponent(const PhysicsComponent& physics) {
@@ -200,6 +202,26 @@ namespace TWE {
 
     void PhysicsComponent::setNeedUpdate(bool needUpdate) {
         _needUpdate = needUpdate;
+    }
+
+    void PhysicsComponent::setIsRotated(bool isRotated) {
+        _rigidBody->setAngularFactor(isRotated ? 1.f : 0.f);
+    }
+
+    bool PhysicsComponent::getIsRotated() {
+        return _rigidBody->getAngularFactor() == btVector3{1.f, 1.f, 1.f};
+    }
+
+    void PhysicsComponent::setShowCollider(bool show) {
+        int collisionFlags = _rigidBody->getCollisionFlags();
+        if(show && (collisionFlags & btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT))
+            _rigidBody->setCollisionFlags(collisionFlags ^ btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT);
+        else if(!show && !(collisionFlags & btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT))
+            _rigidBody->setCollisionFlags(collisionFlags ^ btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT);
+    }
+
+    void PhysicsComponent::setRigidBody(btRigidBody* rigidBody) {
+        _rigidBody = rigidBody;
     }
 
     btRigidBody* PhysicsComponent::getRigidBody() const noexcept { return _rigidBody; }

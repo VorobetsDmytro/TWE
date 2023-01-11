@@ -24,7 +24,7 @@ namespace TWE {
         void drawLine(const btVector3& from, const btVector3& to, const btVector3& color) override {
             GLfloat points[12] = {
                 from.x(), from.y(), from.z(), color.x(), color.y(), color.z(),
-                to.x(), to.y(), to.z(),       color.x(), color.y(), color.z(),
+                to.x(),   to.y(),   to.z(),   color.x(), color.y(), color.z(),
             };
 
 		    glDeleteBuffers(1, &_VBO);
