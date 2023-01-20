@@ -23,8 +23,9 @@
 
 #include "script-component/add-script-component-command.hpp"
 #include "script-component/remove-script-component-command.hpp"
-#include "script-component/set-script-component-behavior-command.hpp"
 #include "script-component/set-script-component-enabled-state-command.hpp"
+#include "script-component/bind-behavior-script-component-command.hpp"
+#include "script-component/unbind-behavior-script-component-command.hpp"
 
 #include "transform-component/change-transform-component-state.hpp"
 #include "name-component/change-name-component-state-command.hpp"
@@ -33,5 +34,11 @@
 #include "entity/remove-entity-command.hpp"
 #include "entity/copy-entity-command.hpp"
 #include "entity/drag-and-drop-entity-command.hpp"
+
+#include "audio-component/add-audio-component-command.hpp"
+#include "audio-component/add-sound-source-audio-component-command.hpp"
+#include "audio-component/change-audio-component-properties-command.hpp"
+#include "audio-component/remove-audio-component-command.hpp"
+#include "audio-component/remove-sound-source-aduio-component-command.hpp"
 
 #endif

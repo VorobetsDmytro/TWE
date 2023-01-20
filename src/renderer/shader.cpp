@@ -104,29 +104,35 @@ namespace TWE {
     std::string Shader::getVertPath() const noexcept { return _vertPath; }
     std::string Shader::getFragPath() const noexcept { return _fragPath; }
 
-    const char* TRANS_MAT_OPTIONS[3] = {
+    const char* TRANS_MAT_OPTIONS[5] = {
         "model",
         "view",
-        "projection"
+        "projection",
+        "vp",
+        "mvp"
     };
 
-    #ifndef TWE_BUILD
-    const char* SHADER_PATHS[6] = {
-        "../../shaders/default.vert",
-        "../../shaders/default.frag",
-        "../../shaders/cubemap.vert",
-        "../../shaders/cubemap.frag",
-        "../../shaders/collider.vert",
-        "../../shaders/collider.frag",
+    // #ifndef TWE_BUILD
+    const char* SHADER_PATHS[8] = {
+        "shaders/default.vert",
+        "shaders/default.frag",
+        "shaders/cubemap.vert",
+        "shaders/cubemap.frag",
+        "shaders/collider.vert",
+        "shaders/collider.frag",
+        "shaders/ui.vert",
+        "shaders/ui.frag",
     };
-    #else
-    const char* SHADER_PATHS[6] = {
-        "./shaders/default.vert",
-        "./shaders/default.frag",
-        "./shaders/cubemap.vert",
-        "./shaders/cubemap.frag",
-        "./shaders/collider.vert",
-        "./shaders/collider.frag",
-    };
-    #endif
+    // #else
+    // const char* SHADER_PATHS[8] = {
+    //     "./shaders/default.vert",
+    //     "./shaders/default.frag",
+    //     "./shaders/cubemap.vert",
+    //     "./shaders/cubemap.frag",
+    //     "./shaders/collider.vert",
+    //     "./shaders/collider.frag",
+    //     "./shaders/ui.vert",
+    //     "./shaders/ui.frag",
+    // };
+    // #endif
 }

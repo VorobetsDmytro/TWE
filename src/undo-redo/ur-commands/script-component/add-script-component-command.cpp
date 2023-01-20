@@ -4,11 +4,15 @@ namespace TWE {
     AddScriptComponentCommand::AddScriptComponentCommand(const Entity& entity): _entity(entity) {}
 
     void AddScriptComponentCommand::execute() {
-        _entity.addComponent<ScriptComponent>().bind<Behavior>();
+        if(_entity.hasComponent<ScriptComponent>())
+            return;
+        _entity.addComponent<ScriptComponent>();
     }
 
     void AddScriptComponentCommand::unExecute() {
-        _entity.getComponent<ScriptComponent>().unbind();
+        if(!_entity.hasComponent<ScriptComponent>())
+            return;
+        _entity.getComponent<ScriptComponent>().clean();
         _entity.removeComponent<ScriptComponent>();
     }
 }

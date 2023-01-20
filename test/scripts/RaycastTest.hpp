@@ -15,7 +15,7 @@ public:
 	}
 
 	void update(float deltaTime) override {
-		if(input.isMouseButtonPressed(Mouse::MOUSE_BUTTON_LEFT)) {
+		if(input->isMouseButtonPressed(Mouse::MOUSE_BUTTON_LEFT)) {
 			tc = getComponent<TransformComponent>();
 			glm::vec3 forward = tc->getForward();
 			float rayDistace = 100.f;

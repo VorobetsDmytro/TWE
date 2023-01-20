@@ -1,7 +1,9 @@
 #include "scene/scene.hpp"
 
 namespace TWE {
-    Scene::Scene(uint32_t windowWidth, uint32_t windowHeight) {
+    Scene::Scene(uint32_t windowWidth, uint32_t windowHeight, const std::filesystem::path& rootPath) {
+        _sceneRegistry.edit.physics = { rootPath };
+        _sceneRegistry.run.physics = { rootPath };
         _sceneRegistry.current = &_sceneRegistry.edit;
         _sceneState = SceneState::Edit;
 
@@ -9,15 +11,9 @@ namespace TWE {
         _frameBuffer = std::make_unique<FBO>(windowWidth, windowHeight, attachments);
         _debugCamera = nullptr;
         _scriptDLLRegistry = nullptr;
+        _projectData = nullptr;
         _isFocusedOnDebugCamera = true;
-        _drawColliders = true;
         _name = "Unnamed";
-    }
-
-    void Scene::setTransMat(const glm::mat4& transform, TransformMatrixOptions option) {
-        _sceneRegistry.current->entityRegistry.view<MeshRendererComponent>().each([&](entt::entity entity, MeshRendererComponent& meshRendererComponent){
-            meshRendererComponent.shader->setUniform(TRANS_MAT_OPTIONS[option], transform);
-        });
     }
 
     void Scene::setDebugCamera(DebugCamera* debugCamera) {
@@ -32,11 +28,16 @@ namespace TWE {
         _scriptDLLRegistry = scriptDLLRegistry;
     }
 
+    void Scene::setProjectData(ProjectData* projectData) {
+        _projectData = projectData;
+    }
+
     void Scene::setState(SceneState state) {
         _sceneState = state;
         switch (_sceneState) {
         case SceneState::Edit:
             _isFocusedOnDebugCamera = true;
+            _sceneAudio.reset();
             _sceneRegistry.current = &_sceneRegistry.edit;
             break;
         case SceneState::Run:
@@ -48,7 +49,63 @@ namespace TWE {
             resetEntityRegistry(&_sceneRegistry.run.entityRegistry);
             copySceneState(_sceneRegistry.edit, _sceneRegistry.run);
             _sceneRegistry.current = &_sceneRegistry.run;
+            startAudioOnRun();
             break;
+        case SceneState::Pause:
+            setAudioPauseState(true);
+            break;
+        case SceneState::Unpause:
+            setAudioPauseState(false);
+            _sceneState = SceneState::Run;
+            break;
+        }
+    }
+
+    void Scene::startAudioOnRun() {
+        _sceneRegistry.current->entityRegistry.view<AudioComponent, TransformComponent>().each([](entt::entity entity, 
+        AudioComponent& audioComponent, TransformComponent& transformComponent){
+            auto& soundSources = audioComponent.getSoundSources();
+            for(auto soundSource : soundSources)
+                soundSource->play(transformComponent.transform.position);
+        });
+    }
+
+    void Scene::updateAudioListenerPosition() {
+        if(!_sceneCamera.camera)
+            return;
+        irrklang::vec3df pos = { _sceneCamera.position.x, _sceneCamera.position.y, _sceneCamera.position.z };
+        irrklang::vec3df lookdir = { -_sceneCamera.forward.x, -_sceneCamera.forward.y, -_sceneCamera.forward.z };
+        _sceneAudio.getSoundEngine()->setListenerPosition(pos, lookdir);
+    }
+
+    void Scene::setAudioPauseState(bool paused) {
+        static std::vector<irrklang::ISound*> pausedSounds;
+        if(paused) {
+            _sceneRegistry.current->entityRegistry.view<AudioComponent>().each([](entt::entity entity, AudioComponent& audioComponent){
+                auto& soundSources = audioComponent.getSoundSources();
+                for(auto soundSource : soundSources) {
+                    auto& sounds = soundSource->getSounds();
+                    for(auto sound : sounds) {
+                        if(!sound->getIsPaused()) {
+                            sound->setIsPaused(true);
+                            pausedSounds.push_back(sound);
+                        }
+                    }
+                }
+            });
+        } else {
+            _sceneRegistry.current->entityRegistry.view<AudioComponent>().each([](entt::entity entity, AudioComponent& audioComponent){
+                auto& soundSources = audioComponent.getSoundSources();
+                for(auto soundSource : soundSources) {
+                    auto& sounds = soundSource->getSounds();
+                    for(auto sound : sounds) {
+                        for(auto soundPaused : pausedSounds)
+                            if(sound == soundPaused)
+                                soundPaused->setIsPaused(false);
+                    }
+                }
+            });
+            pausedSounds.clear();
         }
     }
 
@@ -57,9 +114,10 @@ namespace TWE {
         auto& view = registry->view<ScriptComponent>();
         for(auto entity : view) {
             auto& scriptComponent = view.get<ScriptComponent>(entity);
-            if(scriptComponent.getBehaviorClassName() != dllData->scriptName)
+            auto script = scriptComponent.getScript(dllData->scriptName);
+            if(!script)
                 continue;
-            scriptComponent.unbind();
+            scriptComponent.unbind(script->behaviorClassName);
             Entity instance { entity, this };
             res.push_back(instance);
         }
@@ -67,15 +125,11 @@ namespace TWE {
     }
 
     void Scene::bindScript(DLLLoadData* dllData, Entity& entity) {
-        if(!dllData || !dllData->isValid) {
-            entity.getComponent<ScriptComponent>().bind<Behavior>();
+        if(!dllData || !dllData->isValid)
             return;
-        }
         auto behaviorFactory = DLLCreator::loadDLLFunc(*dllData);
-        if(!behaviorFactory) {
-            entity.getComponent<ScriptComponent>().bind<Behavior>();
+        if(!behaviorFactory)
             return;
-        }
         Behavior* behavior = (Behavior*)behaviorFactory();
         entity.getComponent<ScriptComponent>().bind(behavior, dllData->scriptName);
     }
@@ -85,17 +139,22 @@ namespace TWE {
             bindScript(dllData, entity);
     }
 
-    void Scene::validateScript(const std::string& scriptName) {
+    void Scene::validateScript(const std::string scriptName) {
         auto scriptDLLData = _scriptDLLRegistry->get(scriptName);
-        if(scriptDLLData && scriptDLLData->isValid) {
+        if(scriptDLLData) {
             auto& editEntities = unbindScript(&_sceneRegistry.edit.entityRegistry, scriptDLLData);
-            auto& runEntities = unbindScript(&_sceneRegistry.run.entityRegistry, scriptDLLData);
+            unbindScript(&_sceneRegistry.run.entityRegistry, scriptDLLData);
             DLLCreator::freeDLLFunc(*scriptDLLData);
             _scriptDLLRegistry->erase(scriptName);
             auto dllData = new DLLLoadData(DLLCreator::compileScript(scriptName, scriptDLLData->scriptDirectoryPath));
             _scriptDLLRegistry->add(scriptName, dllData);
-            if(!dllData || !dllData->isValid)
+            if(!dllData || !dllData->isValid) {
                 std::cout << "Script " +  scriptName + " compile error!\n";
+                dllData->dllPath = scriptDLLData->dllPath;
+                dllData->factoryFuncName = scriptDLLData->factoryFuncName;
+                dllData->scriptDirectoryPath = scriptDLLData->scriptDirectoryPath;
+                dllData->scriptName = scriptDLLData->scriptName;
+            }
             bindScript(dllData, editEntities);
         } else 
             std::cout << "Script " +  scriptName + " was not found in the script dll registry!\n";
@@ -119,6 +178,7 @@ namespace TWE {
         _sceneRegistry.edit.lastId = 0;
         _sceneRegistry.run.urControl.reset();
         _sceneRegistry.edit.urControl.reset();
+        _sceneAudio.reset();
         Shape::reset();
     }
 
@@ -129,7 +189,7 @@ namespace TWE {
 
     void Scene::resetScripts(entt::registry* registry) {
         registry->view<ScriptComponent>().each([&](entt::entity entity, ScriptComponent& scriptComponent){
-            scriptComponent.unbind();
+            scriptComponent.clean();
         });
     }
 
@@ -137,10 +197,7 @@ namespace TWE {
         registry->view<PhysicsComponent>().each([&](entt::entity entity, PhysicsComponent& physicsComponent){
             if(!physicsComponent.getRigidBody())
                 return;
-            delete physicsComponent.getRigidBody()->getMotionState();
-            delete physicsComponent.getRigidBody()->getCollisionShape();
             physicsComponent.getDynamicsWorld()->removeRigidBody(physicsComponent.getRigidBody());
-            delete physicsComponent.getRigidBody();
         });
     }
 
@@ -152,28 +209,14 @@ namespace TWE {
         });
     }
 
-    void Scene::setViewPos(const glm::vec3& pos) {
-        _sceneRegistry.current->entityRegistry.view<MeshRendererComponent>().each([&](entt::entity entity, MeshRendererComponent& meshRendererComponent){
-            Renderer::setViewPosition(meshRendererComponent, pos);
-        });
-    }
-
-    void Scene::updateView(const glm::mat4& view, const glm::mat4& projection, const glm::vec3& pos) {
-        setTransMat(view, TransformMatrixOptions::VIEW);
-        setTransMat(projection, TransformMatrixOptions::PROJECTION);
-        _sceneRegistry.current->physics.getDebugDrawer()->setMats(view, projection);
-        setViewPos(pos);
-    }
-
     void Scene::updateShadows(uint32_t windowWidth, uint32_t windowHeight) {
-        glm::mat4& lightProjection = glm::ortho(-20.0f, 20.0f, -20.0f, 20.0f, 0.1f, 500.f);
         int lightIndex = -1;
-        _drawColliders = false;
         _sceneRegistry.current->entityRegistry.view<LightComponent, TransformComponent>().each([&](entt::entity entity, LightComponent& lightComponent, 
         TransformComponent& transformComponent){
             ++lightIndex;
             if(!lightComponent.castShadows)
                 return;
+            glm::mat4& lightProjection = lightComponent.getLightProjection();
             glm::mat4& lightView = glm::lookAt(transformComponent.transform.position, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f});
             Renderer::generateDepthMap(lightComponent, transformComponent, lightProjection, lightView, this);
             setShadows(lightComponent, lightProjection * lightView, lightIndex);
@@ -193,15 +236,15 @@ namespace TWE {
     }
 
     bool Scene::updateView() {
-        _sceneCameraSpecification.camera = nullptr;
-        _sceneCameraSpecification.position = glm::vec3(0.f);
-        _sceneCameraSpecification.forward = glm::vec3(0.f);
-        _sceneCameraSpecification.up = glm::vec3(0.f);
+        _sceneCamera.camera = nullptr;
+        _sceneCamera.position = glm::vec3(0.f);
+        _sceneCamera.forward = glm::vec3(0.f);
+        _sceneCamera.up = glm::vec3(0.f);
         if(_isFocusedOnDebugCamera && _debugCamera) {
-            _sceneCameraSpecification.camera = _debugCamera;
-            _sceneCameraSpecification.position = _debugCamera->getPosition();
-            _sceneCameraSpecification.forward = _debugCamera->getForward();
-            _sceneCameraSpecification.up = _debugCamera->getUp();
+            _sceneCamera.camera = _debugCamera;
+            _sceneCamera.position = _debugCamera->getPosition();
+            _sceneCamera.forward = _debugCamera->getForward();
+            _sceneCamera.up = _debugCamera->getUp();
         }
         else {
             auto& camsView = _sceneRegistry.current->entityRegistry.view<TransformComponent>();
@@ -212,18 +255,19 @@ namespace TWE {
                 auto& transformComponent = entity.getComponent<TransformComponent>();
                 auto& cameraComponent = entity.getComponent<CameraComponent>();
                 if(cameraComponent.isFocusedOn()){
-                    _sceneCameraSpecification.camera = cameraComponent.getSource();
-                    _sceneCameraSpecification.position = transformComponent.transform.position;
-                    _sceneCameraSpecification.forward = -transformComponent.getForward();
-                    _sceneCameraSpecification.up = transformComponent.getUp();
+                    _sceneCamera.camera = cameraComponent.getSource();
+                    _sceneCamera.position = transformComponent.transform.position;
+                    _sceneCamera.forward = -transformComponent.getForward();
+                    _sceneCamera.up = transformComponent.getUp();
                     break;
                 }
             }
         }
-        if(!_sceneCameraSpecification.camera)
+        if(!_sceneCamera.camera)
             return false;
-        updateView(_sceneCameraSpecification.camera->getView(_sceneCameraSpecification.position, _sceneCameraSpecification.forward, _sceneCameraSpecification.up),
-                   _sceneCameraSpecification.camera->getProjection(), _sceneCameraSpecification.position);
+        _sceneCamera.view = _sceneCamera.camera->getView(_sceneCamera.position, _sceneCamera.forward, _sceneCamera.up);
+        _sceneCamera.projection = _sceneCamera.camera->getProjection();
+        _sceneCamera.projectionView = _sceneCamera.projection * _sceneCamera.view;
         return true;
     }
 
@@ -238,16 +282,22 @@ namespace TWE {
             return;
         }
         updateLight();
-        _drawColliders = _isFocusedOnDebugCamera;
         #ifndef TWE_BUILD
         _frameBuffer->bind();
         Renderer::cleanScreen({});
-        draw();
-        if(_drawColliders)
+        draw(_sceneCamera.projection, _sceneCamera.view, _sceneCamera.projectionView, _sceneCamera.position);
+        if(_isFocusedOnDebugCamera) {
+            _sceneRegistry.current->physics.getDebugDrawer()->setMats(_sceneCamera.view, _sceneCamera.projection);
             _sceneRegistry.current->physics.debugDrawWorld();
+        }
+        Renderer::cleanDepth();
+        if(!_isFocusedOnDebugCamera)
+            drawUI(_sceneCamera.projection, _sceneCamera.view, _sceneCamera.projectionView, _sceneCamera.position);
         _frameBuffer->unbind();
         #else
-        draw();
+        draw(_sceneCamera.projection, _sceneCamera.view, _sceneCamera.projectionView, _sceneCamera.position);
+        Renderer::cleanDepth();
+        drawUI(_sceneCamera.projection, _sceneCamera.view, _sceneCamera.projectionView, _sceneCamera.position);
         #endif
     }
 
@@ -255,6 +305,7 @@ namespace TWE {
         updatePhysics();
         updateScripts();
         updateTransforms();
+        updateAudioListenerPosition();
         _sceneRegistry.current->physics.cleanCollisionDetection();
         auto& fboSize = _frameBuffer->getSize();
         updateShadows(fboSize.first, fboSize.second);
@@ -265,42 +316,71 @@ namespace TWE {
             return;
         }
         updateLight();
-        _drawColliders = _isFocusedOnDebugCamera;
         #ifndef TWE_BUILD
         _frameBuffer->bind();
         Renderer::cleanScreen({});
-        draw();
-        if(_drawColliders)
+        draw(_sceneCamera.projection, _sceneCamera.view, _sceneCamera.projectionView, _sceneCamera.position);
+        if(_isFocusedOnDebugCamera) {
+            _sceneRegistry.current->physics.getDebugDrawer()->setMats(_sceneCamera.view, _sceneCamera.projection);
             _sceneRegistry.current->physics.debugDrawWorld();
+        }
+        Renderer::cleanDepth();
+        if(!_isFocusedOnDebugCamera)
+            drawUI(_sceneCamera.projection, _sceneCamera.view, _sceneCamera.projectionView, _sceneCamera.position);
         _frameBuffer->unbind();
         #else
-        draw();
+        draw(_sceneCamera.projection, _sceneCamera.view, _sceneCamera.projectionView, _sceneCamera.position);
+        Renderer::cleanDepth();
+        drawUI(_sceneCamera.projection, _sceneCamera.view, _sceneCamera.projectionView, _sceneCamera.position);
         #endif
     }
 
     void Scene::updateScripts() {
+        static std::filesystem::path loadScenePath;
+        bool needLoadScene = false;
         _sceneRegistry.current->entityRegistry.view<ScriptComponent>().each([&](entt::entity entity, ScriptComponent& scriptComponent){
-            if(!scriptComponent.isEnabled)
-                return;
-            try {
-                if(!scriptComponent._isInitialized) {
-                    scriptComponent.initialize(entity, this);
-                    scriptComponent._instance->start();
-                }
-                if(scriptComponent._instance->gameObject.hasComponent<PhysicsComponent>()) {
-                    auto& physicsComponent = scriptComponent._instance->gameObject.getComponent<PhysicsComponent>();
-                    auto collisions = _sceneRegistry.current->physics.getCollisionDetection(physicsComponent.getRigidBody());
-                    for(auto collisionObj : collisions){
-                        auto userPointer = (PhysicsUserPointer*)collisionObj->getUserPointer();
-                        scriptComponent._instance->collisionDetection(Entity{userPointer->entity, this}, collisionObj);
+            auto& scripts = scriptComponent.getScripts();
+            for(auto& script : scripts) {
+                if(!script.isEnabled)
+                    return;
+                try {
+                    if(!script.isInitialized) {
+                        script.initialize(entity, this, _projectData->rootPath, Shape::shapeSpec);
+                        script.instance->start();
                     }
+                    if(script.instance->gameObject.hasComponent<PhysicsComponent>()) {
+                        auto& physicsComponent = script.instance->gameObject.getComponent<PhysicsComponent>();
+                        auto collisions = _sceneRegistry.current->physics.getCollisionDetection(physicsComponent.getRigidBody());
+                        for(auto collisionObj : collisions){
+                            auto userPointer = (PhysicsUserPointer*)collisionObj->getUserPointer();
+                            script.instance->collisionDetection(Entity{userPointer->entity, this}, collisionObj);
+                        }
+                    }
+                    script.instance->update(Time::getDeltaTime());
+                    if(script.instance->needLoadScene) {
+                        needLoadScene = true;
+                        loadScenePath = script.instance->loadScenePath;
+                        script.instance->needLoadScene = false;
+                    }
+                } catch(const std::runtime_error& error) {
+                    std::cerr << error.what() << "\n";
+                    script.isEnabled = false;
+                } catch(const std::exception& error) {
+                    std::cout << error.what() << std::endl;
+                    script.isEnabled = false;
                 }
-                scriptComponent._instance->update(Time::getDeltaTime());
-            } catch(const std::runtime_error& e) {
-                std::cerr << e.what() << "\n";
-                scriptComponent.isEnabled = false;
             }
         });
+        if(needLoadScene) {
+            if(SceneSerializer::deserialize(this, loadScenePath.string())) {
+                std::filesystem::path scenePath = std::filesystem::relative(loadScenePath, _projectData->rootPath);
+                if(!scenePath.empty())
+                    _projectData->lastScenePath = scenePath;
+                else
+                    _projectData->lastScenePath = loadScenePath;
+                setState(SceneState::Run);
+            }
+        }
     } 
 
     void Scene::updateLight() {
@@ -316,6 +396,8 @@ namespace TWE {
             if(transformComponent.preTransform == transformComponent.transform)
                 return;
             Entity instance = { entity, this };
+            if(!instance.hasComponent<ParentChildsComponent>())
+                return;
             auto& parentChildsComponent = instance.getComponent<ParentChildsComponent>();
             ModelSpecification ratioTransform(
                 transformComponent.transform.position - transformComponent.preTransform.position,
@@ -339,11 +421,25 @@ namespace TWE {
                         physicsComponent.setSize(physicsComponent.getLocalScale() + ratioTransform.size);
                 }
             }
+            if(instance.hasComponent<AudioComponent>()) {
+                auto& audioComponent = instance.getComponent<AudioComponent>();
+                auto& soundSources = audioComponent.getSoundSources();
+                for(auto soundSource : soundSources) {
+                    auto& sounds = soundSource->getSounds();
+                    for(auto sound : sounds) {
+                        irrklang::vec3df position = {transformComponent.transform.position.x, 
+                            transformComponent.transform.position.y, transformComponent.transform.position.z};
+                        sound->setPosition(position);
+                    }
+                }
+            }
             transformComponent.preTransform = transformComponent.transform;
         });
     } 
 
     void Scene::updateChildsTransform(Entity& entity, ModelSpecification& ratioTransform, const glm::vec3& centerPositon) {
+        if(!entity.hasComponent<TransformComponent>())
+            return;
         auto& transformComponent = entity.getComponent<TransformComponent>();
         bool hasPhysics = entity.hasComponent<PhysicsComponent>();
         PhysicsComponent* physicsComponent;
@@ -371,6 +467,18 @@ namespace TWE {
             Entity childInstance = { child, this };
             updateChildsTransform(childInstance, ratioTransform, centerPositon);
         }
+        if(entity.hasComponent<AudioComponent>()) {
+            auto& audioComponent = entity.getComponent<AudioComponent>();
+            auto& soundSources = audioComponent.getSoundSources();
+            for(auto soundSource : soundSources) {
+                auto& sounds = soundSource->getSounds();
+                for(auto sound : sounds) {
+                    irrklang::vec3df position = {transformComponent.transform.position.x, 
+                        transformComponent.transform.position.y, transformComponent.transform.position.z};
+                    sound->setPosition(position);
+                }
+            }
+        }
         transformComponent.preTransform = transformComponent.transform;
     }
 
@@ -390,11 +498,25 @@ namespace TWE {
         #endif
     }
 
-    void Scene::draw() {
+    void Scene::draw(const glm::mat4& projection, const glm::mat4& view, const glm::mat4& projectionView, const glm::vec3& viewPos) {
+        static std::string uiPath = "../../" + std::string(SHADER_PATHS[ShaderIndices::UI_VERT]);
         auto& lightEnteties = _sceneRegistry.current->entityRegistry.view<LightComponent>();
         _sceneRegistry.current->entityRegistry.view<MeshComponent, MeshRendererComponent, TransformComponent>()
             .each([&](entt::entity entity, MeshComponent& meshComponent, MeshRendererComponent& meshRendererComponent, TransformComponent& transformComponent){
-                Renderer::execute(&meshComponent, &meshRendererComponent, &transformComponent, lightEnteties.size());
+                if(meshRendererComponent.shader->getVertPath() != uiPath)
+                    Renderer::execute(&meshComponent, &meshRendererComponent, transformComponent.getModel(), view, projection, viewPos,
+                        lightEnteties.size(), projectionView);
+            });
+    }
+
+    void Scene::drawUI(const glm::mat4& projection, const glm::mat4& view, const glm::mat4& projectionView, const glm::vec3& viewPos) {
+        static std::string uiPath = "../../" + std::string(SHADER_PATHS[ShaderIndices::UI_VERT]);
+        auto& lightEnteties = _sceneRegistry.current->entityRegistry.view<LightComponent>();
+        _sceneRegistry.current->entityRegistry.view<MeshComponent, MeshRendererComponent, TransformComponent>()
+            .each([&](entt::entity entity, MeshComponent& meshComponent, MeshRendererComponent& meshRendererComponent, TransformComponent& transformComponent){
+                if(meshRendererComponent.shader->getVertPath() == uiPath)
+                    Renderer::execute(&meshComponent, &meshRendererComponent, transformComponent.getModel(), view, projection, viewPos,
+                        lightEnteties.size(), projectionView);
             });
     }
 
@@ -436,7 +558,7 @@ namespace TWE {
             entity.removeComponent<PhysicsComponent>();
         }
         if(entity.hasComponent<ScriptComponent>()) {
-            entity.getComponent<ScriptComponent>().unbind();
+            entity.getComponent<ScriptComponent>().clean();
             entity.removeComponent<ScriptComponent>();
         }
         entity.removeComponent<TransformComponent>();
@@ -456,6 +578,11 @@ namespace TWE {
         for(auto childEntity : parentChildsComponent.childs)
             cleanEntity(Entity{ childEntity, this });
         entity.removeComponent<ParentChildsComponent>();
+
+        if(entity.hasComponent<AudioComponent>()) {
+            entity.getComponent<AudioComponent>().clean();
+            entity.removeComponent<AudioComponent>();
+        }
     }
 
     Entity Scene::createEntity(const std::string& name) {
@@ -496,25 +623,25 @@ namespace TWE {
 
         if(entity.hasComponent<ScriptComponent>()) {
             auto& scriptComponent = to.entityRegistry.emplace<ScriptComponent>(instance);
-            auto scriptDLLData = _scriptDLLRegistry->get(entity.getComponent<ScriptComponent>().getBehaviorClassName());
-            if(!scriptDLLData || !scriptDLLData->isValid)
-                scriptComponent.bind<Behavior>();
-            else {
-                auto behaviorFactory = DLLCreator::loadDLLFunc(*scriptDLLData);
-                if(!behaviorFactory)
-                    scriptComponent.bind<Behavior>();
-                else {
-                    Behavior* behavior = (Behavior*)behaviorFactory();
-                    scriptComponent.bind(behavior, scriptDLLData->scriptName);
+            auto& scripts = entity.getComponent<ScriptComponent>().getScripts();
+            for(auto& script : scripts) {
+                auto scriptDLLData = _scriptDLLRegistry->get(script.behaviorClassName);
+                if(scriptDLLData && scriptDLLData->isValid) {
+                    auto behaviorFactory = DLLCreator::loadDLLFunc(*scriptDLLData);
+                    if(behaviorFactory) {
+                        Behavior* behavior = (Behavior*)behaviorFactory();
+                        auto scriptSpec = scriptComponent.bind(behavior, scriptDLLData->scriptName);
+                        if(scriptSpec)
+                            scriptSpec->isEnabled = script.isEnabled;
+                    }
                 }
-                scriptComponent.isEnabled = entity.getComponent<ScriptComponent>().isEnabled;
             }
         }
 
         if(entity.hasComponent<MeshComponent>()) {
             auto& meshComponent = entity.getComponent<MeshComponent>();
             to.entityRegistry.emplace<MeshComponent>(instance, meshComponent.vao, meshComponent.vbo, meshComponent.ebo, 
-                meshComponent.registryId, meshComponent.texture->getAttachments());
+                meshComponent.registryId, meshComponent.modelSpec, meshComponent.texture);
         }
 
         if(entity.hasComponent<MeshRendererComponent>()) {
@@ -527,15 +654,31 @@ namespace TWE {
         if(entity.hasComponent<PhysicsComponent>()) {
             auto& physicsComponent = entity.getComponent<PhysicsComponent>();
             if(physicsComponent.getColliderType() != ColliderType::TriangleMesh) {
-                auto shapeDimensions = physicsComponent.getShapeDimensions() / physicsComponent.getLocalScale();
                 auto& physxComp = to.entityRegistry.emplace<PhysicsComponent>(instance, to.physics.getDynamicWorld(), physicsComponent.getColliderType(), 
-                    shapeDimensions, physicsComponent.getLocalScale(), physicsComponent.getPosition(),
+                    physicsComponent.getShapeDimensions(), physicsComponent.getLocalScale(), physicsComponent.getPosition(),
                     physicsComponent.getRotation(), physicsComponent.getMass(), instance);
                 physxComp.setIsRotated(physicsComponent.getIsRotated());
+                physxComp.setIsTrigger(physicsComponent.getIsTrigger());
             } else {
-                to.entityRegistry.emplace<PhysicsComponent>(instance, to.physics.getDynamicWorld(), physicsComponent.getColliderType(), 
+                auto& physxComp = to.entityRegistry.emplace<PhysicsComponent>(instance, to.physics.getDynamicWorld(), physicsComponent.getColliderType(), 
                     physicsComponent.getTriangleMesh(), physicsComponent.getLocalScale(), physicsComponent.getPosition(),
                     physicsComponent.getRotation(), instance);
+                physxComp.setIsTrigger(physicsComponent.getIsTrigger());
+            }
+        }
+
+        if(entity.hasComponent<AudioComponent>()) {
+            auto& audioComponent = entity.getComponent<AudioComponent>();
+            auto& audioComponentCopy = to.entityRegistry.emplace<AudioComponent>(instance, _sceneAudio.getSoundEngine());
+            auto& soundSources = audioComponent.getSoundSources();
+            for(auto soundSource : soundSources) {
+                auto newSoundSource = audioComponentCopy.addSoundSource(soundSource->getSoundSourcePath(), soundSource->getIs3D());
+                newSoundSource->setPlayLooped(soundSource->getPlayLooped());
+                newSoundSource->setStartPaused(soundSource->getStartPaused());
+                newSoundSource->setVolume(soundSource->getVolume());
+                newSoundSource->setMinDistance(soundSource->getMinDistance());
+                newSoundSource->setMaxDistance(soundSource->getMaxDistance());
+                newSoundSource->setPlaybackSpeed(soundSource->getPlaybackSpeed());
             }
         }
 
@@ -549,4 +692,6 @@ namespace TWE {
     FBO* Scene::getFrameBuffer() const noexcept { return _frameBuffer.get(); }
     Registry<DLLLoadData>* Scene::getScriptDLLRegistry() const noexcept { return _scriptDLLRegistry; }
     SceneStateSpecification* Scene::getSceneStateSpecification() { return _sceneRegistry.current; }
+    SceneAudio* Scene::getSceneAudio() { return &_sceneAudio; }
+    ProjectData* Scene::getProjectData() { return _projectData; }
 }

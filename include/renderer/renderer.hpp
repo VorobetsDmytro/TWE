@@ -12,9 +12,10 @@
 namespace TWE {
     class Renderer {
     public:
-        static void execute(MeshComponent* meshComponent, MeshRendererComponent* meshRendererComponent, TransformComponent* transformComponent, 
-            int lightsCount);
+        static void execute(MeshComponent* meshComponent, MeshRendererComponent* meshRendererComponent, const glm::mat4& model, const glm::mat4& view, const glm::mat4& projection, 
+            const glm::vec3& viewPos, int lightsCount, const glm::mat4& projectionView);
         static void cleanScreen(const glm::vec4& color);
+        static void cleanDepth();
         static void setViewport(int startX, int startY, int endX, int endY);
         static void setLight(MeshRendererComponent& meshRendererComponent, const LightComponent& light, TransformComponent& transform, const std::string& lightIndex);
         static void setViewPosition(MeshRendererComponent& meshRendererComponent, const glm::vec3& pos);

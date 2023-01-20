@@ -23,7 +23,23 @@ namespace TWE {
         TextureSpecification() = default;
         TextureSpecification(const std::string& imgPath, uint32_t texNumber, TextureType texType, TextureInOutFormat inOutTexFormat)
             : imgPath(imgPath), texType(texType), texNumber(texNumber), inOutTexFormat(inOutTexFormat){}
-        uint32_t id;
+        TextureSpecification(const TextureSpecification& textureSpecification) {
+            this->id = textureSpecification.id;
+            this->imgPath = textureSpecification.imgPath;
+            this->texNumber = textureSpecification.texNumber;
+            this->texType = textureSpecification.texType;
+            this->inOutTexFormat = textureSpecification.inOutTexFormat;
+        }
+        bool operator==(const TextureSpecification& textureSpecification) {
+            return this->imgPath == textureSpecification.imgPath
+                && this->texNumber == textureSpecification.texNumber
+                && this->texType == textureSpecification.texType
+                && this->inOutTexFormat == textureSpecification.inOutTexFormat;
+        }
+        bool operator!=(const TextureSpecification& textureSpecification) {
+            return !(*this == textureSpecification);
+        }
+        uint32_t id ;
         std::string imgPath;
         uint32_t texNumber;
         TextureType texType;
@@ -34,6 +50,21 @@ namespace TWE {
         TextureAttachmentSpecification() = default;
         TextureAttachmentSpecification(std::initializer_list<TextureSpecification> textureSpecifications)
             : textureSpecifications(textureSpecifications){}
+        TextureAttachmentSpecification(const TextureAttachmentSpecification& textureAttachmentSpecification) {
+            this->textureSpecifications = textureAttachmentSpecification.textureSpecifications;
+        }
+        bool operator==(const TextureAttachmentSpecification& textureAttachmentSpecification) {
+            if(this->textureSpecifications.size() != textureAttachmentSpecification.textureSpecifications.size())
+                return false;
+            int size = this->textureSpecifications.size();
+            for(int i = 0; i < size; ++i)
+                if(this->textureSpecifications[i] != textureAttachmentSpecification.textureSpecifications[i])
+                    return false;
+            return true;
+        }
+        bool operator!=(const TextureAttachmentSpecification& textureAttachmentSpecification) {
+            return !(*this == textureAttachmentSpecification);
+        }
         std::vector<TextureSpecification> textureSpecifications;
     };
 

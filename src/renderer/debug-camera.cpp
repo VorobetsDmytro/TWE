@@ -11,17 +11,24 @@ namespace TWE {
         updateState();
     }
 
-    void DebugCamera::keyInput(CamMovement dir, float deltaTime) {
+    void DebugCamera::keyInput(float deltaTime) {
         GLfloat camSpeed = speed * boost * deltaTime;
-        if(dir == CamMovement::FORWARD)
+        if(Input::isKeyPressed(Keyboard::KEY_W))
             pos += forward * camSpeed;
-        if(dir == CamMovement::BACKWARD)
+        if(Input::isKeyPressed(Keyboard::KEY_S))
             pos -= forward * camSpeed;
-        if(dir == CamMovement::RIGHT)
+        if(Input::isKeyPressed(Keyboard::KEY_D))
             pos += right * camSpeed;
-        if(dir == CamMovement::LEFT)
+        if(Input::isKeyPressed(Keyboard::KEY_A))
             pos -= right * camSpeed;
-        boost = dir == CamMovement::L_SHIFT ? 2.f : 1.f;
+        if(Input::isKeyPressed(Keyboard::KEY_LEFT_SHIFT)) {
+            if(boost < DEBUG_CAMERA_BOOST_DEFAULT)
+                boost = DEBUG_CAMERA_BOOST_DEFAULT;
+            boost += boost * deltaTime;
+        } else
+            boost = 1.f;
+        if(boost > DEBUG_CAMERA_BOOST_MAX)
+            boost = DEBUG_CAMERA_BOOST_MAX;
     }
 
     void DebugCamera::updateState() {

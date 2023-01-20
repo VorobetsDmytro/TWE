@@ -4,7 +4,7 @@ namespace TWE {
     GUI::GUI(GLFWwindow *window) {
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
-        io.Fonts->AddFontFromFileTTF("../../include/gui/fonts/Roboto-Bold.ttf", 16.f);
+        io.Fonts->AddFontFromFileTTF("../../fonts/Roboto-Bold.ttf", 16.f);
         io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
         io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -27,12 +27,14 @@ namespace TWE {
         ImGui::DestroyContext();
     }
 
-    void GUI::update() {
+    void GUI::begin() {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
         ImGuizmo::BeginFrame();
+    }
 
+    void GUI::end() {
         showDockSpace();
         showFileDialog();
 
@@ -119,6 +121,8 @@ namespace TWE {
             }
             ImGui::EndMenuBar();
         }
+        if((io.ConfigFlags & ImGuiConfigFlags_NoMouse) && io.MouseClicked[0])
+            io.MouseClicked[0] = false;
         showTestPanel();
         showViewportPanel();
         _scene.showPanel(_specification._selectedEntity);
@@ -167,6 +171,7 @@ namespace TWE {
         if(ImGui::Button("Play")) {
             unselectEntity();
             _specification._scene->setState(SceneState::Run);
+            ImGui::SetWindowFocus("Viewport");
         }
         if(playFlag) {
             ImGui::PopItemFlag();
@@ -188,7 +193,7 @@ namespace TWE {
             if(pauseFlag)
                 _specification._scene->setState(SceneState::Pause);
             else
-                _specification._scene->_sceneState = SceneState::Run;
+                _specification._scene->setState(SceneState::Unpause);
         if(!playFlag) {
             ImGui::PopItemFlag();
             ImGui::PopStyleVar();
@@ -245,12 +250,12 @@ namespace TWE {
                 std::string projectDir = std::filesystem::path(filePathName).parent_path().string();
                 if(ProjectCreator::create(projectName, projectDir)) {
                     unselectEntity();
-                    _specification._scene->reset();
                     _specification._scene->_scriptDLLRegistry->clean();
                     std::string projectFilePath = projectDir + '/' + projectName + '/' + projectName + ".project";
                     auto projectData = ProjectCreator::load(projectFilePath, _specification._scene->_scriptDLLRegistry);
                     if(projectData) {
-                        DLLCreator::initPaths(projectData->dllTempDir.string());
+                        std::filesystem::path dllTempDir = projectData->rootPath.string() + '/' + projectData->dllTempDir.string();
+                        DLLCreator::initPaths(dllTempDir.string());
                         *_specification.projectData = *projectData;
                         _directory.setCurrentPath(projectData->rootPath);
                         if(!projectData->lastScenePath.empty())
@@ -265,7 +270,6 @@ namespace TWE {
             if(ImGuiFileDialog::Instance()->IsOk()) {
                 std::string projectFilePath = ImGuiFileDialog::Instance()->GetFilePathName();
                 unselectEntity();
-                _specification._scene->reset();
                 _specification._scene->_scriptDLLRegistry->clean();
                 auto projectData = ProjectCreator::load(projectFilePath, _specification._scene->_scriptDLLRegistry);
                 if(projectData) {
@@ -295,16 +299,12 @@ namespace TWE {
         if(ImGuiFileDialog::Instance()->Display("LoadModel"))  {
             if(ImGuiFileDialog::Instance()->IsOk()) {
                 std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-                ModelLoader mLoader;
-                ModelLoaderData* model = mLoader.loadModel(filePathName);
-                if(model){
-                    auto& modelEntities = Shape::createModelEntity(_specification._scene, model);
-                    if(!modelEntities.empty()) {
-                        selectEntity(modelEntities.back());
-                        _scene.addEntityToSelected(_specification._selectedEntity);
-                        _specification._scene->_sceneRegistry.current->urControl.execute(new CreateEntityCommand(_specification._selectedEntity, 
-                            [&](){ unselectEntity(); }));
-                    }
+                auto& modelEntity = Shape::createModelEntity(_specification._scene, filePathName);
+                if(modelEntity.getSource() != entt::null) {
+                    selectEntity(modelEntity);
+                    _scene.addEntityToSelected(_specification._selectedEntity);
+                    _specification._scene->_sceneRegistry.current->urControl.execute(new CreateEntityCommand(_specification._selectedEntity, 
+                        [&](){ unselectEntity(); }));
                 }
             }
             ImGuiFileDialog::Instance()->Close();
@@ -345,7 +345,7 @@ namespace TWE {
     bool GUI::showGizmo() {
         if(_specification._gizmoOperation == GizmoOperation::None || _specification._selectedEntity.getSource() == entt::null)
             return false;
-        Camera* camera = _specification._scene->_sceneCameraSpecification.camera;
+        Camera* camera = _specification._scene->_sceneCamera.camera;
         if(!camera)
             return false;
         ImGuizmo::SetOrthographic(false);
@@ -354,9 +354,8 @@ namespace TWE {
         auto& windowSize = ImGui::GetWindowSize();
         ImGuizmo::SetRect(windowPos.x, windowPos.y, windowSize.x, windowSize.y);
 
-        const glm::mat4& cameraProjection = camera->getProjection();
-        glm::mat4 cameraView = camera->getView(_specification._scene->_sceneCameraSpecification.position, 
-            _specification._scene->_sceneCameraSpecification.forward, _specification._scene->_sceneCameraSpecification.up);
+        const glm::mat4& cameraProjection = _specification._scene->_sceneCamera.projection;
+        glm::mat4 cameraView =  _specification._scene->_sceneCamera.view;
         auto& selectedEntityTransform = _specification._selectedEntity.getComponent<TransformComponent>();
         auto selectedEntityModel = selectedEntityTransform.getModel();
 
@@ -403,18 +402,35 @@ namespace TWE {
     }
 
     void GUI::processInput() {
+        static std::vector<int> keysDown;
+        auto hasFunc = [&](int key) {
+            return std::find(keysDown.begin(), keysDown.end(), key) != keysDown.end();
+        };
+        ImGuiIO& io = ImGui::GetIO();
+        keysDown.erase(std::remove_if(keysDown.begin(), keysDown.end(), [&](int key) {
+            return !io.KeysDown[key];
+        }), keysDown.end());
+
         if(_specification.isFocusedOnViewport && !Input::isMouseButtonPressed(Mouse::MOUSE_BUTTON_RIGHT) 
         && _specification._selectedEntity.getSource() != entt::null) {
-            if(Input::isKeyPressedOnce(Keyboard::KEY_Q))
+            if(io.KeysDown[Keyboard::KEY_Q] && !hasFunc(Keyboard::KEY_Q)) {
                 _specification._gizmoOperation = GizmoOperation::None;
-            if(Input::isKeyPressedOnce(Keyboard::KEY_W))
+                keysDown.push_back(Keyboard::KEY_Q);
+            }
+            if(io.KeysDown[Keyboard::KEY_W] && !hasFunc(Keyboard::KEY_W)) {
                 _specification._gizmoOperation = GizmoOperation::Translate;
-            if(Input::isKeyPressedOnce(Keyboard::KEY_E))
+                keysDown.push_back(Keyboard::KEY_W);
+            }
+            if(io.KeysDown[Keyboard::KEY_E] && !hasFunc(Keyboard::KEY_E)) {
                 _specification._gizmoOperation = GizmoOperation::Rotate;
-            if(Input::isKeyPressedOnce(Keyboard::KEY_R))
+                keysDown.push_back(Keyboard::KEY_E);
+            }
+            if(io.KeysDown[Keyboard::KEY_R] && !hasFunc(Keyboard::KEY_R)) {
                 _specification._gizmoOperation = GizmoOperation::Scale;
+                keysDown.push_back(Keyboard::KEY_R);
+            }
         }
-        if(Input::isKeyPressedOnce(Keyboard::KEY_DELETE)) {
+        if(io.KeysDown[Keyboard::KEY_DELETE] && !hasFunc(Keyboard::KEY_DELETE) && _specification._selectedEntity.getSource() != entt::null) {
             auto removeEntity = _specification._selectedEntity;
             unselectEntity();
             _specification._scene->_sceneRegistry.current->urControl.execute(new RemoveEntityCommand(removeEntity, 
@@ -422,15 +438,22 @@ namespace TWE {
                     unselectEntity();
                 }
             ));
+            keysDown.push_back(Keyboard::KEY_DELETE);
         }
-        if(Input::isKeyPressed(Keyboard::KEY_LEFT_CONTROL)) {
-            if(Input::isKeyPressedOnce(Keyboard::KEY_Z))
+        if(io.KeysDown[Keyboard::KEY_LEFT_CONTROL]) {
+            if(io.KeysDown[Keyboard::KEY_Z] && !hasFunc(Keyboard::KEY_Z)) {
                 _specification._scene->_sceneRegistry.current->urControl.undo();
-            if(Input::isKeyPressedOnce(Keyboard::KEY_Y))
+                keysDown.push_back(Keyboard::KEY_Z);
+            }
+            if(io.KeysDown[Keyboard::KEY_Y] && !hasFunc(Keyboard::KEY_Y)) {
                 _specification._scene->_sceneRegistry.current->urControl.redo();
-            if(Input::isKeyPressedOnce(Keyboard::KEY_D))
+                keysDown.push_back(Keyboard::KEY_Y);
+            }
+            if(io.KeysDown[Keyboard::KEY_D] && !hasFunc(Keyboard::KEY_D) && _specification._selectedEntity.getSource() != entt::null) {
                 _specification._scene->_sceneRegistry.current->urControl.execute(new CopyEntityCommand(_specification._selectedEntity, {}, [&](){ unselectEntity(); }));
-            if(Input::isKeyPressedOnce(Keyboard::KEY_S)) {
+                keysDown.push_back(Keyboard::KEY_D);
+            }
+            if(io.KeysDown[Keyboard::KEY_S] && !hasFunc(Keyboard::KEY_S)) {
                 if(!_specification.projectData->lastScenePath.empty()) {
                     std::filesystem::path scenePath = _specification.projectData->rootPath.string() + '/' + _specification.projectData->lastScenePath.string();
                     SceneSerializer::serialize(_specification._scene, scenePath.string(), _specification.projectData);
@@ -438,8 +461,13 @@ namespace TWE {
                 else
                     ImGuiFileDialog::Instance()->OpenDialog("SaveSceneAs", "Choose File", ".scene", 
                         (_specification.projectData->rootPath.string() + '/').c_str(), 1, nullptr);
+                keysDown.push_back(Keyboard::KEY_S);
             }
         }
+        if(Input::getShowCursor() && io.ConfigFlags & ImGuiConfigFlags_NoMouse)
+            io.ConfigFlags ^= ImGuiConfigFlags_NoMouse;
+        else if(!Input::getShowCursor() && !(io.ConfigFlags & ImGuiConfigFlags_NoMouse))
+            io.ConfigFlags ^= ImGuiConfigFlags_NoMouse;
     }
 
     void GUI::addCheckbox(const char* name, bool& var) {
@@ -469,4 +497,5 @@ namespace TWE {
 
     bool GUI::getIsMouseOnViewport() { return _specification.isMouseOnViewport; }
     bool GUI::getIsFocusedOnViewport() { return _specification.isFocusedOnViewport; }
+    bool GUI::getIsMouseDisabled() { return ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_NoMouse; }
 }

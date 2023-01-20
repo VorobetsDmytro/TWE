@@ -11,7 +11,9 @@ namespace TWE {
     enum TransformMatrixOptions {
         MODEL,
         VIEW,
-        PROJECTION
+        PROJECTION,
+        VP,
+        MVP
     };
 
     enum ShaderIndices {
@@ -21,11 +23,13 @@ namespace TWE {
         CUBEMAP_FRAG,
         COLLIDER_VERT,
         COLLIDER_FRAG,
+        UI_VERT,
+        UI_FRAG,
     };
 
-    extern const char* TRANS_MAT_OPTIONS[3];
+    extern const char* TRANS_MAT_OPTIONS[5];
 
-    extern const char* SHADER_PATHS[6];
+    extern const char* SHADER_PATHS[8];
 
     class Shader {
     public:

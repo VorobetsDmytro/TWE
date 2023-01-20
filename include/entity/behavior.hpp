@@ -2,54 +2,16 @@
 #define BEHAVIOR_HPP
 
 #include <string>
+#include <filesystem>
 #include <glm.hpp>
 #include <btBulletDynamicsCommon.h>
+#include "imgui.h"
 
 #include "entity.hpp"
 #include "input/input.hpp"
+#include "scene/shape-specification.hpp"
 
 namespace TWE {
-    struct InputSpecification {
-    public:
-        InputSpecification() = default;
-        InputSpecification(bool* keyboardPressedKeys, bool* mousePressedButtons, float* mouseOffset, int* keyboardPressedActions, int* mousePressedActions)
-            : keyboardPressedKeys(keyboardPressedKeys), mousePressedButtons(mousePressedButtons), 
-              mouseOffset(mouseOffset), keyboardPressedActions(keyboardPressedActions), mousePressedActions(mousePressedActions) {}
-        bool isKeyPressed(Keyboard key) { 
-            if(keyboardPressedKeys[key] && keyboardPressedActions[key] == Action::PRESS)
-                keyboardPressedActions[key] = Action::REPEAT;
-            return keyboardPressedKeys[key];
-        }
-        bool isKeyPressedOnce(Keyboard key) {
-            if(keyboardPressedKeys[key] && keyboardPressedActions[key] == Action::PRESS) {
-                keyboardPressedActions[key] = Action::REPEAT;
-                return true;
-            }
-            return false;
-        }
-        bool isMouseButtonPressed(Mouse button) { 
-            if(mousePressedButtons[button] && mousePressedActions[button] == Action::PRESS)
-                mousePressedActions[button] = Action::REPEAT;
-            return mousePressedButtons[button];
-        }
-        bool isMouseButtonPressedOnce(Mouse button) {
-            if(mousePressedButtons[button] && mousePressedActions[button] == Action::PRESS) {
-                mousePressedActions[button] = Action::REPEAT;
-                return true;
-            }
-            return false;
-        }
-        Action keyAction(Keyboard key) { return static_cast<Action>(keyboardPressedActions[key]); }
-        Action mouseButtonAction(Mouse button) { return static_cast<Action>(mousePressedActions[button]); }
-        glm::vec2 getMouseOffset() { return { mouseOffset[0], mouseOffset[1] }; }
-    private:
-        bool* keyboardPressedKeys;
-        int* keyboardPressedActions;
-        bool* mousePressedButtons;
-        int* mousePressedActions;
-        float* mouseOffset;
-    };
-
     class Behavior {
     public:
         virtual void start() {}
@@ -66,13 +28,32 @@ namespace TWE {
         void removeComponent();
         template<typename T = void>
         void destroy();
-        InputSpecification input;
-        Entity gameObject;
-    private:
-        void setInput(bool* keyboardPressedKeys, bool* mousePressedButtons, float* mouseOffset, int* keyboardPressedActions, int* mousePressedActions) {
-            input = { keyboardPressedKeys, mousePressedButtons, mouseOffset, keyboardPressedActions, mousePressedActions };
+        void loadScene(const std::filesystem::path& scenePath) { 
+           loadScenePath = scenePath;
+           needLoadScene = true;
         }
-        friend class ScriptComponent;
+        InputSpecification* input;
+        ImGuiContext* imguiContext;
+        Entity gameObject;
+        std::filesystem::path rootPath;
+        ShapeSpecification* shapeSpec;
+    private:
+        bool needLoadScene = false;
+        std::filesystem::path loadScenePath;
+        void setInput(InputSpecification* input) {
+            Input::inputSpecification = input;
+            this->input = input;
+        }
+        void setImguiContext(ImGuiContext* context) {
+            imguiContext = context;
+        }
+        void setRootPath(const std::filesystem::path& rootPath) {
+            this->rootPath = rootPath;
+        }
+        void setShapeSpecification(ShapeSpecification* shapeSpec) {
+            this->shapeSpec = shapeSpec;
+        }
+        friend class ScriptSpecification;
         friend class Scene;
     };
 
@@ -98,11 +79,16 @@ namespace TWE {
             componentName = componentName.substr(6);
             throw std::runtime_error("Error: A " + componentName + " is already exists.");
         }
-        return &gameObject.addComponent<T, Args>(args);
+        return &gameObject.addComponent<T>(std::forward<Args>(args)...);
     }
 
     template<typename T>
     void Behavior::removeComponent() {
+        if(!hasComponent<T>()) {
+            std::string componentName = typeid(T).name();
+            componentName = componentName.substr(6);
+            throw std::runtime_error("Error: A " + componentName + " was not found.");
+        }
         gameObject.removeComponent<T>();
     }
 

@@ -7,11 +7,15 @@ namespace TWE {
     }
 
     void ChangeNameComponentStateCommand::execute() {
+        if(!_entity.hasComponent<NameComponent>())
+            return;
         auto& nameComponent = _entity.getComponent<NameComponent>();
         nameComponent.setName(_newState.getName());
     }
 
     void ChangeNameComponentStateCommand::unExecute() {
+        if(!_entity.hasComponent<NameComponent>())
+            return;
         auto& nameComponent = _entity.getComponent<NameComponent>();
         nameComponent.setName(_oldState.getName());
     }

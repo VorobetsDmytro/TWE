@@ -5,6 +5,7 @@ namespace TWE {
         ImGuiFileDialog::Instance()->SetFileStyle(IGFD_FileStyleByExtention, ".png", ImVec4(1.0f, 1.0f, 0.0f, 1.f));
         ImGuiFileDialog::Instance()->SetFileStyle(IGFD_FileStyleByExtention, ".jpeg", ImVec4(1.0f, 1.0f, 0.0f, 1.f));
         ImGuiFileDialog::Instance()->SetFileStyle(IGFD_FileStyleByExtention, ".jpg", ImVec4(1.0f, 1.0f, 0.0f, 1.f));
+        ImGuiFileDialog::Instance()->SetFileStyle(IGFD_FileStyleByExtention, ".mp3", ImVec4(1.0f, 1.0f, 0.0f, 1.f));
     }
 
     void GUIComponentsPanel::showPanel(Entity& entity) {
@@ -20,6 +21,7 @@ namespace TWE {
             showLightComponent(entity);
             showPhysicsComponent(entity);
             showScriptComponent(entity);
+            showAudioComponent(entity);
             showAddComponentMenu(entity);
             showFileDialog(entity);
         }
@@ -27,6 +29,19 @@ namespace TWE {
     }
 
     void GUIComponentsPanel::showFileDialog(Entity& entity) {
+        if(ImGuiFileDialog::Instance()->Display("AddAudioSource")) {
+            if(ImGuiFileDialog::Instance()->IsOk()) {
+                std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+                if(entity.hasComponent<AudioComponent>()){
+                    auto& audioComponent = entity.getComponent<AudioComponent>();
+                    std::filesystem::path soundPath = filePathName;
+                    if(soundPath.extension() == ".mp3")
+                        _scene->_sceneRegistry.current->urControl.execute(new AddSoundSourceAudioComponentCommand(entity, soundPath));
+                }
+            }
+            ImGuiFileDialog::Instance()->Close();
+            return;
+        }
         if(ImGuiFileDialog::Instance()->Display("BaseTexture")) {
             if(ImGuiFileDialog::Instance()->IsOk()) {
                 std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
@@ -34,8 +49,24 @@ namespace TWE {
                     auto& meshComponent = entity.getComponent<MeshComponent>();
                     auto newState = meshComponent;
                     TextureSpecification textureSpecification(filePathName, 0, TextureType::Texture2D, TextureInOutFormat::RGBA);
-                    newState.texture = std::make_shared<Texture>();
-                    newState.texture->setTexture(textureSpecification);
+                    TextureAttachmentSpecification* textureInRegistry = nullptr;
+                    auto values = Shape::shapeSpec->textureRegistry->getValues();
+                    for(auto& value : values) {
+                        if(value->textureSpecifications.empty())
+                            continue;
+                        if(value->textureSpecifications[0] == textureSpecification) {
+                            textureInRegistry = value;
+                            break;
+                        }
+                    }
+                    if(!textureInRegistry) {
+                        Texture* texture = new Texture({textureSpecification});
+                        auto* textureAtttachments = &texture->getAttachments();
+                        textureInRegistry = Shape::shapeSpec->textureRegistry->add("Texture-" + std::to_string(Shape::shapeSpec->textureNumber++), textureAtttachments);
+                    }
+                    Texture* texture = new Texture();
+                    texture->setAttachments(*textureInRegistry);
+                    newState.texture = std::make_shared<Texture>(*texture);
                     _scene->_sceneRegistry.current->urControl.execute(new ChangeMeshComponentStateCommand(entity, newState));
                 }
             }
@@ -65,7 +96,24 @@ namespace TWE {
                         if(entity.hasComponent<MeshComponent>()){
                             auto& meshComponent = entity.getComponent<MeshComponent>();
                             auto newState = meshComponent;
-                            newState.texture = std::make_shared<Texture>(attachemnts);
+                            TextureAttachmentSpecification* textureInRegistry = nullptr;
+                            auto values = Shape::shapeSpec->textureRegistry->getValues();
+                            for(auto& value : values) {
+                                if(value->textureSpecifications.empty())
+                                    continue;
+                                if(*value == attachemnts) {
+                                    textureInRegistry = value;
+                                    break;
+                                }
+                            }
+                            if(!textureInRegistry) {
+                                Texture* texture = new Texture(attachemnts);
+                                auto* textureAtttachments = &texture->getAttachments();
+                                textureInRegistry = Shape::shapeSpec->textureRegistry->add("Texture-" + std::to_string(Shape::shapeSpec->textureNumber++), textureAtttachments);
+                            }
+                            Texture* texture = new Texture();
+                            texture->setAttachments(*textureInRegistry);
+                            newState.texture = std::make_shared<Texture>(*texture);
                             _scene->_sceneRegistry.current->urControl.execute(new ChangeMeshComponentStateCommand(entity, newState));
                         }
                     }
@@ -91,7 +139,7 @@ namespace TWE {
             auto& availSize = ImGui::GetContentRegionAvail();
             if(!entity.hasComponent<MeshComponent>() || !entity.hasComponent<MeshRendererComponent>()) {
                 if(ImGui::Button("Mesh component", {availSize.x, 0.f})) {
-                    _scene->_sceneRegistry.current->urControl.execute(new AddMeshCompoentnCommand(entity));
+                    _scene->_sceneRegistry.current->urControl.execute(new AddMeshComponentCommand(entity));
                     ImGui::CloseCurrentPopup();
                 }
             }
@@ -119,6 +167,12 @@ namespace TWE {
                     ImGui::CloseCurrentPopup();
                 }
             }
+             if(!entity.hasComponent<AudioComponent>()) {
+                if(ImGui::Button("Audio component", {availSize.x, 0.f})) {
+                    _scene->_sceneRegistry.current->urControl.execute(new AddAudioComponentCommand(entity));
+                    ImGui::CloseCurrentPopup();
+                }
+             }
             ImGui::EndPopup();
         }
     }
@@ -195,14 +249,13 @@ namespace TWE {
                 if(ImGui::IsItemClicked(1))
                     ImGui::OpenPopup(popUpId.c_str());
                 auto& meshComponent = entity.getComponent<MeshComponent>();
-                std::vector<std::string> meshRegistryKeys = Shape::meshRegistry->getKeys();
+                std::vector<std::string> meshRegistryKeys = Shape::shapeSpec->meshRegistry->getKeys();
                 int meshIndex = GUIComponents::combo("Mesh", meshComponent.registryId, meshRegistryKeys);
                 if(meshIndex != -1) {
                     auto newState = meshComponent;
                     std::string meshId = meshRegistryKeys[meshIndex];
-                    auto meshSpecification = Shape::meshRegistry->get(meshId);
-                    newState.setMesh(meshSpecification->vao, meshSpecification->vbo, meshSpecification->ebo, meshId);
-                    newState.setModelPath(meshSpecification->modelPath);
+                    auto meshSpecification = Shape::shapeSpec->meshRegistry->get(meshId);
+                    newState.setMesh(meshSpecification->vao, meshSpecification->vbo, meshSpecification->ebo, meshId, meshSpecification->modelSpec);
                     entity.getComponent<CreationTypeComponent>().setType(meshSpecification->creationType);
                     _scene->_sceneRegistry.current->urControl.execute(new ChangeMeshComponentStateCommand(entity, newState));
                 }
@@ -225,17 +278,35 @@ namespace TWE {
                                 const wchar_t* item = static_cast<const wchar_t*>(payload->Data);
                                 std::filesystem::path path(item);
                                 TextureSpecification textureSpecification(path.string(), 0, TextureType::Texture2D, TextureInOutFormat::RGBA);
-                                newState.texture = std::make_shared<Texture>();
-                                newState.texture->setTexture(textureSpecification);
+                                TextureAttachmentSpecification* textureInRegistry = nullptr;
+                                auto values = Shape::shapeSpec->textureRegistry->getValues();
+                                for(auto& value : values) {
+                                    if(value->textureSpecifications.empty())
+                                        continue;
+                                    if(value->textureSpecifications[0] == textureSpecification) {
+                                        textureInRegistry = value;
+                                        break;
+                                    }
+                                }
+                                if(!textureInRegistry) {
+                                    Texture* texture = new Texture({textureSpecification});
+                                    auto* textureAtttachments = &texture->getAttachments();
+                                    textureInRegistry = Shape::shapeSpec->textureRegistry->add("Texture-" + std::to_string(Shape::shapeSpec->textureNumber++), textureAtttachments);
+                                }
+                                Texture* texture = new Texture();
+                                texture->setAttachments(*textureInRegistry);
+                                newState.texture = std::make_shared<Texture>(*texture);
                                 _scene->_sceneRegistry.current->urControl.execute(new ChangeMeshComponentStateCommand(entity, newState));
                             }
                         };
                     int baseBtnPressed = GUIComponents::imageButton("Base", baseTexture ? (void*)(uint64_t)baseTexture->id : (void*)(uint64_t)0, { 20.f, 20.f }, baseDragAndDropFunc);
                     if(baseBtnPressed == 0)
                         if(isCubemap) {
-                            ImGuiFileDialog::Instance()->OpenDialog("CubemapTexture", "Choose File", ".png,.jpeg,.jpg", ".", 6, nullptr);
+                            ImGuiFileDialog::Instance()->OpenDialog("CubemapTexture", "Choose File", ".png,.jpeg,.jpg", 
+                                (_scene->getProjectData()->rootPath.string() + '/').c_str(), 6, nullptr);
                         } else
-                            ImGuiFileDialog::Instance()->OpenDialog("BaseTexture", "Choose File", ".png,.jpeg,.jpg", ".", 1, nullptr);
+                            ImGuiFileDialog::Instance()->OpenDialog("BaseTexture", "Choose File", ".png,.jpeg,.jpg", 
+                                (_scene->getProjectData()->rootPath.string() + '/').c_str(), 1, nullptr);
                     else if(baseBtnPressed == 1) {
                         auto newState = meshComponent;
                         if(isCubemap) {
@@ -277,12 +348,12 @@ namespace TWE {
                 if(ImGui::IsItemClicked(1))
                     ImGui::OpenPopup(popUpId.c_str());
                 auto& meshRendererComponent = entity.getComponent<MeshRendererComponent>();
-                std::vector<std::string> meshRendererRegistryKeys = Shape::meshRendererRegistry->getKeys();
+                std::vector<std::string> meshRendererRegistryKeys = Shape::shapeSpec->meshRendererRegistry->getKeys();
                 int meshRendererIndex = GUIComponents::combo("Shader", meshRendererComponent.registryId, meshRendererRegistryKeys);
                 if(meshRendererIndex != -1) {
                     auto newState = meshRendererComponent;
                     std::string meshRendererId = meshRendererRegistryKeys[meshRendererIndex];
-                    auto meshRendererSpecification = Shape::meshRendererRegistry->get(meshRendererId);
+                    auto meshRendererSpecification = Shape::shapeSpec->meshRendererRegistry->get(meshRendererId);
                     newState.setShader(meshRendererSpecification->vertexShaderPath.c_str(), 
                         meshRendererSpecification->fragmentShaderPath.c_str(), meshRendererId);
                     _scene->_sceneRegistry.current->urControl.execute(new ChangeMeshRendererComponentState(entity, meshRendererComponent, newState));
@@ -437,27 +508,27 @@ namespace TWE {
                 static LightComponent newState;
                 if(!addToURControl)
                     oldState = lightComponent;
-                int typeIndex = GUIComponents::combo("Type", lightTypes[lightComponent.type], lightTypes, 100.f);
+                int typeIndex = GUIComponents::combo("Type", lightTypes[lightComponent.type], lightTypes, 120.f);
                 if(typeIndex > -1) {
                     addToURControl = true;
                     lightComponent.setType(static_cast<LightType>(typeIndex));
                     newState = lightComponent;
                 }
                 glm::vec3 color = lightComponent.color;
-                if(GUIComponents::colorEdit3("Color", color, 100.f)) {
+                if(GUIComponents::colorEdit3("Color", color, 120.f)) {
                     addToURControl = true;
                     lightComponent.color = color;
                     newState = lightComponent;
                 }
                 if(lightComponent.type == LightType::Spot) {
                     float innderRadius = lightComponent.innerRadius;
-                    if(GUIComponents::dragFloat("Inner radius", innderRadius, 0.2f, 0.f, 999999.f, 100.f)) {
+                    if(GUIComponents::dragFloat("Inner radius", innderRadius, 0.2f, 0.f, 999999.f, 120.f)) {
                         addToURControl = true;
                         lightComponent.innerRadius = innderRadius;
                         newState = lightComponent;
                     }
                     float outerRadius = lightComponent.outerRadius;
-                    if(GUIComponents::dragFloat("Outer radius", outerRadius, 0.2f, 0.f, 999999.f, 100.f)) {
+                    if(GUIComponents::dragFloat("Outer radius", outerRadius, 0.2f, 0.f, 999999.f, 120.f)) {
                         addToURControl = true;
                         lightComponent.outerRadius = outerRadius;
                         newState = lightComponent;
@@ -465,19 +536,19 @@ namespace TWE {
                 }
                 if(lightComponent.type == LightType::Spot || lightComponent.type == LightType::Point) {
                     float constant = lightComponent.constant;
-                    if(GUIComponents::dragFloat("Constant", constant, 0.05f, 0.01f, 999999.f, 100.f)) {
+                    if(GUIComponents::dragFloat("Constant", constant, 0.05f, 0.01f, 999999.f, 120.f)) {
                         addToURControl = true;
                         lightComponent.constant = constant;
                         newState = lightComponent;
                     }
                     float linear = lightComponent.linear;
-                    if(GUIComponents::dragFloat("Linear", linear, 0.01f, 0.01f, 999999.f, 100.f)) {
+                    if(GUIComponents::dragFloat("Linear", linear, 0.01f, 0.01f, 999999.f, 120.f)) {
                         addToURControl = true;
                         lightComponent.linear = linear;
                         newState = lightComponent;
                     }
                     float quadratic = lightComponent.quadratic;
-                    if(GUIComponents::dragFloat("Quadratic", quadratic, 0.001f, 0.001f, 999999.f, 100.f)) {
+                    if(GUIComponents::dragFloat("Quadratic", quadratic, 0.001f, 0.001f, 999999.f, 120.f)) {
                         addToURControl = true;
                         lightComponent.quadratic = quadratic;
                         newState = lightComponent;
@@ -485,8 +556,24 @@ namespace TWE {
                 }
                 if(lightComponent.type == LightType::Dir) {
                     bool castShadows = lightComponent.castShadows;
-                    if(GUIComponents::checkBox("Cast shadows", castShadows, 100.f)) {
-                        lightComponent.setCastShadows(lightComponent.castShadows);
+                    if(GUIComponents::checkBox("Cast shadows", castShadows, 120.f)) {
+                        lightComponent.setCastShadows(castShadows);
+                        newState = lightComponent;
+                        _scene->_sceneRegistry.current->urControl.execute(new ChangeLightComponentStateCommand(entity, oldState, newState));
+                    }
+                    float projectionAspect = lightComponent.getLightProjectionAspect();
+                    if(GUIComponents::dragFloat("Shadow cover", projectionAspect, 0.5f, 1.f, 999999.f, 120.f)) {
+                        addToURControl = true;
+                        lightComponent.setLightProjectionAspect(projectionAspect);
+                        newState = lightComponent;
+                    }
+                    uint32_t shadomapSize = lightComponent.getFBO()->getSize().first;
+                    static std::vector<std::string> shadowMapSizes = { "256", "512", "1024", "2048", "4096", "8192" };
+                    std::string selectedShadowmapSize = std::to_string(shadomapSize);
+                    int shadowmapIndex = GUIComponents::combo("Shadowmap size", selectedShadowmapSize, shadowMapSizes, 120.f);
+                    if(shadowmapIndex != -1) {
+                        uint32_t newShadowmapSize = std::stoi(shadowMapSizes[shadowmapIndex]);
+                        lightComponent.setShadowMapSize(newShadowmapSize);
                         newState = lightComponent;
                         _scene->_sceneRegistry.current->urControl.execute(new ChangeLightComponentStateCommand(entity, oldState, newState));
                     }
@@ -535,7 +622,8 @@ namespace TWE {
                 static PhysicsComponentProperties oldProperties;
                 static PhysicsComponentProperties newProperties;
                 if(!addToURControl) {
-                    oldProperties = PhysicsComponentProperties{ physicsComponent.getMass(), physicsComponent.getIsRotated(), physicsComponent.getShapeDimensions() };
+                    oldProperties = PhysicsComponentProperties{ physicsComponent.getMass(), physicsComponent.getIsRotated(), 
+                        physicsComponent.getIsTrigger(), physicsComponent.getShapeDimensions() };
                     newProperties = oldProperties;
                 }
                 if(colliderType != ColliderType::TriangleMesh) {
@@ -547,9 +635,16 @@ namespace TWE {
                     }
                     bool isRotated = physicsComponent.getIsRotated();
                     if(GUIComponents::checkBox("Is rotated", isRotated, 90.f)) {
-                        PhysicsComponentProperties newProperties = { physicsComponent.getMass(), isRotated, physicsComponent.getShapeDimensions() };
+                        PhysicsComponentProperties newProperties = { physicsComponent.getMass(), isRotated, 
+                            physicsComponent.getIsTrigger(), physicsComponent.getShapeDimensions() };
                         _scene->_sceneRegistry.current->urControl.execute(new ChangePhysicsComponentPropertiesCommand(entity, oldProperties, newProperties));
                     }
+                }
+                bool isTrigger = physicsComponent.getIsTrigger();
+                if(GUIComponents::checkBox("Is trigger", isTrigger, 90.f)) {
+                    PhysicsComponentProperties newProperties = { physicsComponent.getMass(), physicsComponent.getIsRotated(), 
+                        isTrigger, physicsComponent.getShapeDimensions() };
+                    _scene->_sceneRegistry.current->urControl.execute(new ChangePhysicsComponentPropertiesCommand(entity, oldProperties, newProperties));
                 }
 
                 auto shapeDimensions = physicsComponent.getShapeDimensions();
@@ -613,30 +708,167 @@ namespace TWE {
                 if(ImGui::IsItemClicked(1))
                     ImGui::OpenPopup(popUpId.c_str());
                 auto& scriptComponent = entity.getComponent<ScriptComponent>();
-                bool isEnabled = scriptComponent.isEnabled;
-                if(GUIComponents::checkBox("Enabled", isEnabled))
-                    _scene->_sceneRegistry.current->urControl.execute(new SetScriptComponentEnabledStateCommand(entity, isEnabled));
-                auto& scriptRegistryKeys = _scene->_scriptDLLRegistry->getKeys();
-                int scriptIndex = GUIComponents::combo("Name", scriptComponent.getBehaviorClassName(), scriptRegistryKeys);
-                if(scriptIndex != -1)
-                    _scene->_sceneRegistry.current->urControl.execute(new SetScriptComponentBehaviorCommand(entity, scriptRegistryKeys[scriptIndex]));
-                if(ImGui::BeginPopup(popUpId.c_str())) {
+                auto& scriptsBihaviorName = scriptComponent.getScriptsBehaviorName();
+                static int currentScriptIndex = 0;
+                if(currentScriptIndex >= scriptsBihaviorName.size())
+                    currentScriptIndex = 0;
+                std::string selectedScriptsStr = !scriptsBihaviorName.empty() ? scriptsBihaviorName[currentScriptIndex] : "None";
+                std::string popUpBindId = guiPopups[GUIPopupIds::ScriptBindPopup];
+                bool openPopUpBind = false;
+                auto addFunc = [&]() {
+                    openPopUpBind = true;
+                };
+                int selectedScriptIndex = GUIComponents::comboAndButton("Script behavior", selectedScriptsStr, scriptsBihaviorName, addFunc, 110.f);
+                if(selectedScriptIndex != -1)
+                    currentScriptIndex = selectedScriptIndex;
+                if(openPopUpBind)
+                    ImGui::OpenPopup(popUpBindId.c_str());
+                if(!scriptsBihaviorName.empty()) {
+                    auto& script = scriptComponent.getScripts()[currentScriptIndex];
+                    bool isEnabled = script.isEnabled;
+                    if(GUIComponents::checkBox("Enabled", isEnabled, 110.f))
+                        _scene->_sceneRegistry.current->urControl.execute(new SetScriptComponentEnabledStateCommand(entity, script.behaviorClassName, isEnabled));
                     auto& availSize = ImGui::GetContentRegionAvail();
                     bool validateScriptFlag = _scene->_sceneState != SceneState::Edit;
                     if(validateScriptFlag) {
                         ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
                         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
                     }
-                    if(ImGui::Button("Validate", { availSize.x, 0.f })) {
-                        _scene->validateScript(scriptComponent.getBehaviorClassName());
+                    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5.f);
+                    if(ImGui::Button("Validate")) {
+                        _scene->validateScript(script.behaviorClassName);
+                        ImGui::CloseCurrentPopup();
+                    }
+                    if(ImGui::Button("Unbind script")) {
+                        _scene->_sceneRegistry.current->urControl.execute(new UnbindBehaviorScriptComponentCommand(entity, script.behaviorClassName));
                         ImGui::CloseCurrentPopup();
                     }
                     if(validateScriptFlag) {
                         ImGui::PopItemFlag();
                         ImGui::PopStyleVar();
                     }
+                }
+                if(ImGui::BeginPopup(popUpBindId.c_str())) {
+                    auto& availSize = ImGui::GetContentRegionAvail();
+                    auto& scriptRegistryKeys = _scene->_scriptDLLRegistry->getKeys();
+                    for(auto& behaviorClassName : scriptRegistryKeys) {
+                        if(ImGui::Button(behaviorClassName.c_str(), { availSize.x, 0.f })) {
+                            _scene->_sceneRegistry.current->urControl.execute(new BindBehaviorScriptComponentCommand(entity, behaviorClassName));
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
+                    ImGui::EndPopup();
+                }
+                if(ImGui::BeginPopup(popUpId.c_str())) {
+                    auto& availSize = ImGui::GetContentRegionAvail();
                     if(ImGui::Button("Remove component", { availSize.x, 0.f })) {
                         _scene->_sceneRegistry.current->urControl.execute(new RemoveScriptComponentCommand(entity));
+                        ImGui::CloseCurrentPopup();
+                    }
+                    ImGui::EndPopup();
+                }
+                ImGui::TreePop();
+            }
+            showSeparator();
+        }
+    }
+
+    void GUIComponentsPanel::showAudioComponent(Entity& entity) {
+        if(entity.hasComponent<AudioComponent>()) {
+            auto id = (void*)(typeid(AudioComponent).hash_code());
+            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
+            if(ImGui::TreeNodeEx(id, flags, "Audio")) {
+                std::string popUpId = guiPopups[GUIPopupIds::AudioPopup];
+                if(ImGui::IsItemClicked(1))
+                    ImGui::OpenPopup(popUpId.c_str());
+                auto& audioComponent = entity.getComponent<AudioComponent>();
+                auto soundSources = audioComponent.getPathsOfSoundSources();
+                static int currentSoundSourceIndex = 0;
+                if(currentSoundSourceIndex >= soundSources.size())
+                    currentSoundSourceIndex = 0;
+                std::string selectedSoundSourceStr = !soundSources.empty() ? soundSources[currentSoundSourceIndex] : "None";
+                auto addFunc = [&]() {
+                    ImGuiFileDialog::Instance()->OpenDialog("AddAudioSource", "Choose File", ".mp3", 
+                        (_scene->getProjectData()->rootPath.string() + '/').c_str(), 1, nullptr);
+                };
+                int selectedSoundSourceIndex = GUIComponents::comboAndButton("Sound source", selectedSoundSourceStr, soundSources, addFunc, 100.f);
+                if(selectedSoundSourceIndex != -1)
+                    currentSoundSourceIndex = selectedSoundSourceIndex;
+                if(!soundSources.empty()) {
+                    auto soundSourceSpecification = audioComponent.getSoundSourceSpec(currentSoundSourceIndex);
+                    static bool addToURControl = false;
+                    static AudioComponentPropertiesSpecification oldState;
+                    static AudioComponentPropertiesSpecification newState;
+                    if(!addToURControl) {
+                        oldState = { soundSourceSpecification->getIs3D(), soundSourceSpecification->getStartPaused(), 
+                            soundSourceSpecification->getPlayLooped(), soundSourceSpecification->getVolume(), soundSourceSpecification->getMinDistance(),
+                            soundSourceSpecification->getMaxDistance(), soundSourceSpecification->getPlaybackSpeed() };
+                        newState = oldState;
+                    }
+                    bool startPaused = soundSourceSpecification->getStartPaused();
+                    if(GUIComponents::checkBox("Is start paused", startPaused, 100.f)) {
+                        newState = oldState;
+                        newState.startPaused = startPaused;
+                        _scene->_sceneRegistry.current->urControl.execute(new ChangeAudioComponentPropertiesCommand(entity, 
+                            soundSourceSpecification->getSoundSourcePath(), oldState, newState));
+                    }
+                    bool looped = soundSourceSpecification->getPlayLooped();
+                    if(GUIComponents::checkBox("Is looped", looped, 100.f)) {
+                        newState = oldState;
+                        newState.playLooped = looped;
+                        _scene->_sceneRegistry.current->urControl.execute(new ChangeAudioComponentPropertiesCommand(entity, 
+                            soundSourceSpecification->getSoundSourcePath(), oldState, newState));
+                    }
+                    bool is3D = soundSourceSpecification->getIs3D();
+                    if(GUIComponents::checkBox("Is 3D", is3D, 100.f)) {
+                        newState = oldState;
+                        newState.is3d = is3D;
+                        _scene->_sceneRegistry.current->urControl.execute(new ChangeAudioComponentPropertiesCommand(entity, 
+                            soundSourceSpecification->getSoundSourcePath(), oldState, newState));
+                    }
+                    float volume = newState.volume;
+                    if(GUIComponents::dragFloat("Volume", volume, 0.003f, 0.f, 1.f, 100.f)) {
+                        addToURControl = true;
+                        newState.volume = volume;
+                        soundSourceSpecification->setVolume(volume);
+                    }
+                    float playbackSpeed = newState.playbackSpeed;
+                    if(GUIComponents::dragFloat("Playback speed", playbackSpeed, 0.005f, 0.f, 10.f, 100.f)) {
+                        addToURControl = true;
+                        newState.playbackSpeed = playbackSpeed;
+                        soundSourceSpecification->setPlaybackSpeed(playbackSpeed);
+                    }
+                    if(is3D) {
+                        float minDistance = newState.minDistance;
+                        if(GUIComponents::dragFloat("Min distance", minDistance, 0.05f, 0.f, 999999.f, 100.f)) {
+                            addToURControl = true;
+                            newState.minDistance = minDistance;
+                            soundSourceSpecification->setMinDistance(minDistance);
+                        }
+                        float maxDistance = newState.maxDistance;
+                        if(GUIComponents::dragFloat("Max distance", maxDistance, 0.05f, 0.f, 999999.f, 100.f)) {
+                            addToURControl = true;
+                            newState.maxDistance = maxDistance;
+                            soundSourceSpecification->setMaxDistance(maxDistance);
+                        }
+                    }
+                    if(Input::mouseButtonAction(Mouse::MOUSE_BUTTON_LEFT) == Action::RELEASE && addToURControl) {
+                        addToURControl = false;
+                        if(oldState != newState)
+                            _scene->_sceneRegistry.current->urControl.execute(new ChangeAudioComponentPropertiesCommand(entity, 
+                                soundSourceSpecification->getSoundSourcePath(), oldState, newState));
+                    }
+                    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5.f);
+                    if(ImGui::Button("Remove sound source"))
+                        _scene->_sceneRegistry.current->urControl.execute(new RemoveSoundSourceAudioComponentCommand(entity, 
+                            soundSourceSpecification->getSoundSourcePath()));
+                }
+                float popUpWidth = 150.f;
+                ImGui::SetNextWindowSize({popUpWidth, 0.f});
+                if(ImGui::BeginPopup(popUpId.c_str())) {
+                    auto& availSize = ImGui::GetContentRegionAvail();
+                    if(ImGui::Button("Remove component", { availSize.x, 0.f })) {
+                        _scene->_sceneRegistry.current->urControl.execute(new RemoveAudioComponentCommand(entity));
                         ImGui::CloseCurrentPopup();
                     }
                     ImGui::EndPopup();

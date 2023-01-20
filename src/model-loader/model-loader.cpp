@@ -3,11 +3,13 @@
 namespace TWE {
     void ModelLoader::clean() {
         meshes.clear();
-        fileDir.clear();
+        filePath.clear();
         hasTextures = false;
     }
 
     ModelLoaderData* ModelLoader::loadModel(const std::string& path) {
+        if(!std::filesystem::exists(path))
+            return nullptr;
         clean();
         Assimp::Importer importer;
         const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
@@ -15,23 +17,9 @@ namespace TWE {
             std::cout << "Error model loading:\n" << importer.GetErrorString() << std::endl;
             return nullptr;
         }
-        fileDir = path.substr(0, path.find_last_of('/'));
+        filePath = path;
         procNode(scene->mRootNode, scene);
-        return new ModelLoaderData(meshes, path, ShaderIndices::DEFAULT_VERT, ShaderIndices::DEFAULT_FRAG);
-    }
-
-    std::vector<std::string> ModelLoader::loadMatText(aiMaterial* mat, aiTextureType type) {
-        std::vector<std::string> texturesPath;
-        int texCount = mat->GetTextureCount(type);
-        for(int i = 0; i < texCount; ++i) {
-            aiString texturePath;
-            mat->GetTexture(type, i, &texturePath);
-            std::string fullPath = fileDir + '/' + texturePath.C_Str();
-            texturesPath.push_back(fullPath);
-            if(!hasTextures)
-                hasTextures = true;
-        }
-        return texturesPath;
+        return new ModelLoaderData(meshes, path);
     }
 
     MeshComponent ModelLoader::procMesh(aiMesh* mesh, const aiScene* scene) {
@@ -66,25 +54,12 @@ namespace TWE {
             for(int j = 0 ; j < face.mNumIndices; ++j)
                 indices.push_back(face.mIndices[j]);
         }
-        TextureAttachmentSpecification textureAtttachments;
-        if(mesh->mMaterialIndex >= 0){
-            aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-            std::vector<std::string> diff = loadMatText(material, aiTextureType_DIFFUSE);
-            for(auto& imgPath : diff) {
-                TextureSpecification textureSpecification;
-                textureSpecification.imgPath = imgPath;
-                textureSpecification.texNumber = 0;
-                textureSpecification.texType = TextureType::Texture2D;
-                textureSpecification.inOutTexFormat = TextureInOutFormat::RGBA;
-                textureAtttachments.textureSpecifications.push_back(textureSpecification);
-            }
-            texturesPath.insert(texturesPath.end(), diff.begin(), diff.end());
-        }
         int indSize = indices.size();
         uint32_t* copyIndices = new uint32_t[indSize];
         for(int i = 0; i < indSize; ++i)
             copyIndices[i] = indices[i];
-        return MeshComponent(vertices, vertSize * sizeof(GLfloat), copyIndices, indSize * sizeof(GLuint), "Model mesh", textureAtttachments);
+        ModelMeshSpecification modelSpec(true, filePath, -1);
+        return MeshComponent(vertices, vertSize * sizeof(GLfloat), copyIndices, indSize * sizeof(GLuint), "Model mesh", modelSpec);
     }
 
     void ModelLoader::procNode(aiNode* node, const aiScene* scene) {

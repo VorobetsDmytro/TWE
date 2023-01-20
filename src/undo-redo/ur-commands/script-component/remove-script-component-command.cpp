@@ -3,28 +3,31 @@
 namespace TWE {
     RemoveScriptComponentCommand::RemoveScriptComponentCommand(const Entity& entity)
     : _entity(entity) {
-        _scriptComponent = _entity.getComponent<ScriptComponent>();
+        _scripts = _entity.getComponent<ScriptComponent>().getScripts();
     }
 
     void RemoveScriptComponentCommand::execute() {
-        _entity.getComponent<ScriptComponent>().unbind();
+        if(!_entity.hasComponent<ScriptComponent>())
+            return;
+        _entity.getComponent<ScriptComponent>().clean();
         _entity.removeComponent<ScriptComponent>();
     }
 
     void RemoveScriptComponentCommand::unExecute() {
+        if(_entity.hasComponent<ScriptComponent>())
+            return;
         auto& scriptComponent = _entity.addComponent<ScriptComponent>();
-        auto scriptDLLData = _entity.getScene()->getScriptDLLRegistry()->get(_scriptComponent.getBehaviorClassName());
-        if(!scriptDLLData || !scriptDLLData->isValid)
-            scriptComponent.bind<Behavior>();
-        else {
-            auto behaviorFactory = DLLCreator::loadDLLFunc(*scriptDLLData);
-            if(!behaviorFactory)
-                scriptComponent.bind<Behavior>();
-            else {
-                Behavior* behavior = (Behavior*)behaviorFactory();
-                scriptComponent.bind(behavior, scriptDLLData->scriptName);
+        for(auto& script : _scripts) {
+            auto scriptDLLData = _entity.getScene()->getScriptDLLRegistry()->get(script.behaviorClassName);
+            if(scriptDLLData && scriptDLLData->isValid) {
+                auto behaviorFactory = DLLCreator::loadDLLFunc(*scriptDLLData);
+                if(behaviorFactory) {
+                    Behavior* behavior = (Behavior*)behaviorFactory();
+                    auto scriptSpec = scriptComponent.bind(behavior, scriptDLLData->scriptName);
+                    if(scriptSpec)
+                        scriptSpec->isEnabled = true;
+                }
             }
-            scriptComponent.isEnabled = _scriptComponent.isEnabled;
         }
     }
 }

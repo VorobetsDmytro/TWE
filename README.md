@@ -4,7 +4,7 @@ The game engine based on OpenGL
 
 ![TWE2022-12-30 190749](https://user-images.githubusercontent.com/82779713/210095876-72be4d73-1b03-4cac-9188-4d25c30cc4dd.png)
 
-![TWE2022-12-30 190642](https://user-images.githubusercontent.com/82779713/210095924-44ea9227-2ddb-444e-a003-c94fd2bd0f83.png)
+![123](https://user-images.githubusercontent.com/82779713/213765398-8fc738ae-bae7-452d-8442-308aa0eb5ece.png)
 
 ## Requirements
 1. Visual Studio 16 2019
@@ -26,8 +26,6 @@ Afterwards you have to build the project:
 
 ## Settings
 To working with scripts you have to set a CMake default generator as MSVC`(recommended Visual Studio 16 2019)`
-
-Afterwards you have to compile a lib for scripts compilation`(check "test/scripts/cmake-file-for-scripts-creation-example")` using CMake file. Create a `lib` folder in the root of `TWE` project and move a `TWELIB.lib` file there.
 
 ## Author
 [Dmytro Vorobets](https://github.com/Parasik72)

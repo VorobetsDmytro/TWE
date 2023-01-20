@@ -26,6 +26,7 @@ target_include_directories(TWE PRIVATE
     "external/bullet3"
     "external/entt"
     "external/json"
+    "external/irrKlang"
 )
 target_link_libraries(TWE PRIVATE ${LIBFILES})
 
@@ -33,4 +34,13 @@ add_custom_target(ASSIMPCopy
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/external/assimp/bin/assimp-vc142-mtd.dll ${CMAKE_BINARY_DIR}/Debug
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/external/assimp/bin/assimp-vc142-mtd.dll ${CMAKE_BINARY_DIR}/Release
 )
+add_custom_target(IRRKLANGCopy
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/external/irrKlang/bin/winx64-visualStudio/ikpFlac.dll ${CMAKE_BINARY_DIR}/Debug
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/external/irrKlang/bin/winx64-visualStudio/ikpMP3.dll ${CMAKE_BINARY_DIR}/Debug
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/external/irrKlang/bin/winx64-visualStudio/irrKlang.dll ${CMAKE_BINARY_DIR}/Debug
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/external/irrKlang/bin/winx64-visualStudio/ikpFlac.dll ${CMAKE_BINARY_DIR}/Release
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/external/irrKlang/bin/winx64-visualStudio/ikpMP3.dll ${CMAKE_BINARY_DIR}/Release
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/external/irrKlang/bin/winx64-visualStudio/irrKlang.dll ${CMAKE_BINARY_DIR}/Release
+)
 add_dependencies(TWE ASSIMPCopy)
+add_dependencies(TWE IRRKLANGCopy)

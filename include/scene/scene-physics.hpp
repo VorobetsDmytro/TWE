@@ -12,7 +12,8 @@
 namespace TWE {
     class ScenePhysics {
     public:
-        ScenePhysics();
+        ScenePhysics() = default;
+        ScenePhysics(const std::filesystem::path& rootPath);
         void debugDrawWorld();
         void checkCollisionsDetection();
         void cleanCollisionDetection();

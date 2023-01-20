@@ -17,7 +17,7 @@ public:
 
     void update(float deltaTime) override {
         transform = getComponent<TransformComponent>();
-        if(input.isMouseButtonPressed(Mouse::MOUSE_BUTTON_LEFT)) {
+        if(input->isMouseButtonPressed(Mouse::MOUSE_BUTTON_LEFT)) {
 			glm::vec3 forward = transform->getForward();
 			float rayDistace = 100.f;
 			RaycastClosestInfo raycastInfo = PhysicsRaycast::raycastClosest(gameObject.getScene(), 
@@ -33,13 +33,13 @@ public:
     }
 
     void move(float deltaTime) {
-        if(input.isKeyPressed(Keyboard::KEY_W))
+        if(input->isKeyPressed(Keyboard::KEY_W))
             transform->move({0.f, 0.f, -speed * deltaTime});
-        if(input.isKeyPressed(Keyboard::KEY_S))
+        if(input->isKeyPressed(Keyboard::KEY_S))
             transform->move({0.f, 0.f, speed * deltaTime});
-        if(input.isKeyPressed(Keyboard::KEY_D))
+        if(input->isKeyPressed(Keyboard::KEY_D))
             transform->move({speed * deltaTime, 0.f, 0.f});
-        if(input.isKeyPressed(Keyboard::KEY_A))
+        if(input->isKeyPressed(Keyboard::KEY_A))
             transform->move({-speed * deltaTime, 0.f, 0.f});
     }
 };

@@ -2,6 +2,7 @@
 #define SCENE_BULLET_DEBUG_DRAWER_HPP
 
 #include <glad.h>
+#include <filesystem>
 #include <bullet3/LinearMath/btIDebugDraw.h>
 
 #include "renderer/vao.hpp"
@@ -12,13 +13,14 @@
 namespace TWE {
     class SceneBulletDebugDrawer: public btIDebugDraw {
     public:
-        SceneBulletDebugDrawer() {
-            _shader = new Shader(SHADER_PATHS[ShaderIndices::COLLIDER_VERT], SHADER_PATHS[ShaderIndices::COLLIDER_FRAG]);
+        SceneBulletDebugDrawer(const std::filesystem::path& rootPath) {
+            std::string vert = SHADER_PATHS[ShaderIndices::COLLIDER_VERT];
+            std::string frag = SHADER_PATHS[ShaderIndices::COLLIDER_FRAG];
+            _shader = new Shader((rootPath / vert).string().c_str(), (rootPath / frag).string().c_str());
         }
 
         void setMats(const glm::mat4& view, const glm::mat4& projection) {
-            _shader->setUniform(TRANS_MAT_OPTIONS[TransformMatrixOptions::PROJECTION], projection);
-            _shader->setUniform(TRANS_MAT_OPTIONS[TransformMatrixOptions::VIEW], view);
+            _shader->setUniform(TRANS_MAT_OPTIONS[TransformMatrixOptions::VP], projection * view);
         }
         
         void drawLine(const btVector3& from, const btVector3& to, const btVector3& color) override {

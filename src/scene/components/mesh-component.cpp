@@ -1,30 +1,35 @@
 #include "scene/components/mesh-component.hpp"
 
 namespace TWE {
-    MeshComponent::MeshComponent(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize, const std::string& registryId, const TextureAttachmentSpecification& textureAtttachments)
-    : registryId(registryId) {
+    MeshComponent::MeshComponent(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize, const std::string& registryId, 
+        const ModelMeshSpecification& modelSpec, const TextureAttachmentSpecification& textureAtttachments)
+    : registryId(registryId), modelSpec(modelSpec) {
         create(vertices, vertSize, indices, indSize);
         texture = std::make_shared<Texture>(textureAtttachments);
     }
 
-    MeshComponent::MeshComponent(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize, const std::string& registryId, Texture* texture)
-    : registryId(registryId) {
+    MeshComponent::MeshComponent(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize, const std::string& registryId, 
+        const ModelMeshSpecification& modelSpec, Texture* texture)
+    : registryId(registryId), modelSpec(modelSpec) {
         create(vertices, vertSize, indices, indSize);
         this->texture = std::make_shared<Texture>(*texture);
     }
 
-    MeshComponent::MeshComponent(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId, const TextureAttachmentSpecification& textureAtttachments)
-    : vao(vao), vbo(vbo), ebo(ebo), registryId(registryId) {
+    MeshComponent::MeshComponent(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId, 
+        const ModelMeshSpecification& modelSpec, const TextureAttachmentSpecification& textureAtttachments)
+    : vao(vao), vbo(vbo), ebo(ebo), registryId(registryId), modelSpec(modelSpec) {
         texture = std::make_shared<Texture>(textureAtttachments);
     }
 
-    MeshComponent::MeshComponent(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId, Texture* texture)
-    : vao(vao), vbo(vbo), ebo(ebo), registryId(registryId) {
+    MeshComponent::MeshComponent(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId, 
+        const ModelMeshSpecification& modelSpec, Texture* texture)
+    : vao(vao), vbo(vbo), ebo(ebo), registryId(registryId), modelSpec(modelSpec) {
         this->texture = std::make_shared<Texture>(*texture);
     }
 
-    MeshComponent::MeshComponent(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId, std::shared_ptr<Texture> texture) 
-     : vao(vao), vbo(vbo), ebo(ebo), registryId(registryId), texture(texture) {}
+    MeshComponent::MeshComponent(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId, 
+        const ModelMeshSpecification& modelSpec, std::shared_ptr<Texture> texture) 
+     : vao(vao), vbo(vbo), ebo(ebo), registryId(registryId), texture(texture), modelSpec(modelSpec) {}
 
     MeshComponent::MeshComponent(const MeshComponent& mesh) {
         this->vao = mesh.vao;
@@ -32,18 +37,15 @@ namespace TWE {
         this->ebo = mesh.ebo;
         this->texture = mesh.texture;
         this->registryId = mesh.registryId;
-        this->modelPath = mesh.modelPath;
+        this->modelSpec = mesh.modelSpec;
     }
 
-    void MeshComponent::setMesh(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId) {
+    void MeshComponent::setMesh(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId, const ModelMeshSpecification& modelSpec) {
         this->vao = vao;
         this->vbo = vbo;
         this->ebo = ebo;
         this->registryId = registryId;
-    }
-
-    void MeshComponent::setModelPath(const std::string& modelPath) {
-        this->modelPath = modelPath;
+        this->modelSpec = modelSpec;
     }
 
     void MeshComponent::create(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize) {

@@ -13,5 +13,6 @@
 #include "parent-childs-component.hpp"
 #include "id-component.hpp"
 #include "empty-component.hpp"
+#include "audio-component.hpp"
 
 #endif

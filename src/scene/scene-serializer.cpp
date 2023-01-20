@@ -1,7 +1,9 @@
 #include "scene/scene-serializer.hpp"
 
 namespace TWE {
-    void SceneSerializer::serialize(Scene* scene, const std::string& path, ProjectData* projectData) {
+    bool SceneSerializer::serialize(Scene* scene, const std::string& path, ProjectData* projectData) {
+        if(scene->_sceneState != SceneState::Edit)
+            return false;
         nlohmann::json jsonMain;
         std::string sceneName = std::filesystem::path(path).stem().string();
         scene->setName(sceneName);
@@ -17,13 +19,15 @@ namespace TWE {
         }
         jsonMain["Entities"] = jsonEntities;
         File::save(path.c_str(), jsonMain.dump());
+        return true;
     }
 
-    void SceneSerializer::deserialize(Scene* scene, const std::string& path) {
+    bool SceneSerializer::deserialize(Scene* scene, const std::string& path) {
         std::string jsonBodyStr = File::getBody(path.c_str());
         nlohmann::json jsonMain = nlohmann::json::parse(jsonBodyStr);
         if(!jsonMain.contains("Scene"))
-            return;
+            return false;
+        scene->reset();
         std::filesystem::path rootPath;
         #ifndef TWE_BUILD
         rootPath = (std::string)jsonMain["RootPath"];
@@ -34,22 +38,27 @@ namespace TWE {
         auto& entities = jsonMain["Entities"].items();
         for(auto& [index, components] : entities) {        
             Entity instance = deserializeCreationTypeComponent(scene, components, rootPath);
-            deserializeEntity(scene, instance, components, rootPath);
+            if(instance.getSource() != entt::null)
+                deserializeEntity(scene, instance, components, rootPath);
         }
         revalidateParentChildsComponent(scene);
+        return true;
     }
 
     void SceneSerializer::revalidateParentChildsComponent(Scene* scene) {
         int lastId = -1;
+        std::map<entt::entity, ParentChildsComponent> newParentChilds;
         scene->_sceneRegistry.edit.entityRegistry.view<ParentChildsComponent>().each([&](entt::entity entityOut, ParentChildsComponent& parentChildsComponent){
+            Entity outInstance = { entityOut, scene };
             std::vector<entt::entity> childs;
+            entt::entity parent = entt::null;
             scene->_sceneRegistry.edit.entityRegistry.view<IDComponent>().each([&](entt::entity entityIn, IDComponent& idComponent) {
                 if(idComponent.id > lastId)
                     lastId = idComponent.id;
                 if(entityOut == entityIn)
                     return;
                 if(parentChildsComponent.parent == (entt::entity)idComponent.id) {
-                    parentChildsComponent.parent = entityIn;
+                    parent = entityIn;
                     return;
                 }
                 for(auto childId : parentChildsComponent.childs)
@@ -58,9 +67,15 @@ namespace TWE {
                         return;
                     }
             });
-            parentChildsComponent.childs = childs;
+            newParentChilds.insert({entityOut, ParentChildsComponent{parent, childs}});
         });
         scene->_sceneRegistry.edit.lastId = ++lastId;
+        for(auto [entity, parentChilds] : newParentChilds) {
+            Entity instance = { entity, scene };
+            auto& parentChildsComponent = instance.getComponent<ParentChildsComponent>();
+            parentChildsComponent.parent = parentChilds.parent;
+            parentChildsComponent.childs = parentChilds.childs;
+        }
     }
 
     void SceneSerializer::serializeEntity(Entity& entity, nlohmann::json& jsonEntities, ProjectData* projectData, Scene* scene) {
@@ -76,6 +91,7 @@ namespace TWE {
         serializePhysicsComponent(entity, jsonEntity);
         serializeScriptComponent(entity, jsonEntity);
         serializeParentChildsComponent(entity, jsonEntity, scene);
+        serializeAudioComponent(entity, jsonEntity, projectData);
         jsonEntities.push_back(jsonEntity);
     }
 
@@ -84,13 +100,14 @@ namespace TWE {
         for(auto& [key, value] : components) {
             deserializeNameComponent(entity, key, value);
             deserializeTransformComponent(entity, key, value);
-            deserializeMeshRendererComponent(entity, key, value, rootPath);
+            deserializeMeshRendererComponent(entity, key, value);
             deserializeCameraComponent(entity, key, value);
             deserializeLightComponent(entity, key, value);
             deserializePhysicsComponent(scene, entity, key, value);
             deserializeScriptComponent(scene, entity, key, value);
             deserializeParentChildsComponent(entity, key, value);
             deserializeIDComponent(entity, key, value);
+            deserializeAudioComponent(entity, key, value, rootPath);
         }
     }
 
@@ -108,42 +125,82 @@ namespace TWE {
     Entity SceneSerializer::deserializeCreationTypeComponent(Scene* scene, nlohmann::json& jsonComponent, const std::filesystem::path& rootPath) {
         auto creationTypeComponent = static_cast<EntityCreationType>(jsonComponent["CreationTypeComponent"]["Type"]);
         auto jsonMeshComponent = jsonComponent.find("MeshComponent");
-        TextureAttachmentSpecification textureAtttachments;
+        TextureAttachmentSpecification* textureAtttachments = new TextureAttachmentSpecification();
+        bool hasMesh = false;
         if(jsonMeshComponent != jsonComponent.end()) {
             nlohmann::json jsonTextures = jsonComponent["MeshComponent"]["Textures"];
             for(auto& spec : jsonTextures) {
+                std::string imgPath = rootPath.string() + '/' + (std::string)spec["ImgPath"];
+                if(!std::filesystem::exists(imgPath))
+                    continue;
+                hasMesh = true;
                 TextureSpecification specification;
-                specification.imgPath = rootPath.string() + '/' + (std::string)spec["ImgPath"];
+                specification.imgPath = imgPath;
                 specification.texNumber = spec["TexNumber"];
                 specification.texType = spec["TexType"];
                 specification.inOutTexFormat = spec["InOutTexFormat"];
-                textureAtttachments.textureSpecifications.push_back(specification);
+                textureAtttachments->textureSpecifications.push_back(specification);
             }
         }
-        switch (creationTypeComponent) {
-        case EntityCreationType::Cube:
-            return Shape::createCubeEntity(scene, textureAtttachments);
-        case EntityCreationType::Plate:
-            return Shape::createPlateEntity(scene, textureAtttachments);
-        case EntityCreationType::Cubemap:
-            return Shape::createCubemapEntity(scene, textureAtttachments);
-        case EntityCreationType::SpotLight:
-            return Shape::createSpotLightEntity(scene);
-        case EntityCreationType::PointLight:
-            return Shape::createPointLightEntity(scene);
-        case EntityCreationType::DirLight:
-            return Shape::createDirLightEntity(scene);
-        case EntityCreationType::Camera:
-            return Shape::createCameraEntity(scene);
-        case EntityCreationType::Model:
-            ModelLoader mLoader;
-            ModelLoaderData* modelData = mLoader.loadModel(rootPath.string() + '/' + (std::string)jsonComponent["MeshComponent"]["ModelPath"]);
-            Entity modelEntity = Shape::createModelEntity(scene, modelData)[0];
-            auto& meshComponent = modelEntity.getComponent<MeshComponent>();
-            meshComponent.texture = std::make_shared<Texture>(TextureAttachmentSpecification{textureAtttachments});
-            return modelEntity;
+        TextureAttachmentSpecification* textureInRegistry = nullptr;
+        if(hasMesh) {
+            auto values = Shape::shapeSpec->textureRegistry->getValues();
+            for(auto& value : values)
+                if(*value == *textureAtttachments) {
+                    textureInRegistry = value;
+                    break;
+                }
         }
-        return {};
+        if(!textureInRegistry && hasMesh) {
+            Texture* texture = new Texture(*textureAtttachments);
+            textureAtttachments = &texture->getAttachments();
+            textureInRegistry = Shape::shapeSpec->textureRegistry->add("Texture-" + std::to_string(Shape::shapeSpec->textureNumber++), textureAtttachments);
+        }
+        else
+            delete textureAtttachments;
+        Entity entity;
+        switch (creationTypeComponent) {
+        case EntityCreationType::None:
+            entity = scene->createEntity();
+            break;
+        case EntityCreationType::Cube:
+            entity = Shape::createCubeEntity(scene);
+            break;
+        case EntityCreationType::Plate:
+            entity = Shape::createPlateEntity(scene);
+            break;
+        case EntityCreationType::Cubemap: {
+            TextureAttachmentSpecification textureAttachmentSpecification;
+            entity = Shape::createCubemapEntity(scene, textureAttachmentSpecification);
+        } break;
+        case EntityCreationType::SpotLight: {
+            entity = Shape::createSpotLightEntity(scene);
+        } break;
+        case EntityCreationType::PointLight: {
+            entity = Shape::createPointLightEntity(scene);
+        } break;
+        case EntityCreationType::DirLight: {
+            entity = Shape::createDirLightEntity(scene);
+        } break;
+        case EntityCreationType::Camera: {
+            entity = Shape::createCameraEntity(scene);
+        } break;
+        case EntityCreationType::Model: {
+            std::filesystem::path modelPath = rootPath / (std::string)jsonComponent["MeshComponent"]["ModelPath"];
+            if(jsonComponent["MeshComponent"].find("ModelIndex") == jsonComponent["MeshComponent"].end())
+                return {};
+            int modelIndex = jsonComponent["MeshComponent"]["ModelIndex"];
+            entity = Shape::createModelEntity(scene, modelPath, modelIndex);
+        } break;
+        }
+        if(entity.hasComponent<MeshComponent>() && textureInRegistry) {
+            auto& meshComponent = entity.getComponent<MeshComponent>();
+            Texture* texture = new Texture();
+            texture->setAttachments(*textureInRegistry);
+            meshComponent.texture = std::make_shared<Texture>(*texture);
+            int a = 5;
+        }
+        return entity;
     }
 
     void SceneSerializer::serializeNameComponent(Entity& entity, nlohmann::json& jsonEntity) {
@@ -222,7 +279,9 @@ namespace TWE {
             return;
         auto& meshComponent = entity.getComponent<MeshComponent>();
         nlohmann::json jsonMeshComponent;
-        jsonMeshComponent["ModelPath"] = std::filesystem::relative(meshComponent.modelPath, projectData->rootPath).string();
+        jsonMeshComponent["ModelPath"] = std::filesystem::relative(meshComponent.modelSpec.modelPath, projectData->rootPath).string();
+        jsonMeshComponent["ModelIndex"] = meshComponent.modelSpec.modelIndex;
+        jsonMeshComponent["IsModel"] = meshComponent.modelSpec.isModel;
             
         nlohmann::json jsonMeshTextures = nlohmann::json::array();
         for(auto& textureSpec : meshComponent.texture->getAttachments().textureSpecifications) {
@@ -264,7 +323,7 @@ namespace TWE {
         jsonEntity["MeshRendererComponent"] = jsonMeshRendererComponent;
     }
 
-    void SceneSerializer::deserializeMeshRendererComponent(Entity& entity, const std::string& key, nlohmann::json& jsonComponent, const std::filesystem::path& rootPath) {
+    void SceneSerializer::deserializeMeshRendererComponent(Entity& entity, const std::string& key, nlohmann::json& jsonComponent) {
         if(key != "MeshRendererComponent")
             return;
         if(!entity.hasComponent<MeshRendererComponent>())
@@ -279,15 +338,29 @@ namespace TWE {
         nlohmann::json jsonObjColor = jsonMaterial["ObjColor"];
         meshRendererComponent.material.objColor = { jsonObjColor[0], jsonObjColor[1], jsonObjColor[2] };
 
+        std::string rootPath;
+        #ifndef TWE_BUILD
+        rootPath = "../../";
+        #else
+        rootPath = "./";
+        #endif
         nlohmann::json jsonShaders = jsonComponent["Shaders"];
-        std::string vertPath = rootPath.string() + '/' + (std::string)jsonShaders["VertPath"];
-        std::string fragPath = rootPath.string() + '/' + (std::string)jsonShaders["FragPath"];
+        std::string vertPath = rootPath + '/' + (std::string)jsonShaders["VertPath"];
+        std::string fragPath = rootPath + '/' + (std::string)jsonShaders["FragPath"];
         std::string componentShaderVertName = std::filesystem::path(meshRendererComponent.shader->getVertPath()).filename().string();
         std::string componentShaderFragName = std::filesystem::path(meshRendererComponent.shader->getFragPath()).filename().string();
         std::string vertName = std::filesystem::path(vertPath).filename().string();
         std::string fragName = std::filesystem::path(fragPath).filename().string();
-        if(componentShaderVertName != vertName || componentShaderFragName != fragName)
-            meshRendererComponent.setShader(vertPath.c_str(), fragPath.c_str(), "");
+        if(componentShaderVertName != vertName || componentShaderFragName != fragName) {
+            auto& source = Shape::shapeSpec->meshRendererRegistry->getSource();
+            for(auto& [key, value] : source) {
+                std::string vertNameSource = std::filesystem::path(value->vertexShaderPath).filename().string();
+                if(vertNameSource == vertName) {
+                    meshRendererComponent.setShader(value->vertexShaderPath.c_str(), value->fragmentShaderPath.c_str(), key);
+                    break;
+                }
+            }
+        }
     }
 
     void SceneSerializer::serializeCameraComponent(Entity& entity, nlohmann::json& jsonEntity) {
@@ -386,6 +459,9 @@ namespace TWE {
         jsonLightComponent["Quadratic"] = lightComponent.quadratic;
         jsonLightComponent["InnerRadius"] = lightComponent.innerRadius;
         jsonLightComponent["OuterRadius"] = lightComponent.outerRadius;
+        jsonLightComponent["LightProjectionAspect"] = lightComponent.getLightProjectionAspect();
+        auto fbo = lightComponent.getFBO();
+        jsonLightComponent["ShadowMapSize"] = fbo ? fbo->getSize().first : 0;
 
         nlohmann::json jsonLightColor = nlohmann::json::array();
         jsonLightColor.push_back(lightComponent.color.x);
@@ -410,6 +486,8 @@ namespace TWE {
         lightComponent.innerRadius = jsonComponent["InnerRadius"];
         lightComponent.outerRadius = jsonComponent["OuterRadius"];
         lightComponent.type = jsonComponent["Type"];
+        lightComponent.setLightProjectionAspect(jsonComponent["LightProjectionAspect"]);
+        lightComponent.setShadowMapSize(jsonComponent["ShadowMapSize"]);
         nlohmann::json jsonLightColor = jsonComponent["Color"];
         lightComponent.color = { jsonLightColor[0], jsonLightColor[1], jsonLightColor[2] };
     }
@@ -453,6 +531,7 @@ namespace TWE {
         jsonPhysicsComponent["LocalScale"] = jsonLocalScale;
 
         jsonPhysicsComponent["IsRotated"] = physicsComponent.getIsRotated();
+        jsonPhysicsComponent["IsTrigger"] = physicsComponent.getIsTrigger();
 
         jsonEntity["PhysicsComponent"] = jsonPhysicsComponent;
     }
@@ -472,15 +551,18 @@ namespace TWE {
         glm::vec3 position = {jsonPosition[0], jsonPosition[1], jsonPosition[2]};
         glm::vec3 rotation = {jsonRotation[0], jsonRotation[1], jsonRotation[2]};
         bool isRotated = jsonComponent["IsRotated"];
+        bool isTrigger = jsonComponent["IsTrigger"];
         float mass = jsonComponent["Mass"];
         if(type != ColliderType::TriangleMesh) {
             auto& physicsComponent = entity.addComponent<PhysicsComponent>(scene->getDynamicWorld(), type, size, localScale, position, rotation, mass, entity.getSource());
             physicsComponent.setIsRotated(isRotated);
+            physicsComponent.setIsTrigger(isTrigger);
         }
         else {
             auto& meshComponent = entity.getComponent<MeshComponent>();
             TriangleMeshSpecification triangleMesh = { meshComponent.vbo, meshComponent.ebo };
-            entity.addComponent<PhysicsComponent>(scene->getDynamicWorld(), type, triangleMesh, localScale, position, rotation, entity.getSource());
+            auto& physicsComponent = entity.addComponent<PhysicsComponent>(scene->getDynamicWorld(), type, triangleMesh, localScale, position, rotation, entity.getSource());
+            physicsComponent.setIsTrigger(isTrigger);
         }
     }
 
@@ -490,7 +572,15 @@ namespace TWE {
         auto& scriptComponent = entity.getComponent<ScriptComponent>();
         nlohmann::json jsonScriptComponent;
 
-        jsonScriptComponent["BehaviorClassName"] = scriptComponent.getBehaviorClassName();
+        nlohmann::json jsonBehaviors = nlohmann::json::array();
+        auto& scripts = scriptComponent.getScripts();
+        for(auto& script : scripts) {
+            nlohmann::json jsonBehavior;
+            jsonBehavior["BehaviorClassName"] = script.behaviorClassName;
+            jsonBehavior["IsEnabled"] = script.isEnabled;
+            jsonBehaviors.push_back(jsonBehavior);
+        }
+        jsonScriptComponent["Behaviors"] = jsonBehaviors;
 
         jsonEntity["ScriptComponent"] = jsonScriptComponent;
     }
@@ -502,19 +592,22 @@ namespace TWE {
             entity.addComponent<ScriptComponent>();
         auto& scriptComponent = entity.getComponent<ScriptComponent>();
 
-        std::string behaviorName = jsonComponent["BehaviorClassName"];
-        auto* dllData = scene->_scriptDLLRegistry->get(behaviorName);
-        if(!dllData || !dllData->isValid) {
-            scriptComponent.bind<Behavior>();
-            return;
+        for(auto& [index, behavior] : jsonComponent["Behaviors"].items()) {
+            std::string behaviorClassName = behavior["BehaviorClassName"];
+            bool isEnabled = behavior["IsEnabled"];
+            auto scriptDLLData = scene->_scriptDLLRegistry->get(behaviorClassName);
+            if(scriptDLLData && scriptDLLData->isValid) {
+                auto behaviorFactory = DLLCreator::loadDLLFunc(*scriptDLLData);
+                if(behaviorFactory) {
+                    Behavior* behavior = (Behavior*)behaviorFactory();
+                    if(!behavior)
+                        continue;
+                    auto scriptSpec = scriptComponent.bind(behavior, scriptDLLData->scriptName);
+                    if(scriptSpec)
+                        scriptSpec->isEnabled = isEnabled;
+                }
+            }
         }
-        auto behaviorFactory = DLLCreator::loadDLLFunc(*dllData);
-        if(!behaviorFactory) {
-            scriptComponent.bind<Behavior>();
-            return;
-        }
-        Behavior* behavior = (Behavior*)behaviorFactory();
-        scriptComponent.bind(behavior, dllData->scriptName);
     }
 
     void SceneSerializer::serializeParentChildsComponent(Entity& entity, nlohmann::json& jsonEntity, Scene* scene) {
@@ -556,6 +649,50 @@ namespace TWE {
             return;
         auto& idComponent = entity.getComponent<IDComponent>();
         idComponent.id = jsonComponent;
+    }
+
+    void SceneSerializer::serializeAudioComponent(Entity& entity, nlohmann::json& jsonEntity, ProjectData* projectData) {
+        if(!entity.hasComponent<AudioComponent>())
+            return;
+        auto& audioComponent = entity.getComponent<AudioComponent>();
+        nlohmann::json jsonAudioComponent;
+        nlohmann::json jsonSoundSources = nlohmann::json::array();
+
+        auto& soundSources = audioComponent.getSoundSources();
+        for(auto soundSource : soundSources) {
+            nlohmann::json jsonSoundSource;
+            jsonSoundSource["Is3D"] = soundSource->getIs3D();
+            jsonSoundSource["PlayLooped"] = soundSource->getPlayLooped();
+            jsonSoundSource["StartPaused"] = soundSource->getStartPaused();
+            jsonSoundSource["Volume"] = soundSource->getVolume();
+            jsonSoundSource["MinDistance"] = soundSource->getMinDistance();
+            jsonSoundSource["MaxDistance"] = soundSource->getMaxDistance();
+            jsonSoundSource["PlaybackSpeed"] = soundSource->getPlaybackSpeed();
+            jsonSoundSource["SoundSourcePath"] = std::filesystem::relative(soundSource->getSoundSourcePath(), projectData->rootPath).string();
+            jsonSoundSources.push_back(jsonSoundSource);
+        }
+        jsonAudioComponent["SoundSources"] = jsonSoundSources;
+
+        jsonEntity["AudioComponent"] = jsonAudioComponent;
+    }
+
+    void SceneSerializer::deserializeAudioComponent(Entity& entity, const std::string& key, nlohmann::json& jsonComponent, const std::filesystem::path& rootPath) {
+        if(key != "AudioComponent")
+            return;
+        if(!entity.hasComponent<AudioComponent>())
+            entity.addComponent<AudioComponent>(entity.getScene()->getSceneAudio()->getSoundEngine());
+        auto& audioComponent = entity.getComponent<AudioComponent>();
+        nlohmann::json jsonSoundSources = jsonComponent["SoundSources"];
+        for(auto& jsonSoundSource : jsonSoundSources) {
+            std::filesystem::path soundSourcePath = rootPath.string() + '/' + (std::string)jsonSoundSource["SoundSourcePath"];
+            auto soundSource = audioComponent.addSoundSource(soundSourcePath, jsonSoundSource["Is3D"]);
+            soundSource->setPlayLooped(jsonSoundSource["PlayLooped"]);
+            soundSource->setStartPaused(jsonSoundSource["StartPaused"]);
+            soundSource->setVolume(jsonSoundSource["Volume"]);
+            soundSource->setMinDistance(jsonSoundSource["MinDistance"]);
+            soundSource->setMaxDistance(jsonSoundSource["MaxDistance"]);
+            soundSource->setPlaybackSpeed(jsonSoundSource["PlaybackSpeed"]);
+        }
     }
 
     std::string SceneSerializer::deleteInvertedCommas(const std::string& str) {

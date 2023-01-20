@@ -34,7 +34,7 @@ namespace TWE {
     void BuildCreator::copyRootPathFiles(ProjectData* projectData, const std::filesystem::path& buildDirPath) {
         auto dirIt = std::filesystem::directory_iterator(projectData->rootPath);
         std::string debugPath = buildDirPath.string() + "/Debug";
-        const auto copyOptions = std::filesystem::copy_options::update_existing
+        const auto copyOptions = std::filesystem::copy_options::overwrite_existing
                                | std::filesystem::copy_options::recursive;
         for(auto& entry : dirIt) {
             auto& path = entry.path();
@@ -62,9 +62,10 @@ namespace TWE {
         os << "project(" + projectData->projectName << ")\n";
 
         os << "file(GLOB_RECURSE CPPFILES\n";
-        os << "\"" + fixPath("../../src") + "/*.cpp\")\n";
+        os << "\"" + fixPath("../../src") + "/main.cpp\")\n";
 
         os << "file(GLOB_RECURSE LIBFILES\n";
+        os << "\"" +  fixPath("../../lib") + "/*.lib\"\n";
         os << "\"" +  fixPath("../../external") + "/*.lib\")\n";
         os << "file(MAKE_DIRECTORY \"${CMAKE_BINARY_DIR}/Debug\" \"${CMAKE_BINARY_DIR}/Release\")\n";
 
@@ -83,15 +84,26 @@ namespace TWE {
         os << "\"" + fixPath("../../external/assimp") + "\"\n";
         os << "\"" + fixPath("../../external/bullet3") + "\"\n";
         os << "\"" + fixPath("../../external/entt") + "\"\n";
-        os << "\"" + fixPath("../../external/json") + "\")\n";
+        os << "\"" + fixPath("../../external/json") + "\"\n";
+        os << "\"" + fixPath("../../external/irrKlang") + "\")\n";
 
         os << "target_link_libraries(" + projectData->projectName + " PRIVATE ${LIBFILES})\n";
 
         os << "add_custom_target(ASSIMPCopy\n";
         os << "COMMAND ${CMAKE_COMMAND} -E copy " + fixPath("../../external") + "/assimp/bin/assimp-vc142-mtd.dll ${CMAKE_BINARY_DIR}/Debug\n";
         os << "COMMAND ${CMAKE_COMMAND} -E copy " + fixPath("../../external") + "/assimp/bin/assimp-vc142-mtd.dll ${CMAKE_BINARY_DIR}/Release)\n";
+
+        os << "add_custom_target(IRRKLANGCopy\n";
+        os << "COMMAND ${CMAKE_COMMAND} -E copy " + fixPath("../../external") + "/irrKlang/bin/winx64-visualStudio/ikpFlac.dll ${CMAKE_BINARY_DIR}/Debug\n";
+        os << "COMMAND ${CMAKE_COMMAND} -E copy " + fixPath("../../external") + "/irrKlang/bin/winx64-visualStudio/ikpMP3.dll ${CMAKE_BINARY_DIR}/Debug\n";
+        os << "COMMAND ${CMAKE_COMMAND} -E copy " + fixPath("../../external") + "/irrKlang/bin/winx64-visualStudio/irrKlang.dll ${CMAKE_BINARY_DIR}/Debug\n";
+        os << "COMMAND ${CMAKE_COMMAND} -E copy " + fixPath("../../external") + "/irrKlang/bin/winx64-visualStudio/ikpFlac.dll ${CMAKE_BINARY_DIR}/Release\n";
+        os << "COMMAND ${CMAKE_COMMAND} -E copy " + fixPath("../../external") + "/irrKlang/bin/winx64-visualStudio/ikpMP3.dll ${CMAKE_BINARY_DIR}/Release\n";
+        os << "COMMAND ${CMAKE_COMMAND} -E copy " + fixPath("../../external") + "/irrKlang/bin/winx64-visualStudio/irrKlang.dll ${CMAKE_BINARY_DIR}/Release)\n";
+
         os << "add_dependencies(" << projectData->projectName << " ASSIMPCopy)\n";
-        os << "target_compile_definitions(" << projectData->projectName << " PRIVATE TWE_BUILD=\"" << "./" + projectData->projectName + ".build" << "\")\n";
+        os << "add_dependencies(" << projectData->projectName << " IRRKLANGCopy)\n";
+        os << "target_compile_definitions(" << projectData->projectName << " PRIVATE TWE_BUILD_FILE_PATH=\"" << "./" + projectData->projectName + ".build" << "\")\n";
 
         os.close();
     }

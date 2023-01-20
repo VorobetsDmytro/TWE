@@ -5,9 +5,9 @@
 #include "undo-redo/iur-command.hpp"
 
 namespace TWE {
-    class AddMeshCompoentnCommand: public IURCommand {
+    class AddMeshComponentCommand: public IURCommand {
     public:
-        AddMeshCompoentnCommand(const Entity& entity);
+        AddMeshComponentCommand(const Entity& entity);
         void execute() override;
         void unExecute() override;
     private:

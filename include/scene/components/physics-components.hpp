@@ -65,12 +65,14 @@ namespace TWE {
         void setIsRotated(bool isRotated);
         void setShowCollider(bool show);
         void setRigidBody(btRigidBody* rigidBody);
+        void setIsTrigger(bool isTrigger);
         [[nodiscard]] float getMass() const noexcept;
         [[nodiscard]] btRigidBody* getRigidBody() const noexcept;
         [[nodiscard]] btDynamicsWorld* getDynamicsWorld() const noexcept;
         [[nodiscard]] ColliderType getColliderType() const noexcept;
         [[nodiscard]] bool getNeedUpdate() const noexcept;
         [[nodiscard]] bool getIsRotated();
+        [[nodiscard]] bool getIsTrigger();
         [[nodiscard]] glm::vec3 getShapeDimensions();
         [[nodiscard]] glm::vec3 getLocalScale();
         [[nodiscard]] glm::vec3 getPosition();

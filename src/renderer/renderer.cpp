@@ -1,10 +1,14 @@
 #include "renderer/renderer.hpp"
 
 namespace TWE {
-    void Renderer::execute(MeshComponent* meshComponent, MeshRendererComponent* meshRendererComponent, TransformComponent* transformComponent, 
-    int lightsCount) {
+    void Renderer::execute(MeshComponent* meshComponent, MeshRendererComponent* meshRendererComponent, const glm::mat4& model, const glm::mat4& view, const glm::mat4& projection, 
+    const glm::vec3& viewPos, int lightsCount, const glm::mat4& projectionView) {
         meshRendererComponent->shader->use();
-        meshRendererComponent->shader->setUniform(TRANS_MAT_OPTIONS[TransformMatrixOptions::MODEL], transformComponent->getModel());
+        meshRendererComponent->shader->setUniform(TRANS_MAT_OPTIONS[TransformMatrixOptions::MODEL], model);
+        meshRendererComponent->shader->setUniform(TRANS_MAT_OPTIONS[TransformMatrixOptions::VIEW], view);
+        meshRendererComponent->shader->setUniform(TRANS_MAT_OPTIONS[TransformMatrixOptions::PROJECTION], projection);
+        meshRendererComponent->shader->setUniform(TRANS_MAT_OPTIONS[TransformMatrixOptions::MVP], projectionView * model);
+        meshRendererComponent->shader->setUniform("viewPos", viewPos);
         meshRendererComponent->shader->setUniform("hasTexture", !meshComponent->texture->getAttachments().textureSpecifications.empty());
         meshRendererComponent->shader->setUniform("lightCount", lightsCount);
         meshRendererComponent->updateMaterialUniform();
@@ -19,6 +23,10 @@ namespace TWE {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         static const float red[] = { 1, 0, 0, 1 };
         glClearBufferfv(GL_COLOR, 1, red);
+    }
+
+    void Renderer::cleanDepth() {
+        glClear(GL_DEPTH_BUFFER_BIT);
     }
 
     void Renderer::setViewport(int startX, int startY, int endX, int endY) {
@@ -50,16 +58,15 @@ namespace TWE {
 
     void Renderer::generateDepthMap(LightComponent& lightComponent, const TransformComponent& transformComponent, const glm::mat4& lightProjection, 
     const glm::mat4& lightView, Scene* scene) {
-        scene->updateView(lightView, lightProjection, transformComponent.transform.position);
-        auto& depthMapSize = lightComponent.getDepthMapSize();
         auto fbo = lightComponent.getFBO();
+        auto& depthMapSize = fbo->getSize();
         glActiveTexture(GL_TEXTURE31);
         glBindTexture(GL_TEXTURE_2D, lightComponent.getDepthTextureId());
         Renderer::setViewport(0, 0, depthMapSize.first, depthMapSize.second);
         glCullFace(GL_FRONT);
         fbo->bind();
         glClear(GL_DEPTH_BUFFER_BIT);
-        scene->draw();
+        scene->draw(lightProjection, lightView, lightProjection * lightView, scene->_sceneCamera.position);
         fbo->unbind();
         glCullFace(GL_BACK);
     }

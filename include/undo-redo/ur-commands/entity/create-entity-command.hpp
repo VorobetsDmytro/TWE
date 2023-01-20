@@ -14,6 +14,7 @@ namespace TWE {
     private:
         void copyComponents(Entity& entity);
         void setComponents(Entity& entity);
+
         TransformComponent* transformComponent = nullptr;
         NameComponent* nameComponent = nullptr;
         IDComponent* idComponent = nullptr;
@@ -23,11 +24,13 @@ namespace TWE {
         CameraComponent* cameraComponent = nullptr;
         MeshComponent* meshComponent = nullptr;
         MeshRendererComponent* meshRendererComponent = nullptr;
+
         bool notExecuteOnce;
         std::function<void()> _unselectFunc;
         Entity _entity;
         entt::entity _sourceEntity;
         Scene* _sourceScene;
+        std::vector<CreateEntityCommand*> _childsCommand;
     };
 }
 

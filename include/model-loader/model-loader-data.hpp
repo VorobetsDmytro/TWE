@@ -3,15 +3,13 @@
 
 #include <vector>
 
-#include "scene/components/components.hpp"
+#include "scene/components/mesh-component.hpp"
 
 namespace TWE {
     struct ModelLoaderData {
-        ModelLoaderData(const std::vector<MeshComponent>& meshComponents, const std::string& fullPath, ShaderIndices vert, ShaderIndices frag);
+        ModelLoaderData(const std::vector<MeshComponent>& meshComponents, const std::string& fullPath);
         std::vector<MeshComponent> meshComponents;
         std::string fullPath;
-        ShaderIndices vert;
-        ShaderIndices frag;
     };
 }
 

@@ -98,10 +98,8 @@ namespace TWE {
     }
 
     Texture* Texture::generateCubemapTexture(TextureAttachmentSpecification& attachments) {
-        if(attachments.textureSpecifications.size() != 6) {
-            std::cout << "Error loading a cubemap texture.\nTexture paths size has to be 6." << std::endl;
+        if(attachments.textureSpecifications.size() != 6) 
             return nullptr;
-        }
         uint32_t id;
         glGenTextures(1, &id);
         glActiveTexture(GL_TEXTURE0);

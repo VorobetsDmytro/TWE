@@ -5,6 +5,8 @@ namespace TWE {
     : _entity(entity), _oldState(oldState), _newState(newState) {}
 
     void ChangeMeshRendererComponentState::execute() {
+        if(!_entity.hasComponent<MeshRendererComponent>())
+            return;
         auto& meshRendererComponent = _entity.getComponent<MeshRendererComponent>();
         meshRendererComponent.setShader(_newState.shader->getVertPath().c_str(), 
             _newState.shader->getFragPath().c_str(), _newState.registryId);
@@ -12,6 +14,8 @@ namespace TWE {
     }
 
     void ChangeMeshRendererComponentState::unExecute() {
+        if(!_entity.hasComponent<MeshRendererComponent>())
+            return;
         auto& meshRendererComponent = _entity.getComponent<MeshRendererComponent>();
         meshRendererComponent.setShader(_oldState.shader->getVertPath().c_str(), 
             _oldState.shader->getFragPath().c_str(), _oldState.registryId);

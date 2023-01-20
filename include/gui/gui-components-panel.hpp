@@ -31,6 +31,7 @@ namespace TWE {
         void showLightComponent(Entity& entity);
         void showPhysicsComponent(Entity& entity);
         void showScriptComponent(Entity& entity);
+        void showAudioComponent(Entity& entity);
         void showAddComponentMenu(Entity& entity);
         void showSeparator();
         Scene* _scene;

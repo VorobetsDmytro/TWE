@@ -47,7 +47,8 @@ namespace TWE {
     public:
         GUI(GLFWwindow *window);
         ~GUI();
-        void update();
+        void begin();
+        void end();
         void addCheckbox(const char* name, bool& var);
         void addInputText(const char* name, std::string& var);
         void addButton(const char* name, std::function<void()> func);
@@ -55,6 +56,7 @@ namespace TWE {
         void setProjectData(ProjectData* projectData);
         [[nodiscard]] bool getIsMouseOnViewport();
         [[nodiscard]] bool getIsFocusedOnViewport();
+        [[nodiscard]] bool getIsMouseDisabled();
     private:
         void showDockSpace();
         void showTestPanel();

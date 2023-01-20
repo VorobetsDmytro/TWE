@@ -23,7 +23,9 @@ namespace TWE {
         CameraPopup,
         LightPopup,
         PhysicsPopup,
-        ScriptPopup
+        ScriptPopup,
+        ScriptBindPopup,
+        AudioPopup
     };
 
     extern std::vector<std::string> guiPopups;

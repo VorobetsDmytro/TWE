@@ -15,6 +15,8 @@ namespace TWE {
         btVector3 inertia(0.f, 0.f, 0.f);
         shape->setLocalScaling({localScale.x, localScale.y, localScale.z});
         shape->calculateLocalInertia(mass, inertia);
+        if(shape->getMargin() != 0.f)
+            shape->setMargin(0.f);
 
         btMotionState* motionState = new btDefaultMotionState(_transform);
         btRigidBody::btRigidBodyConstructionInfo constrInfo(mass, motionState, shape, inertia);
@@ -22,11 +24,16 @@ namespace TWE {
         _rigidBody = new btRigidBody(constrInfo);
         _rigidBody->setUserPointer(this);
         int collisionFlags = _rigidBody->getCollisionFlags();
-        _rigidBody->setCollisionFlags(collisionFlags ^ btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT ^ btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
+        collisionFlags = collisionFlags 
+                       ^ btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT 
+                       ^ btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK;
+        _rigidBody->setCollisionFlags(collisionFlags);
         
         dynamicsWorld->addRigidBody(_rigidBody);
         setRotation(rotation);
+        setShapeDimensions(shapeSize);
         _rigidBody->setUserPointer(new PhysicsUserPointer{entity});
+        _rigidBody->setUserIndex((int)entity);
     }
 
     PhysicsComponent::PhysicsComponent(btDynamicsWorld* dynamicsWorld, ColliderType colliderType, TriangleMeshSpecification& triangleMeshSpecification, 
@@ -50,6 +57,7 @@ namespace TWE {
         setPosition(pos);
         setRotation(rotation);
         _rigidBody->setUserPointer(new PhysicsUserPointer{entity});
+        _rigidBody->setUserIndex((int)entity);
     }
 
     PhysicsComponent::PhysicsComponent(const PhysicsComponent& physics) {
@@ -80,12 +88,7 @@ namespace TWE {
     }
 
     void PhysicsComponent::setRotation(const glm::vec3& rotation) {
-        _transform = _rigidBody->getWorldTransform();
-        btQuaternion newRotation(rotation.y, rotation.x, rotation.z);
-        btQuaternion oldBodyRotation = _transform.getRotation();
-        btQuaternion deltaRotation = newRotation - oldBodyRotation;
-        _transform.setRotation(oldBodyRotation + deltaRotation);
-        _rigidBody->setWorldTransform(_transform);
+        setRotation(glm::quat(rotation));
     }
 
     void PhysicsComponent::setRotation(const glm::quat& quatretion) {
@@ -144,7 +147,6 @@ namespace TWE {
     glm::vec3 PhysicsComponent::getShapeDimensions() { 
         btVector3 shapeDimensions;
         btCollisionShape* collisionShape = _rigidBody->getCollisionShape();
-        collisionShape->setMargin(0.f);
         btBoxShape* boxShape = boxShape = (btBoxShape*)collisionShape;
         shapeDimensions = boxShape->getImplicitShapeDimensions();
         btVector3& size = (shapeDimensions * 2);
@@ -212,12 +214,24 @@ namespace TWE {
         return _rigidBody->getAngularFactor() == btVector3{1.f, 1.f, 1.f};
     }
 
+    bool PhysicsComponent::getIsTrigger() {
+        return _rigidBody->getCollisionFlags() & btCollisionObject::CF_NO_CONTACT_RESPONSE;
+    }
+
     void PhysicsComponent::setShowCollider(bool show) {
         int collisionFlags = _rigidBody->getCollisionFlags();
         if(show && (collisionFlags & btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT))
             _rigidBody->setCollisionFlags(collisionFlags ^ btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT);
         else if(!show && !(collisionFlags & btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT))
             _rigidBody->setCollisionFlags(collisionFlags ^ btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT);
+    }
+
+    void PhysicsComponent::setIsTrigger(bool isTrigger) {
+        int collisionFlags = _rigidBody->getCollisionFlags();
+        if(isTrigger && !(collisionFlags & btCollisionObject::CF_NO_CONTACT_RESPONSE))
+            _rigidBody->setCollisionFlags(collisionFlags ^ btCollisionObject::CF_NO_CONTACT_RESPONSE);
+        else if(!isTrigger && (collisionFlags & btCollisionObject::CF_NO_CONTACT_RESPONSE))
+            _rigidBody->setCollisionFlags(collisionFlags ^ btCollisionObject::CF_NO_CONTACT_RESPONSE);
     }
 
     void PhysicsComponent::setRigidBody(btRigidBody* rigidBody) {

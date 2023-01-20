@@ -108,6 +108,39 @@ namespace TWE {
         return res;
     }
 
+    int GUIComponents::comboAndButton(const std::string& label, std::string& selected, std::vector<std::string>& options, 
+    std::function<void()> addFunc, float labelColumnWidth) {
+        int res = -1;
+        ImGui::PushID(label.c_str());
+
+        ImGui::Columns(2);
+        ImGui::SetColumnWidth(0, labelColumnWidth);
+        ImGui::Text(label.c_str());
+
+        ImGui::NextColumn();
+        ImGui::PushItemWidth(ImGui::CalcItemWidth());
+        int size = options.size();
+        if(ImGui::BeginCombo("##Combo", selected.c_str())) {
+            for(int i = 0; i < size; ++i) {
+                bool isSelected = options[i] == selected;
+                if(ImGui::Selectable(options[i].c_str(), isSelected))
+                    res = i;
+                if(isSelected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::PopItemWidth();
+
+        ImGui::SameLine();
+        if(ImGui::Button("Add"))
+            addFunc();
+
+        ImGui::Columns(1);
+        ImGui::PopID();
+        return res;
+    }
+
     bool GUIComponents::colorEdit3(const std::string& label, glm::vec3& values, float labelColumnWidth) {
         bool isInteracted = false;
         ImGui::PushID(label.c_str());

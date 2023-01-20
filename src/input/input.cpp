@@ -1,76 +1,90 @@
 #include "input/input.hpp"
 
 namespace TWE {
-    bool* Input::keyboardPressedKeys = new bool[512]{0};
-    bool* Input::mousePressedButtons = new bool[24]{0};
-    float* Input::mouseOffset = new float[2]{0};
-    int* Input::keyboardPressedActions = new int[512]{0};
-    int* Input::mousePressedActions = new int[512]{0};
+    InputSpecification* Input::inputSpecification = new InputSpecification();
 
-    void Input::init(bool* keyboardPressedKeysA, bool* mousePressedButtonsA, float* mouseOffsetA) {
-        keyboardPressedKeys = keyboardPressedKeysA;
-        mousePressedButtons = mousePressedButtonsA;
-        mouseOffset = mouseOffsetA;
+    void Input::setWindow(GLFWwindow* window) {
+        inputSpecification->setWindow(window);
+    }
+
+    void Input::setShowCursor(bool show) {
+        inputSpecification->setShowCursor(show);
+    }
+
+    void Input::setCloseApplication(bool close) {
+        inputSpecification->setCloseApplication(close);
+    }
+
+    bool Input::getCloseApplication() {
+        return inputSpecification->getCloseApplication();
+    }
+
+    bool Input::getShowCursor() {
+        return inputSpecification->getShowCursor();
     }
     
     bool Input::isKeyPressed(Keyboard key) {
-        if(keyboardPressedKeys[key] && keyboardPressedActions[key] == Action::PRESS)
-            keyboardPressedActions[key] = Action::REPEAT;
-        return keyboardPressedKeys[key];
+        return inputSpecification->isKeyPressed(key);
     }
 
     bool Input::isKeyPressedOnce(Keyboard key) {
-        if(keyboardPressedKeys[key] && keyboardPressedActions[key] == Action::PRESS) {
-            keyboardPressedActions[key] = Action::REPEAT;
-            return true;
-        }
-        return false;
+        return inputSpecification->isKeyPressedOnce(key);
     }
 
     bool Input::isMouseButtonPressed(Mouse button) {
-        if(mousePressedButtons[button] && mousePressedActions[button] == Action::PRESS)
-            mousePressedActions[button] = Action::REPEAT;
-        return mousePressedButtons[button];
+        return inputSpecification->isMouseButtonPressed(button);
     }
 
     bool Input::isMouseButtonPressedOnce(Mouse button) {
-        if(mousePressedButtons[button] && mousePressedActions[button] == Action::PRESS) {
-            mousePressedActions[button] = Action::REPEAT;
-            return true;
-        }
-        return false;
+        return inputSpecification->isMouseButtonPressedOnce(button);
     }
 
     Action Input::keyAction(Keyboard key) {
-        return static_cast<Action>(keyboardPressedActions[key]);
+        return inputSpecification->keyAction(key);
     }
 
     Action Input::mouseButtonAction(Mouse button) {
-        return static_cast<Action>(mousePressedActions[button]);
+        return inputSpecification->mouseButtonAction(button);
+    }
+
+    glm::vec2 Input::getMouseOffset() {
+        return inputSpecification->getMouseOffset();
+    }
+
+    glm::vec2 Input::getMousePosition() {
+        return inputSpecification->getMousePosition();
+    }
+
+    GLFWwindow* Input::getWindow() {
+        return inputSpecification->getWindow();
     }
 
     void Input::mouseCallback(GLFWwindow* window, double xpos, double ypos) {
         static float preViewX = xpos;
         static float preViewY = ypos;
-        mouseOffset[0] = xpos - preViewX;
-        mouseOffset[1] = preViewY - ypos;
+        inputSpecification->_mouseOffset[0] = xpos - preViewX;
+        inputSpecification->_mouseOffset[1] = preViewY - ypos;
+        inputSpecification->_mousePosition[0] = xpos;
+        inputSpecification->_mousePosition[1] = ypos;
         preViewX = xpos;
         preViewY = ypos;
     }
 
     void Input::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
         if(action == Action::PRESS)
-            mousePressedButtons[button] = true;
+            inputSpecification->_mousePressedButtons[button] = true;
         if(action == Action::RELEASE)
-            mousePressedButtons[button] = false;
-        mousePressedActions[button] = action;
+            inputSpecification->_mousePressedButtons[button] = false;
+        inputSpecification->_mousePressedActions[button] = action;
     }
 
     void Input::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
         if(action == Action::PRESS)
-            keyboardPressedKeys[key] = true;
+            inputSpecification->_keyboardPressedKeys[key] = true;
         if(action == Action::RELEASE)
-            keyboardPressedKeys[key] = false;
-        keyboardPressedActions[key] = action;
+            inputSpecification->_keyboardPressedKeys[key] = false;
+        inputSpecification->_keyboardPressedActions[key] = action;
     }
+
+    InputSpecification* Input::getSource() { return inputSpecification; }
 }

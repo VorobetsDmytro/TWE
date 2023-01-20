@@ -41,16 +41,31 @@ namespace TWE {
 
     template<typename T>
     T& Entity::getComponent() {
+        if(!hasComponent<T>()) {
+            std::string componentName = typeid(T).name();
+            componentName = componentName.substr(6);
+            throw std::runtime_error("Error: A " + componentName + " was not found.");
+        }
         return _scene->_sceneRegistry.current->entityRegistry.get<T>(_entity);
     }
 
     template<typename T, typename ...Args>
     T& Entity::addComponent(Args&&... args) {
+        if(hasComponent<T>()) {
+            std::string componentName = typeid(T).name();
+            componentName = componentName.substr(6);
+            throw std::runtime_error("Error: A " + componentName + " is already exists.");
+        }
         return _scene->_sceneRegistry.current->entityRegistry.emplace<T>(_entity, std::forward<Args>(args)...);
     }
 
     template<typename T>
     void Entity::removeComponent() {
+        if(!hasComponent<T>()) {
+            std::string componentName = typeid(T).name();
+            componentName = componentName.substr(6);
+            throw std::runtime_error("Error: A " + componentName + " was not found.");
+        }
         _scene->_sceneRegistry.current->entityRegistry.remove<T>(_entity);
     }
 

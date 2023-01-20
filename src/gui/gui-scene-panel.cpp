@@ -184,11 +184,13 @@ namespace TWE {
                 ImGui::CloseCurrentPopup();
             }
             if(ImGui::Button("Model", {availSize.x, 0.f})) {
-                ImGuiFileDialog::Instance()->OpenDialog("LoadModel", "Choose File", ".obj,.fbx", ".", 1, nullptr);
+                ImGuiFileDialog::Instance()->OpenDialog("LoadModel", "Choose File", ".obj,.fbx", 
+                    (_scene->getProjectData()->rootPath.string() + '/').c_str(), 1, nullptr);
                 ImGui::CloseCurrentPopup();
             }
             if(ImGui::Button("Cubemap", {availSize.x, 0.f})) {
-                ImGuiFileDialog::Instance()->OpenDialog("LoadCubemap", "Choose File", ".png,.jpg,.jpeg", ".", 6, nullptr);
+                ImGuiFileDialog::Instance()->OpenDialog("LoadCubemap", "Choose File", ".png,.jpg,.jpeg", 
+                    (_scene->getProjectData()->rootPath.string() + '/').c_str(), 6, nullptr);
                 ImGui::CloseCurrentPopup();
             }
             ImGui::EndMenu();
@@ -200,7 +202,9 @@ namespace TWE {
         float popUpWidth = 150.f;
         ImGui::SetNextWindowSize({popUpWidth, 0.f});
         if(ImGui::BeginPopup(popupId.c_str())) {
-            showCreateEntityMenu(selectedEntity);
+            if(showCreateEntityMenu(selectedEntity))
+                _scene->_sceneRegistry.current->urControl.execute(new CreateEntityCommand(selectedEntity, 
+                    [&](){ unselectEntity(selectedEntity); }));
             ImGui::EndPopup();
         }
     }

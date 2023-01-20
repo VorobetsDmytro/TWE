@@ -53,7 +53,7 @@ namespace TWE {
         if(entity.hasComponent<MeshComponent>()) {
             auto& meshComponentCopy = entity.getComponent<MeshComponent>();
             meshComponent = new MeshComponent(meshComponentCopy.vao, meshComponentCopy.vbo, meshComponentCopy.ebo, 
-                meshComponentCopy.registryId, meshComponentCopy.texture->getAttachments());
+                meshComponentCopy.registryId, meshComponentCopy.modelSpec, meshComponentCopy.texture);
         }
         if(entity.hasComponent<MeshRendererComponent>()) {
             auto& meshRendererComponentCopy = entity.getComponent<MeshRendererComponent>();
@@ -64,9 +64,8 @@ namespace TWE {
         if(entity.hasComponent<PhysicsComponent>()) {
             auto& physicsComponentCopy = entity.getComponent<PhysicsComponent>();
             if(physicsComponentCopy.getColliderType() != ColliderType::TriangleMesh) {
-                auto shapeDimensions = physicsComponentCopy.getShapeDimensions() / physicsComponentCopy.getLocalScale();
                 physicsComponent = new PhysicsComponent(dynamicsWorld, physicsComponentCopy.getColliderType(), 
-                    shapeDimensions, physicsComponentCopy.getLocalScale(), physicsComponentCopy.getPosition(),
+                    physicsComponentCopy.getShapeDimensions(), physicsComponentCopy.getLocalScale(), physicsComponentCopy.getPosition(),
                     physicsComponentCopy.getRotation(), physicsComponentCopy.getMass(), to.getSource());
                 physicsComponent->setIsRotated(physicsComponentCopy.getIsRotated());
             } else {
@@ -77,74 +76,93 @@ namespace TWE {
         }
         if(entity.hasComponent<ScriptComponent>()) {
             scriptComponent = new ScriptComponent();
-            auto scriptDLLData = _sourceScene->getScriptDLLRegistry()->get(entity.getComponent<ScriptComponent>().getBehaviorClassName());
-            bool isEnabled = false;
-            if(!scriptDLLData || !scriptDLLData->isValid)
-                scriptComponent->bind<Behavior>();
-            else {
-                auto behaviorFactory = DLLCreator::loadDLLFunc(*scriptDLLData);
-                if(!behaviorFactory)
-                    scriptComponent->bind<Behavior>();
-                else {
-                    Behavior* behavior = (Behavior*)behaviorFactory();
-                    scriptComponent->bind(behavior, scriptDLLData->scriptName);
-                }
-                isEnabled = entity.getComponent<ScriptComponent>().isEnabled;
+            scriptComponent->getScripts() = entity.getComponent<ScriptComponent>().getScripts();
+        }
+        if(entity.hasComponent<AudioComponent>()) {
+            auto& audioComponentCopy = entity.getComponent<AudioComponent>();
+            audioComponent = new AudioComponent(_sourceScene->getSceneAudio()->getSoundEngine());
+            auto& soundSources = audioComponentCopy.getSoundSources();
+            for(auto soundSource : soundSources) {
+                auto newSoundSource = audioComponent->addSoundSource(soundSource->getSoundSourcePath(), soundSource->getIs3D());
+                newSoundSource->setPlayLooped(soundSource->getPlayLooped());
+                newSoundSource->setStartPaused(soundSource->getStartPaused());
+                newSoundSource->setVolume(soundSource->getVolume());
+                newSoundSource->setMinDistance(soundSource->getMinDistance());
+                newSoundSource->setMaxDistance(soundSource->getMaxDistance());
+                newSoundSource->setPlaybackSpeed(soundSource->getPlaybackSpeed());
             }
-            scriptComponent->unbind();
-            scriptComponent->isEnabled = isEnabled;
         }
     }
 
     void CopyEntityCommand::setComponents(Entity& entity) {
-        entity.addComponent<TransformComponent>(*transformComponent);
-        entity.addComponent<NameComponent>(*nameComponent);
-        entity.addComponent<IDComponent>(*idComponent);
-        entity.addComponent<CreationTypeComponent>(*creationTypeComponent);
-        entity.addComponent<ParentChildsComponent>(*parentChildsComponent);
+        if(!entity.hasComponent<TransformComponent>())
+            entity.addComponent<TransformComponent>(*transformComponent);
+        if(!entity.hasComponent<NameComponent>())
+            entity.addComponent<NameComponent>(*nameComponent);
+        if(!entity.hasComponent<IDComponent>())
+            entity.addComponent<IDComponent>(*idComponent);
+        if(!entity.hasComponent<CreationTypeComponent>())
+            entity.addComponent<CreationTypeComponent>(*creationTypeComponent);
+        if(!entity.hasComponent<ParentChildsComponent>())
+            entity.addComponent<ParentChildsComponent>(*parentChildsComponent);
         if(parentChildsComponent->parent != entt::null) {
             Entity parentEntity = { parentChildsComponent->parent, _sourceScene };
-            auto& childs = parentEntity.getComponent<ParentChildsComponent>().childs;
-            auto& itChild = std::find_if(childs.begin(), childs.end(), [&](entt::entity entityChild) {
-                return entityChild == entity.getSource();
-            });
-            if(itChild == childs.end())
-                childs.push_back(entity.getSource());
+            if(parentEntity.hasComponent<ParentChildsComponent>()) {
+                auto& childs = parentEntity.getComponent<ParentChildsComponent>().childs;
+                auto& itChild = std::find_if(childs.begin(), childs.end(), [&](entt::entity entityChild) {
+                    return entityChild == entity.getSource();
+                });
+                if(itChild == childs.end())
+                    childs.push_back(entity.getSource());
+            }
         }
-        if(lightComponent)
+        if(lightComponent && !entity.hasComponent<LightComponent>())
             entity.addComponent<LightComponent>(*lightComponent);
-        if(cameraComponent)
+        if(cameraComponent && !entity.hasComponent<CameraComponent>())
             entity.addComponent<CameraComponent>(*cameraComponent);
-        if(meshComponent)
+        if(meshComponent && !entity.hasComponent<MeshComponent>())
             entity.addComponent<MeshComponent>(*meshComponent);
-        if(meshRendererComponent)
+        if(meshRendererComponent && !entity.hasComponent<MeshRendererComponent>())
             entity.addComponent<MeshRendererComponent>(*meshRendererComponent);
-        if(physicsComponent) {
+        if(physicsComponent && !entity.hasComponent<PhysicsComponent>()) {
             if(physicsComponent->getColliderType() != ColliderType::TriangleMesh) {
-                auto shapeDimensions = physicsComponent->getShapeDimensions() / physicsComponent->getLocalScale();
                 auto physicsComponentNew = entity.addComponent<PhysicsComponent>(_dynamicsWorld, physicsComponent->getColliderType(), 
-                    shapeDimensions, physicsComponent->getLocalScale(), physicsComponent->getPosition(),
+                    physicsComponent->getShapeDimensions(), physicsComponent->getLocalScale(), physicsComponent->getPosition(),
                     physicsComponent->getRotation(), physicsComponent->getMass(), entity.getSource());
                 physicsComponentNew.setIsRotated(physicsComponent->getIsRotated());
             } else {
-                physicsComponent = new PhysicsComponent(_dynamicsWorld, physicsComponent->getColliderType(), 
+                entity.addComponent<PhysicsComponent>(_dynamicsWorld, physicsComponent->getColliderType(), 
                     physicsComponent->getTriangleMesh(), physicsComponent->getLocalScale(), physicsComponent->getPosition(),
                     physicsComponent->getRotation(), entity.getSource());
             }
         }
-        if(scriptComponent) {
-            auto scriptDLLData = _sourceScene->getScriptDLLRegistry()->get(scriptComponent->getBehaviorClassName());
-            if(!scriptDLLData || !scriptDLLData->isValid)
-                entity.addComponent<ScriptComponent>().bind<Behavior>();
-            else {
-                auto behaviorFactory = DLLCreator::loadDLLFunc(*scriptDLLData);
-                if(!behaviorFactory)
-                    entity.addComponent<ScriptComponent>().bind<Behavior>();
-                else {
-                    Behavior* behavior = (Behavior*)behaviorFactory();
-                    entity.addComponent<ScriptComponent>().bind(behavior, scriptDLLData->scriptName);
+        if(scriptComponent && !entity.hasComponent<ScriptComponent>()) {
+            auto& scriptComponentNew = entity.addComponent<ScriptComponent>();
+            auto& scripts = scriptComponent->getScripts();
+            for(auto& script : scripts) {
+                auto scriptDLLData = _sourceScene->getScriptDLLRegistry()->get(script.behaviorClassName);
+                if(scriptDLLData && scriptDLLData->isValid) {
+                    auto behaviorFactory = DLLCreator::loadDLLFunc(*scriptDLLData);
+                    if(behaviorFactory) {
+                        Behavior* behavior = (Behavior*)behaviorFactory();
+                        auto scriptSpec = scriptComponentNew.bind(behavior, scriptDLLData->scriptName);
+                        if(scriptSpec)
+                            scriptSpec->isEnabled = script.isEnabled;
+                    }
                 }
-                scriptComponent->isEnabled = entity.getComponent<ScriptComponent>().isEnabled;
+            }
+        }
+        if(audioComponent && !entity.hasComponent<AudioComponent>()) {
+            auto& soundSources = audioComponent->getSoundSources();
+            auto& audioComponentNew = entity.addComponent<AudioComponent>(_sourceScene->getSceneAudio()->getSoundEngine());
+            for(auto soundSource : soundSources) {
+                auto newSoundSource = audioComponentNew.addSoundSource(soundSource->getSoundSourcePath(), soundSource->getIs3D());
+                newSoundSource->setPlayLooped(soundSource->getPlayLooped());
+                newSoundSource->setStartPaused(soundSource->getStartPaused());
+                newSoundSource->setVolume(soundSource->getVolume());
+                newSoundSource->setMinDistance(soundSource->getMinDistance());
+                newSoundSource->setMaxDistance(soundSource->getMaxDistance());
+                newSoundSource->setPlaybackSpeed(soundSource->getPlaybackSpeed());
             }
         }
     }

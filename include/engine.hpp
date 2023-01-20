@@ -4,7 +4,6 @@
 #include <iostream>
 #include <string>
 #include <cstdlib>
-#include <ctime>
 #include <memory>
 #include <glad.h>
 #include <glfw3.h>
@@ -20,13 +19,12 @@
 #include "entity/entity.hpp"
 #include "input/input.hpp"
 #include "registry/registry.hpp"
-#include "stream/project-creator.hpp"
 #include "stream/build-creator.hpp"
 
 #ifndef TWE_BUILD
 #include "gui/gui.hpp"
 #else
-#include "scene/scene-serializer.hpp"
+#include "ui-build/ui-build.hpp"
 #endif
 
 namespace TWE {
@@ -34,9 +32,9 @@ namespace TWE {
     public:
         Engine(int wndWidth, int wndHeight, const char* title, GLFWmonitor *monitor, GLFWwindow *share);
         ~Engine();
-        void start();
+        void start(const std::string& buildFilePath = "");
     protected:
-        void keyInput();
+        void updateInput();
         void setVSync(GLboolean isOn);
         GLboolean vSync;
         GLFWwindow* window;
@@ -47,14 +45,21 @@ namespace TWE {
         static Registry<DLLLoadData> scriptDLLRegistry;
         static Registry<MeshSpecification> meshRegistry;
         static Registry<MeshRendererSpecification> meshRendererRegistry;
-        #ifndef TWE_BUILD
-        static std::unique_ptr<GUI> gui;
-        #endif
+        static Registry<TextureAttachmentSpecification> textureRegistry;
     private:
+        void updateTitle();
+        void initGLFW(int& wndWidth, int& wndHeight, const char* title, GLFWmonitor* monitor, GLFWwindow* share);
+        void initGLAD(int wndWidth, int wndHeight);
         static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
         static void mouseCallback(GLFWwindow* window, double xpos, double ypos);
         static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
         static void framebufferSizeCallback(GLFWwindow* window, int width, int height);
+        #ifndef TWE_BUILD
+        static std::unique_ptr<GUI> gui;
+        #else
+        void loadBuild(const std::string& buildFilePath);
+        static std::unique_ptr<UIBuild> uiBuild;
+        #endif
     };
 }
 

@@ -12,7 +12,7 @@ namespace TWE {
         void unExecute() override;
     private:
         Entity _entity;
-        ScriptComponent _scriptComponent;
+        std::vector<ScriptSpecification> _scripts;
     };
 }
 

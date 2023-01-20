@@ -7,11 +7,12 @@
 namespace TWE {
     class SetScriptComponentEnabledStateCommand: public IURCommand {
     public:
-        SetScriptComponentEnabledStateCommand(const Entity& entity, bool newState);
+        SetScriptComponentEnabledStateCommand(const Entity& entity, const std::string& behaviorClassName, bool newState);
         void execute() override;
         void unExecute() override;
     private:
         Entity _entity;
+        std::string _behaviorClassName;
         bool _oldState;
         bool _newState;
     };

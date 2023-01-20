@@ -98,6 +98,8 @@ vec3 calculateDirLight(Light light, vec3 viewDir, vec3 normalNormlz) {
     vec3 specular = calculateSpecular(light, lightDir, normalNormlz, viewDir);
     vec3 ambient = calculateAmbient();
     float shadow = light.castShadows ? calculateShadow(light, light.lightSpaceMat * vec4(fragPos, 1.f)) : 0.f;
+    if(shadow != 0.f)
+        specular = vec3(0.f, 0.f, 0.f);
     return ambient + (1.f - shadow) * (diffuse + specular);
 }
 

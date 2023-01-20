@@ -1,6 +1,8 @@
 #ifndef LIGHT_COMPONENT_HPP
 #define LIGHT_COMPONENT_HPP
 
+#define SHADOW_MAP_DEFAULT_SIZE 2048
+
 #include <glad.h>
 #include <glm.hpp>
 #include <string>
@@ -27,8 +29,11 @@ namespace TWE {
         void setType(LightType type);
         void setFBO(std::shared_ptr<FBO> fbo);
         void setCastShadows(bool castShadows);
-        [[nodiscard]] std::pair<uint32_t, uint32_t> getDepthMapSize();
+        void setLightProjectionAspect(float lightProjectionAspect);
+        void setShadowMapSize(uint32_t size);
         [[nodiscard]] std::shared_ptr<FBO> getFBO();
+        [[nodiscard]] glm::mat4 getLightProjection();
+        [[nodiscard]] float getLightProjectionAspect() const noexcept;
         [[nodiscard]] uint32_t getDepthTextureId() const noexcept;
         [[nodiscard]] bool operator==(const LightComponent& lightComponent);
         [[nodiscard]] bool operator!=(const LightComponent& lightComponent);
@@ -41,7 +46,9 @@ namespace TWE {
         LightType type;
         bool castShadows;
     private:
-        void createDepthMap();
+        bool _needRecacheProjection;
+        float _lightProjectionAspect;
+        glm::mat4 _lightProjection;
         std::shared_ptr<FBO> _fbo;
     };
 }

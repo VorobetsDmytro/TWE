@@ -6,13 +6,49 @@ namespace TWE {
     Registry<DLLLoadData> Engine::scriptDLLRegistry;
     Registry<MeshSpecification> Engine::meshRegistry;
     Registry<MeshRendererSpecification> Engine::meshRendererRegistry;
+    Registry<TextureAttachmentSpecification> Engine::textureRegistry;
     std::unique_ptr<ProjectData> Engine::projectData;
     #ifndef TWE_BUILD
     std::unique_ptr<GUI> Engine::gui;
+    #else
+    std::unique_ptr<UIBuild> Engine::uiBuild;
     #endif
 
     Engine::Engine(int wndWidth, int wndHeight, const char* title, GLFWmonitor* monitor, GLFWwindow* share) {
-        //glfw
+        initGLFW(wndWidth, wndHeight, title, monitor, share);
+        initGLAD(wndWidth, wndHeight);
+        std::filesystem::path rootPath;
+        //imgui
+        #ifndef TWE_BUILD
+        gui = std::make_unique<GUI>(window);
+        rootPath = "../../";
+        #else
+        uiBuild = std::make_unique<UIBuild>(window);
+        rootPath = "./";
+        #endif
+        //initialization vars
+        windowTitle = title;
+        projectData = std::make_unique<ProjectData>();
+        debugCamera->setPerspective(90.f, wndWidth, wndHeight);
+        curScene = std::make_shared<Scene>(wndWidth, wndHeight, rootPath);
+        curScene->setDebugCamera(debugCamera.get());
+        curScene->setScriptDLLRegistry(&scriptDLLRegistry);
+        curScene->setProjectData(projectData.get());
+        #ifndef TWE_BUILD
+        gui->setScene(curScene.get());
+        gui->setProjectData(projectData.get());
+        #endif
+        Shape::initialize(&meshRegistry, &meshRendererRegistry, &textureRegistry, rootPath);
+        Input::setWindow(window);
+        setVSync(false);
+    }
+
+    Engine::~Engine(){
+        glfwDestroyWindow(window);
+        glfwTerminate();
+    }
+
+    void Engine::initGLFW(int& wndWidth, int& wndHeight, const char* title, GLFWmonitor* monitor, GLFWwindow* share) {
         glfwInit();
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -35,7 +71,9 @@ namespace TWE {
         glfwSetCursorPos(window, static_cast<GLfloat>(wndWidth / 2), static_cast<GLfloat>(wndHeight / 2));
         glfwSetCursorPosCallback(window, &Engine::mouseCallback);
         glfwSetFramebufferSizeCallback(window, &Engine::framebufferSizeCallback);
-        //glad
+    }
+
+    void Engine::initGLAD(int wndWidth, int wndHeight) {
         gladLoadGL();
         glViewport(0, 0, wndWidth, wndHeight);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -43,48 +81,31 @@ namespace TWE {
         glEnable(GL_BLEND);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
-        //imgui
-        #ifndef TWE_BUILD
-        gui = std::make_unique<GUI>(window);
-        #endif
-        //initialization vars
-        srand(static_cast<unsigned>(time(0)));
-        windowTitle = title;
-        projectData = std::make_unique<ProjectData>();
-        debugCamera->setPerspective(90.f, wndWidth, wndHeight);
-        curScene = std::make_shared<TWE::Scene>(wndWidth, wndHeight);
-        Shape::initialize(&meshRegistry, &meshRendererRegistry);
-        curScene->setDebugCamera(debugCamera.get());
-        curScene->setScriptDLLRegistry(&scriptDLLRegistry);
-        #ifndef TWE_BUILD
-        gui->setScene(curScene.get());
-        gui->setProjectData(projectData.get());
-        #endif
-        setVSync(false);
-    }
-
-    Engine::~Engine(){
-        glfwDestroyWindow(window);
-        glfwTerminate();
     }
 
     void Engine::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
         Input::keyCallback(window, key, scancode, action, mode);
     }
 
-    void Engine::keyInput(){
+    void Engine::updateInput(){
+        static bool preShowCursor = Input::getShowCursor();
+        bool showCursor = Input::getShowCursor();
+        if(preShowCursor != showCursor) {
+            glfwSetInputMode(window, GLFW_CURSOR, showCursor ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+            preShowCursor = showCursor;
+        }
+        if(Input::getCloseApplication())
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
+        #ifndef TWE_BUILD
+        if(Input::isKeyPressed(Keyboard::KEY_ESCAPE) && !curScene->getIsFocusedOnDebugCamera()) {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            Input::setShowCursor(true);
+            preShowCursor = true;
+        }
         if(!Input::isMouseButtonPressed(Mouse::MOUSE_BUTTON_RIGHT) || !curScene->getIsFocusedOnDebugCamera())
             return;
-        if(Input::isKeyPressed(Keyboard::KEY_W))
-            debugCamera->keyInput(CamMovement::FORWARD, Time::getDeltaTime());
-        if(Input::isKeyPressed(Keyboard::KEY_S))
-            debugCamera->keyInput(CamMovement::BACKWARD, Time::getDeltaTime());
-        if(Input::isKeyPressed(Keyboard::KEY_D))
-            debugCamera->keyInput(CamMovement::RIGHT, Time::getDeltaTime());
-        if(Input::isKeyPressed(Keyboard::KEY_A))
-            debugCamera->keyInput(CamMovement::LEFT, Time::getDeltaTime());
-        if(Input::isKeyPressed(Keyboard::KEY_LEFT_SHIFT))
-            debugCamera->keyInput(CamMovement::L_SHIFT, Time::getDeltaTime());
+        debugCamera->keyInput(Time::getDeltaTime());
+        #endif
     }
 
     void Engine::setVSync(GLboolean isOn) {
@@ -95,8 +116,10 @@ namespace TWE {
     void Engine::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
         Input::mouseButtonCallback(window, button, action, mods);
         #ifndef TWE_BUILD
-        bool inputModeDissabled = button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS && gui->getIsFocusedOnViewport() && curScene->getIsFocusedOnDebugCamera();
-        glfwSetInputMode(window, GLFW_CURSOR, inputModeDissabled ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+        if(button == GLFW_MOUSE_BUTTON_RIGHT && !gui->getIsMouseDisabled()) {
+            bool inputModeDissabled = action == GLFW_PRESS && gui->getIsFocusedOnViewport() && curScene->getIsFocusedOnDebugCamera();
+            glfwSetInputMode(window, GLFW_CURSOR, inputModeDissabled ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+        }
         #endif
     }
 
@@ -107,14 +130,16 @@ namespace TWE {
             return;
         Input::mouseCallback(window, xpos, ypos);
         if(Input::isMouseButtonPressed(Mouse::MOUSE_BUTTON_RIGHT) && curScene->getIsFocusedOnDebugCamera()) {
-            if(debugCameraFlag)
-                debugCamera->mouseInput(Input::mouseOffset[0], Input::mouseOffset[1]);
+            if(debugCameraFlag) {
+                auto mouseOffset = Input::getMouseOffset();
+                debugCamera->mouseInput(mouseOffset[0], mouseOffset[1]);
+            }
             debugCameraFlag = true;
             glfwSetInputMode(window, GLFW_CURSOR, gui->getIsFocusedOnViewport() ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
         } else 
             debugCameraFlag = false;
         #else
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        Input::mouseCallback(window, xpos, ypos);
         #endif
     }
 
@@ -123,11 +148,46 @@ namespace TWE {
         curScene->getFrameBuffer()->resize(width, height);
     }
 
-    void Engine::start(){
+    void Engine::updateTitle() {
+        static std::string title;
+        static std::string preTitle;
+        if(projectData->projectName.empty())
+            return;
+        title = windowTitle + " - " + projectData->projectName + ": " + curScene->getName();
+        if(preTitle != title) {
+            glfwSetWindowTitle(window, title.c_str());
+            preTitle = title;
+        }
+    }
+
+    void Engine::start(const std::string& buildFilePath){
         #ifndef TWE_BUILD
         gui->addCheckbox("Debug camera focus", curScene->getIsFocusedOnDebugCamera());
         #else
-        auto buildData = BuildCreator::load(TWE_BUILD);
+        loadBuild(buildFilePath);
+        #endif
+        while(!glfwWindowShouldClose(window)){
+            Renderer::cleanScreen({0.25f, 0.25f, 0.25f, 0.f});
+            glfwPollEvents();
+            updateTitle();
+            updateInput();
+            #ifndef TWE_BUILD
+            gui->begin();
+            curScene->update();
+            gui->end();
+            #else
+            uiBuild->begin();
+            curScene->update();
+            uiBuild->end();
+            #endif
+            glfwSwapBuffers(window);
+            Time::calculate();
+        }
+    }
+
+    #ifdef TWE_BUILD
+    void Engine::loadBuild(const std::string& buildFilePath) {
+        auto buildData = BuildCreator::load(buildFilePath);
         if(buildData) {
             std::filesystem::path projectFilePath = "./" + buildData->projectFilePath.string();
             auto projectData = ProjectCreator::load(projectFilePath.string(), &scriptDLLRegistry);
@@ -136,22 +196,9 @@ namespace TWE {
                 std::filesystem::path startScenePath = "./" + buildData->startScenePath.string();
                 SceneSerializer::deserialize(curScene.get(), startScenePath.string());
                 curScene->getIsFocusedOnDebugCamera() = false;
+                curScene->startAudioOnRun();
             }
         }
-        #endif
-        std::string title;
-        while(!glfwWindowShouldClose(window)){
-            Renderer::cleanScreen({0.25f, 0.25f, 0.25f, 0.f});
-            glfwPollEvents();
-            title = windowTitle + " - " + projectData->projectName + ": " + curScene->getName();
-            glfwSetWindowTitle(window, title.c_str());
-            keyInput();
-            curScene->update();
-            #ifndef TWE_BUILD
-            gui->update();
-            #endif
-            glfwSwapBuffers(window);
-            Time::calculate();
-        }
     }
+    #endif
 }

@@ -7,6 +7,12 @@ namespace TWE {
         _sourceScene = _entity.getScene();
         copyComponents(_entity);
         notExecuteOnce = true;
+        auto& childs = _entity.getComponent<ParentChildsComponent>().childs;
+        for(auto child : childs) {
+            Entity childEntity = { child, _sourceScene };
+            _childsCommand.push_back(new CreateEntityCommand(childEntity, unselectFunc));
+            _childsCommand.back()->notExecuteOnce = false;
+        }
     }
 
     CreateEntityCommand::~CreateEntityCommand() {
@@ -32,10 +38,14 @@ namespace TWE {
         }
         _entity = { _sourceEntity, _sourceScene };
         setComponents(_entity);
+        for(auto command : _childsCommand)
+            command->execute();
     }
 
     void CreateEntityCommand::unExecute() {
         _unselectFunc();
+        for(auto command : _childsCommand)
+            command->unExecute();
         _entity.destroy();
     }
 
@@ -52,7 +62,7 @@ namespace TWE {
         if(entity.hasComponent<MeshComponent>()) {
             auto& meshComponentCopy = entity.getComponent<MeshComponent>();
             meshComponent = new MeshComponent(meshComponentCopy.vao, meshComponentCopy.vbo, meshComponentCopy.ebo, 
-                meshComponentCopy.registryId, meshComponentCopy.texture->getAttachments());
+                meshComponentCopy.registryId, meshComponentCopy.modelSpec, meshComponentCopy.texture);
         }
         if(entity.hasComponent<MeshRendererComponent>()) {
             auto& meshRendererComponentCopy = entity.getComponent<MeshRendererComponent>();
@@ -63,22 +73,34 @@ namespace TWE {
     }
 
     void CreateEntityCommand::setComponents(Entity& entity) {
-        entity.addComponent<TransformComponent>(*transformComponent);
-        entity.addComponent<NameComponent>(*nameComponent);
-        entity.addComponent<IDComponent>(*idComponent);
-        entity.addComponent<CreationTypeComponent>(*creationTypeComponent);
-        entity.addComponent<ParentChildsComponent>(*parentChildsComponent);
+        if(!entity.hasComponent<TransformComponent>())
+            entity.addComponent<TransformComponent>(*transformComponent);
+        if(!entity.hasComponent<NameComponent>())
+            entity.addComponent<NameComponent>(*nameComponent);
+        if(!entity.hasComponent<IDComponent>())
+            entity.addComponent<IDComponent>(*idComponent);
+        if(!entity.hasComponent<CreationTypeComponent>())
+            entity.addComponent<CreationTypeComponent>(*creationTypeComponent);
+        if(!entity.hasComponent<ParentChildsComponent>())
+            entity.addComponent<ParentChildsComponent>(*parentChildsComponent);
         if(parentChildsComponent->parent != entt::null) {
             Entity parentEntity = { parentChildsComponent->parent, _sourceScene };
-            parentEntity.getComponent<ParentChildsComponent>().childs.push_back(entity.getSource());
+            if(parentEntity.hasComponent<ParentChildsComponent>()) {
+                auto& childs = parentEntity.getComponent<ParentChildsComponent>().childs;
+                auto& itChild = std::find_if(childs.begin(), childs.end(), [&](entt::entity entityChild) {
+                    return entityChild == entity.getSource();
+                });
+                if(itChild == childs.end())
+                    childs.push_back(entity.getSource());
+            }
         }
-        if(lightComponent)
+        if(lightComponent && !entity.hasComponent<LightComponent>())
             entity.addComponent<LightComponent>(*lightComponent);
-        if(cameraComponent)
+        if(cameraComponent && !entity.hasComponent<CameraComponent>())
             entity.addComponent<CameraComponent>(*cameraComponent);
-        if(meshComponent)
+        if(meshComponent && !entity.hasComponent<MeshComponent>())
             entity.addComponent<MeshComponent>(*meshComponent);
-        if(meshRendererComponent)
+        if(meshRendererComponent && !entity.hasComponent<MeshRendererComponent>())
             entity.addComponent<MeshRendererComponent>(*meshRendererComponent);
     }
 }

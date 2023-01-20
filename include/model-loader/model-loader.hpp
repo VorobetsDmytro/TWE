@@ -6,6 +6,7 @@
 #include <assimp/postprocess.h>
 #include <string>
 #include <vector>
+#include <filesystem>
 
 #include "scene/components/components.hpp"
 #include "model-loader-data.hpp"
@@ -19,9 +20,8 @@ namespace TWE {
         void clean();
         void procNode(aiNode* node, const aiScene* scene);
         MeshComponent procMesh(aiMesh* mesh, const aiScene* scene);
-        std::vector<std::string> loadMatText(aiMaterial *mat, aiTextureType type);
         std::vector<MeshComponent> meshes;
-        std::string fileDir;
+        std::string filePath;
         bool hasTextures;
     };
 }

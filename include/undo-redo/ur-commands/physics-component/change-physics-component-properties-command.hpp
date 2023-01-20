@@ -7,11 +7,12 @@
 namespace TWE {
     struct PhysicsComponentProperties {
         PhysicsComponentProperties() = default;
-        PhysicsComponentProperties(float mass, bool isRotated, const glm::vec3& shapeDimensions)
-        : mass(mass), isRotated(isRotated), shapeDimensions(shapeDimensions) {}
+        PhysicsComponentProperties(float mass, bool isRotated, bool isTrigger, const glm::vec3& shapeDimensions)
+        : mass(mass), isRotated(isRotated), isTrigger(isTrigger), shapeDimensions(shapeDimensions) {}
         bool operator==(const PhysicsComponentProperties& physicsComponentProperties) {
             return this->mass == physicsComponentProperties.mass
                 && this->isRotated == physicsComponentProperties.isRotated
+                && this->isTrigger == physicsComponentProperties.isTrigger
                 && this->shapeDimensions == physicsComponentProperties.shapeDimensions;
         }
         bool operator!=(const PhysicsComponentProperties& physicsComponentProperties) {
@@ -19,6 +20,7 @@ namespace TWE {
         }
         float mass;
         bool isRotated;
+        bool isTrigger;
         glm::vec3 shapeDimensions;
     };
 

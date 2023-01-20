@@ -5,12 +5,16 @@ namespace TWE {
     : _entity(entity), _oldState(oldsState), _newState(newState) {}
     
     void ChangeCameraComponentStateCommand::execute()  {
+        if(!_entity.hasComponent<CameraComponent>())
+            return;
         auto& cameraComponent = _entity.getComponent<CameraComponent>();
         cameraComponent.setSource(*_newState.getSource());
         cameraComponent.setFocuse(_newState.isFocusedOn());
     }
 
     void ChangeCameraComponentStateCommand::unExecute() {
+        if(!_entity.hasComponent<CameraComponent>())
+            return;
         auto& cameraComponent = _entity.getComponent<CameraComponent>();
         cameraComponent.setSource(*_oldState.getSource());
         cameraComponent.setFocuse(_oldState.isFocusedOn());

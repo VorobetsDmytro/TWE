@@ -19,9 +19,11 @@ namespace TWE {
         static bool checkBox(const std::string& label, bool& value, float labelColumnWidth = 80.f);
         static bool inputAndButton(const std::string& label, std::string& value, const std::string& buttonLabel, float labelColumnWidth = 80.f);
         static int imageButton(const std::string& label, ImTextureID imgId, const ImVec2 &size, std::function<void()> dragAndDropFunc = [](){}, float labelColumnWidth = 80.f);
+        static int combo(const std::string& label, std::string& selected, std::vector<std::string>& options, float labelColumnWidth = 80.f);
+        static int comboAndButton(const std::string& label, std::string& selected, std::vector<std::string>& options, 
+            std::function<void()> addFunc = [](){}, float labelColumnWidth = 80.f);
         static void text(const std::string& label, const std::string& value, float labelColumnWidth = 80.f);
         static void image(const std::string& label, ImTextureID imgId, const ImVec2 &size, float labelColumnWidth = 80.f);
-        static int combo(const std::string& label, std::string& selected, std::vector<std::string>& options, float labelColumnWidth = 80.f);
     };
 }
 

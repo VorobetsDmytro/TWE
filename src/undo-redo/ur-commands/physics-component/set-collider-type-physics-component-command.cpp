@@ -6,10 +6,12 @@ namespace TWE {
     , _oldColliderType(oldColliderType), _localScale(localScale) {}
 
     void SetColliderTypePhysicsComponentCommand::execute() {
+        if(!_entity.hasComponent<PhysicsComponent>())
+            return;
         auto& physicsComponent = _entity.getComponent<PhysicsComponent>();
         if(_newColliderType == ColliderType::TriangleMesh) {
             if(_entity.hasComponent<MeshComponent>()) {
-                auto meshSpecification = Shape::meshRegistry->get(_entity.getComponent<MeshComponent>().registryId);
+                auto meshSpecification = Shape::shapeSpec->meshRegistry->get(_entity.getComponent<MeshComponent>().registryId);
                 physicsComponent.setColliderType(_newColliderType, TriangleMeshSpecification{meshSpecification->vbo, meshSpecification->ebo});
                 physicsComponent.setSize(_localScale);
             }
@@ -18,10 +20,12 @@ namespace TWE {
     }
 
     void SetColliderTypePhysicsComponentCommand::unExecute() {
+        if(!_entity.hasComponent<PhysicsComponent>())
+            return;
         auto& physicsComponent = _entity.getComponent<PhysicsComponent>();
         if(_oldColliderType == ColliderType::TriangleMesh) {
             if(_entity.hasComponent<MeshComponent>()) {
-                auto meshSpecification = Shape::meshRegistry->get(_entity.getComponent<MeshComponent>().registryId);
+                auto meshSpecification = Shape::shapeSpec->meshRegistry->get(_entity.getComponent<MeshComponent>().registryId);
                 physicsComponent.setColliderType(_oldColliderType, TriangleMeshSpecification{meshSpecification->vbo, meshSpecification->ebo});
                 physicsComponent.setSize(_localScale);
             }

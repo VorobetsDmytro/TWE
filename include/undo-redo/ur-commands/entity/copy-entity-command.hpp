@@ -25,6 +25,7 @@ namespace TWE {
         MeshRendererComponent* meshRendererComponent = nullptr;
         PhysicsComponent* physicsComponent = nullptr;
         ScriptComponent* scriptComponent = nullptr;
+        AudioComponent* audioComponent = nullptr;
 
         Entity _entity;
         entt::entity _newEntitySource;

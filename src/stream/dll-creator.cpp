@@ -91,7 +91,8 @@ namespace TWE {
         os << "\"" + fixPath("../../external/assimp") + "\"\n";
         os << "\"" + fixPath("../../external/bullet3") + "\"\n";
         os << "\"" + fixPath("../../external/entt") + "\"\n";
-        os << "\"" + fixPath("../../external/json") + "\")\n";
+        os << "\"" + fixPath("../../external/json") + "\"\n";
+        os << "\"" + fixPath("../../external/irrKlang") + "\")\n";
 
         os << "target_link_libraries(" + scriptName + " PRIVATE ${LIBFILES})\n";
 

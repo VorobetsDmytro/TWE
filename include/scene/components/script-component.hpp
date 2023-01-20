@@ -1,52 +1,41 @@
 #ifndef SCRIPT_COMPONENT_HPP
 #define SCRIPT_COMPONENT_HPP
 
-#include <string>
+#include <vector>
 
 #include "entity/behavior.hpp"
+#include "scene/components/script-specifications/script-specification.hpp"
 
 namespace TWE {
     class ScriptComponent {
     public:
-        ScriptComponent();
+        ScriptComponent() = default;
         ScriptComponent(const ScriptComponent& scriptComponent);
+        void clean();
         template<typename T>
-        void bind();
-        void unbind() {
-            if(_instance) {
-                delete _instance;
-                _instance = nullptr;
-            }
-            _isInitialized = false;
-            isEnabled = false;
-        }
-        void bind(Behavior* behavior, const std::string& behaviorClassName) {
-            _behaviorClassName = behaviorClassName;
-            _instance = behavior;
-            isEnabled = true;
-        }
-        void initialize(entt::entity entity, Scene* scene) {
-            _instance->gameObject = { entity, scene };
-            _instance->setInput(Input::keyboardPressedKeys, Input::mousePressedButtons, Input::mouseOffset, 
-                Input::keyboardPressedActions, Input::mousePressedActions);
-            _isInitialized = true;
-        }
-        [[nodiscard]] std::string getBehaviorClassName() const noexcept {
-            return _behaviorClassName;
-        }
-        bool isEnabled;
+        ScriptSpecification* bind();
+        ScriptSpecification* bind(Behavior* behavior, const std::string& behaviorClassName);
+        void unbind(const std::string& behaviorClassName);
+        [[nodiscard]] ScriptSpecification* getScript(int index);
+        [[nodiscard]] ScriptSpecification* getScript(const std::string& behaviorClassName);
+        [[nodiscard]] std::vector<ScriptSpecification>& getScripts();
+        [[nodiscard]] std::vector<std::string> getScriptsBehaviorName();
     private:
-        bool _isInitialized;
-        Behavior* _instance;
-        std::string _behaviorClassName;
+        std::vector<ScriptSpecification> _scripts;
         friend class Scene;
     };
 
     template<typename T>
-    void ScriptComponent::bind() {
-        _behaviorClassName = std::string(typeid(T).name()).substr(6);
-        _instance = static_cast<Behavior*>(new T);
-        isEnabled = true;
+    ScriptSpecification* ScriptComponent::bind() {
+        std::string behaviorClassName = std::string(typeid(T).name()).substr(6);
+        auto it = std::find_if(_scripts.begin(), _scripts.end(), [&](const ScriptSpecification& scriptSpecification) {
+            return scriptSpecification.behaviorClassName == behaviorClassName;
+        });
+        if(it != _scripts.end())
+            return nullptr;
+        ScriptSpecification scriptSpecification(static_cast<Behavior*>(new T), behaviorClassName, true);
+        _scripts.push_back(scriptSpecification);
+        return &_scripts.back();
     }
 }
 

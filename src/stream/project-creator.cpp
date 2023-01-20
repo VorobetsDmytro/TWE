@@ -8,6 +8,7 @@ namespace TWE {
             return false;
         std::string projectDirectoryPath = projectPath + '/' + projectName;
         std::filesystem::create_directory(projectDirectoryPath);
+        std::filesystem::create_directory(projectDirectoryPath + "/audio");
         std::filesystem::create_directory(projectDirectoryPath + "/models");
         std::filesystem::create_directory(projectDirectoryPath + "/scenes");
         std::filesystem::create_directory(projectDirectoryPath + "/textures");
@@ -34,7 +35,7 @@ namespace TWE {
             deserializaScriptDLL(dllData, data, rootPath);
             scriptDLLRegistry->add(dllData->scriptName, dllData);
         }
-        return new ProjectData(jsonMain["Project"], jsonMain["ProjectRootPath"], jsonMain["DLLTempDir"], jsonMain["LastScenePath"]);
+        return new ProjectData(jsonMain["Project"], rootPath, jsonMain["DLLTempDir"], jsonMain["LastScenePath"]);
     }
 
     bool ProjectCreator::save(ProjectData* projectData, Registry<DLLLoadData>* scriptDLLRegistry) {

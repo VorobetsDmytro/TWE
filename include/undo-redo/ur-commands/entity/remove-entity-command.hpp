@@ -26,6 +26,7 @@ namespace TWE {
         MeshRendererComponent* meshRendererComponent = nullptr;
         PhysicsComponent* physicsComponent = nullptr;
         ScriptComponent* scriptComponent = nullptr;
+        AudioComponent* audioComponent = nullptr;
 
         std::vector<RemoveEntityCommand*> _childsCommand;
         std::function<void()> _unselectFunc;

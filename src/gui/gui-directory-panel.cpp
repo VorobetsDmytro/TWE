@@ -8,8 +8,8 @@ namespace TWE {
     }
 
     void GUIDirectoryPanel::loadTextures() {
-        _dirImgPath = "../../include/gui/images/folder.png";
-        _fileImgPath = "../../include/gui/images/file.png";
+        _dirImgPath = "../../images/folder.png";
+        _fileImgPath = "../../images/file.png";
         TextureSpecification dirSpec(_dirImgPath, 0, TextureType::Texture2D, TextureInOutFormat::RGBA);
         TextureSpecification fileSpec(_fileImgPath, 0, TextureType::Texture2D, TextureInOutFormat::RGBA);
         _dirTexture = new Texture();
@@ -53,6 +53,11 @@ namespace TWE {
         std::string curPathTitle = "Current path: " + curPath;
         ImGui::Text(curPathTitle.c_str());
         ImGui::PopStyleVar();
+        if(!std::filesystem::exists(_curPath))
+            if(std::filesystem::exists( _projectData->rootPath))
+                _curPath = _projectData->rootPath;
+            else
+                _curPath = "./";
         if(_curPath != _projectData->rootPath) {
             ImGui::SameLine();
             float backBtnHeight = 15.f;
@@ -100,7 +105,6 @@ namespace TWE {
                         _curPath /= path.filename();
                     else if(extension == ".scene") {
                         selectedEntity = {};
-                        _scene->reset();
                         SceneSerializer::deserialize(_scene, path.string());
                         _projectData->lastScenePath = std::filesystem::relative(path, _projectData->rootPath);
                         ProjectCreator::save(_projectData, _scene->_scriptDLLRegistry);
@@ -129,7 +133,6 @@ namespace TWE {
             if(fileExtension == ".scene") {
                 if(ImGui::Button("Load scene", {availSize.x, 0.f})) {
                     selectedEntity = {};
-                    _scene->reset();
                     SceneSerializer::deserialize(_scene, filePath.string());
                     _projectData->lastScenePath = std::filesystem::relative(filePath, _projectData->rootPath);
                     ProjectCreator::save(_projectData, _scene->_scriptDLLRegistry);
@@ -207,7 +210,7 @@ namespace TWE {
             if(ImGui::BeginMenu("Create scene")) {
                 static std::string sceneName;
                 if(GUIComponents::inputAndButton("Scene name", sceneName, "Create")) {
-                    Scene* newScene = new Scene(0.f, 0.f);
+                    Scene* newScene = new Scene(0.f, 0.f, "../../");
                     SceneSerializer::serialize(newScene, _curPath.string() + '/' + sceneName + ".scene", _projectData);
                     delete newScene;
                     sceneName.clear();
