@@ -13,6 +13,35 @@ namespace TWE {
         _world->setDebugDrawer(_debugDrawer);
     }
 
+    void ScenePhysics::reset(entt::registry* registry) {
+        registry->view<PhysicsComponent>().each([&](entt::entity entity, PhysicsComponent& physicsComponent){
+            if(!physicsComponent.getRigidBody())
+                return;
+            physicsComponent.getDynamicsWorld()->removeRigidBody(physicsComponent.getRigidBody());
+        });
+    }
+
+    void ScenePhysics::updateWorldSimulation(entt::registry* registry, float deltaTime) {
+        registry->view<PhysicsComponent, TransformComponent>().each([](entt::entity entity, PhysicsComponent& physicsComponent, 
+        TransformComponent& transformComponent){
+            btRigidBody* rigidBody = physicsComponent.getRigidBody();
+            rigidBody->activate();
+            if(physicsComponent.getMass() == 0.f)
+                return;
+            btTransform worldTransform;
+            rigidBody->getMotionState()->getWorldTransform(worldTransform);
+            btVector3 pos = worldTransform.getOrigin();
+            btQuaternion quat = worldTransform.getRotation();
+            transformComponent.setPosition(glm::vec3(pos.getX(), pos.getY(), pos.getZ()));
+            glm::vec3 rot;
+            quat.getEulerZYX(rot.z, rot.y, rot.x);
+            transformComponent.setRotation(rot);
+            physicsComponent.setNeedUpdate(false);
+        });
+        _world->stepSimulation(deltaTime);
+        checkCollisionsDetection();
+    }
+
     void ScenePhysics::debugDrawWorld() {
         _world->debugDrawWorld();
     }

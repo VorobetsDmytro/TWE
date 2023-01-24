@@ -6,14 +6,18 @@
 #include <LinearMath/btVector3.h>
 #include <map>
 #include <vector>
+#include <entt/entt.hpp>
 
 #include "scene/scene-bullet-debug-drawer.hpp"
+#include "scene/components/components.hpp"
 
 namespace TWE {
     class ScenePhysics {
     public:
         ScenePhysics() = default;
         ScenePhysics(const std::filesystem::path& rootPath);
+        void reset(entt::registry* registry);
+        void updateWorldSimulation(entt::registry* registry, float deltaTime);
         void debugDrawWorld();
         void checkCollisionsDetection();
         void cleanCollisionDetection();

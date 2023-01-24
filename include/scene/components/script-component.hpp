@@ -22,7 +22,6 @@ namespace TWE {
         [[nodiscard]] std::vector<std::string> getScriptsBehaviorName();
     private:
         std::vector<ScriptSpecification> _scripts;
-        friend class Scene;
     };
 
     template<typename T>

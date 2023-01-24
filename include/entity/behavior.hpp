@@ -54,7 +54,7 @@ namespace TWE {
             this->shapeSpec = shapeSpec;
         }
         friend class ScriptSpecification;
-        friend class Scene;
+        friend class SceneScripts;
     };
 
     template<typename T>

@@ -7,6 +7,7 @@
 
 #include "scene/components/components.hpp"
 #include "scene/scene.hpp"
+
 #include "renderer/texture.hpp"
 
 namespace TWE {

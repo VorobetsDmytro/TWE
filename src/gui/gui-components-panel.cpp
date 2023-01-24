@@ -736,7 +736,7 @@ namespace TWE {
                     }
                     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5.f);
                     if(ImGui::Button("Validate")) {
-                        _scene->validateScript(script.behaviorClassName);
+                        _scene->getSceneScripts()->validateScript(script.behaviorClassName, _scene);
                         ImGui::CloseCurrentPopup();
                     }
                     if(ImGui::Button("Unbind script")) {

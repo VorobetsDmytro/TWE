@@ -147,7 +147,7 @@ namespace TWE {
                 }
                 if(ImGui::Button("Validate", {availSize.x, 0.f})) {
                     std::string fileName = filePath.stem().string();
-                    _scene->validateScript(fileName);
+                    _scene->getSceneScripts()->validateScript(fileName, _scene);
                     ImGui::CloseCurrentPopup();
                 }
                 if(validateScriptFlag) {
@@ -170,8 +170,9 @@ namespace TWE {
                     if(_scene->_scriptDLLRegistry->has(fileName)) {
                         auto scriptDLLData = _scene->_scriptDLLRegistry->get(fileName);
                         if(scriptDLLData) {
-                            _scene->unbindScript(&_scene->_sceneRegistry.edit.entityRegistry, scriptDLLData);
-                            _scene->unbindScript(&_scene->_sceneRegistry.run.entityRegistry, scriptDLLData);
+                            auto sceneScripts = _scene->getSceneScripts();
+                            sceneScripts->unbindScript(&_scene->_sceneRegistry.edit.entityRegistry, scriptDLLData, _scene);
+                            sceneScripts->unbindScript(&_scene->_sceneRegistry.run.entityRegistry, scriptDLLData, _scene);
                             DLLCreator::freeDLLFunc(*scriptDLLData);
                             _scene->_scriptDLLRegistry->erase(fileName);
                             DLLCreator::removeScript(fileName);

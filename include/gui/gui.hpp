@@ -3,10 +3,13 @@
 
 #include "scene/scene.hpp"
 #include "scene/scene-serializer.hpp"
+
 #include "gui/gui-components-panel.hpp"
 #include "gui/gui-directory-panel.hpp"
 #include "gui/gui-start-panel.hpp"
 #include "gui/gui-scene-panel.hpp"
+#include "gui/gui-viewport-panel.hpp"
+
 #include "registry/registry.hpp"
 #include "stream/project-creator.hpp"
 #include "stream/build-creator.hpp"
@@ -25,19 +28,12 @@
 #include <iostream>
 
 namespace TWE {
-    enum class GizmoOperation {
-        None = -1,
-        Translate = ImGuizmo::OPERATION::TRANSLATE,
-        Rotate = ImGuizmo::OPERATION::ROTATE,
-        Scale = ImGuizmo::OPERATION::SCALE,
-    };
 
     struct GUISpecification {
         GUISpecification() = default;
         Scene* _scene;
         Entity _selectedEntity;
         ProjectData* projectData;
-        GizmoOperation _gizmoOperation;
         int readPixelFBOData;
         bool isMouseOnViewport;
         bool isFocusedOnViewport;
@@ -58,10 +54,9 @@ namespace TWE {
         [[nodiscard]] bool getIsFocusedOnViewport();
         [[nodiscard]] bool getIsMouseDisabled();
     private:
+        void initImguiFileDialog();
         void showDockSpace();
         void showTestPanel();
-        void showViewportPanel();
-        void showViewportStatePanel();
         void showFileDialog();
         bool showGizmo();
         void processInput();
@@ -71,6 +66,7 @@ namespace TWE {
         GUIComponentsPanel _components;
         GUIDirectoryPanel _directory;
         GUIScenePanel _scene;
+        GUIViewportPanel _viewport;
         GUISpecification _specification;
         std::vector<std::pair<const char*, bool&>> _checkBoxes;
         std::vector<std::pair<const char*, std::string&>> _inputTextes;

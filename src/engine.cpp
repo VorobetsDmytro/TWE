@@ -117,9 +117,10 @@ namespace TWE {
         Input::mouseButtonCallback(window, button, action, mods);
         #ifndef TWE_BUILD
         if(button == GLFW_MOUSE_BUTTON_RIGHT && !gui->getIsMouseDisabled()) {
-            bool inputModeDissabled = action == GLFW_PRESS && gui->getIsFocusedOnViewport() && curScene->getIsFocusedOnDebugCamera();
-            glfwSetInputMode(window, GLFW_CURSOR, inputModeDissabled ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
-        }
+            bool inputModeDissabled = action == GLFW_PRESS && gui->getIsFocusedOnViewport() && gui->getIsMouseOnViewport() && curScene->getIsFocusedOnDebugCamera();
+            Input::setShowCursor(!inputModeDissabled);
+        } else if(curScene->getSceneState() != SceneState::Run && (button != GLFW_MOUSE_BUTTON_LEFT))
+            Input::setShowCursor(true);
         #endif
     }
 
@@ -129,15 +130,18 @@ namespace TWE {
         if(!gui->getIsFocusedOnViewport())
             return;
         Input::mouseCallback(window, xpos, ypos);
-        if(Input::isMouseButtonPressed(Mouse::MOUSE_BUTTON_RIGHT) && curScene->getIsFocusedOnDebugCamera()) {
+        if(Input::isMouseButtonPressed(Mouse::MOUSE_BUTTON_RIGHT) && gui->getIsFocusedOnViewport() && curScene->getIsFocusedOnDebugCamera()) {
             if(debugCameraFlag) {
                 auto mouseOffset = Input::getMouseOffset();
                 debugCamera->mouseInput(mouseOffset[0], mouseOffset[1]);
             }
             debugCameraFlag = true;
-            glfwSetInputMode(window, GLFW_CURSOR, gui->getIsFocusedOnViewport() ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
-        } else 
+            Input::setShowCursor(!gui->getIsFocusedOnViewport());
+        } else {
             debugCameraFlag = false;
+            if(curScene->getSceneState() != SceneState::Run)
+                Input::setShowCursor(true);
+        }
         #else
         Input::mouseCallback(window, xpos, ypos);
         #endif
@@ -196,7 +200,7 @@ namespace TWE {
                 std::filesystem::path startScenePath = "./" + buildData->startScenePath.string();
                 SceneSerializer::deserialize(curScene.get(), startScenePath.string());
                 curScene->getIsFocusedOnDebugCamera() = false;
-                curScene->startAudioOnRun();
+                curScene->getSceneAudio()->startAudioOnRun(curScene->getRegistry());
             }
         }
     }

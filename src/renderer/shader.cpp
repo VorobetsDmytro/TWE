@@ -112,7 +112,6 @@ namespace TWE {
         "mvp"
     };
 
-    // #ifndef TWE_BUILD
     const char* SHADER_PATHS[8] = {
         "shaders/default.vert",
         "shaders/default.frag",
@@ -123,16 +122,4 @@ namespace TWE {
         "shaders/ui.vert",
         "shaders/ui.frag",
     };
-    // #else
-    // const char* SHADER_PATHS[8] = {
-    //     "./shaders/default.vert",
-    //     "./shaders/default.frag",
-    //     "./shaders/cubemap.vert",
-    //     "./shaders/cubemap.frag",
-    //     "./shaders/collider.vert",
-    //     "./shaders/collider.frag",
-    //     "./shaders/ui.vert",
-    //     "./shaders/ui.frag",
-    // };
-    // #endif
 }
