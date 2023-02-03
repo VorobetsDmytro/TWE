@@ -26,6 +26,13 @@ namespace TWE {
         this->material = material;
     }
 
+    void MeshRendererComponent::updateMatsUniform(const glm::mat4& model, const glm::mat4& view, const glm::mat4& projection, const glm::mat4& projectionView) {
+        shader->setUniform(TRANS_MAT_OPTIONS[TransformMatrixOptions::MODEL], model);
+        shader->setUniform(TRANS_MAT_OPTIONS[TransformMatrixOptions::VIEW], view);
+        shader->setUniform(TRANS_MAT_OPTIONS[TransformMatrixOptions::PROJECTION], projection);
+        shader->setUniform(TRANS_MAT_OPTIONS[TransformMatrixOptions::MVP], projectionView * model);
+    }
+
     void MeshRendererComponent::updateMaterialUniform() {
         shader->setUniform("material.objColor", material.objColor);
         shader->setUniform("material.ambient", material.ambient);

@@ -157,30 +157,9 @@ namespace TWE {
         updateTransforms();
         auto& fboSize = _frameBuffer->getSize();
         updateShadows(fboSize.first, fboSize.second);
-        if(!updateView()) {
-            _frameBuffer->bind();
-            Renderer::cleanScreen({});
-            _frameBuffer->unbind();
+        if(!updateView())
             return;
-        }
         updateLight();
-        #ifndef TWE_BUILD
-        _frameBuffer->bind();
-        Renderer::cleanScreen({});
-        draw(_sceneCamera.projection, _sceneCamera.view, _sceneCamera.projectionView, _sceneCamera.position);
-        if(_isFocusedOnDebugCamera) {
-            _sceneRegistry.current->physics.getDebugDrawer()->setMats(_sceneCamera.view, _sceneCamera.projection);
-            _sceneRegistry.current->physics.debugDrawWorld();
-        }
-        Renderer::cleanDepth();
-        if(!_isFocusedOnDebugCamera)
-            drawUI(_sceneCamera.projection, _sceneCamera.view, _sceneCamera.projectionView, _sceneCamera.position);
-        _frameBuffer->unbind();
-        #else
-        draw(_sceneCamera.projection, _sceneCamera.view, _sceneCamera.projectionView, _sceneCamera.position);
-        Renderer::cleanDepth();
-        drawUI(_sceneCamera.projection, _sceneCamera.view, _sceneCamera.projectionView, _sceneCamera.position);
-        #endif
     }
 
     void Scene::updateRunState() {
@@ -191,30 +170,9 @@ namespace TWE {
         _sceneRegistry.current->physics.cleanCollisionDetection();
         auto& fboSize = _frameBuffer->getSize();
         updateShadows(fboSize.first, fboSize.second);
-        if(!updateView()) {
-            _frameBuffer->bind();
-            Renderer::cleanScreen({});
-            _frameBuffer->unbind();
+        if(!updateView())
             return;
-        }
         updateLight();
-        #ifndef TWE_BUILD
-        _frameBuffer->bind();
-        Renderer::cleanScreen({});
-        draw(_sceneCamera.projection, _sceneCamera.view, _sceneCamera.projectionView, _sceneCamera.position);
-        if(_isFocusedOnDebugCamera) {
-            _sceneRegistry.current->physics.getDebugDrawer()->setMats(_sceneCamera.view, _sceneCamera.projection);
-            _sceneRegistry.current->physics.debugDrawWorld();
-        }
-        Renderer::cleanDepth();
-        if(!_isFocusedOnDebugCamera)
-            drawUI(_sceneCamera.projection, _sceneCamera.view, _sceneCamera.projectionView, _sceneCamera.position);
-        _frameBuffer->unbind();
-        #else
-        draw(_sceneCamera.projection, _sceneCamera.view, _sceneCamera.projectionView, _sceneCamera.position);
-        Renderer::cleanDepth();
-        drawUI(_sceneCamera.projection, _sceneCamera.view, _sceneCamera.projectionView, _sceneCamera.position);
-        #endif
     }
 
     void Scene::updateLight() {
@@ -330,28 +288,6 @@ namespace TWE {
         #else
         updateRunState();
         #endif
-    }
-
-    void Scene::draw(const glm::mat4& projection, const glm::mat4& view, const glm::mat4& projectionView, const glm::vec3& viewPos) {
-        static std::string uiPath = "../../" + std::string(SHADER_PATHS[ShaderIndices::UI_VERT]);
-        auto& lightEnteties = _sceneRegistry.current->entityRegistry.view<LightComponent>();
-        _sceneRegistry.current->entityRegistry.view<MeshComponent, MeshRendererComponent, TransformComponent>()
-            .each([&](entt::entity entity, MeshComponent& meshComponent, MeshRendererComponent& meshRendererComponent, TransformComponent& transformComponent){
-                if(meshRendererComponent.shader->getVertPath() != uiPath)
-                    Renderer::execute(&meshComponent, &meshRendererComponent, transformComponent.getModel(), view, projection, viewPos,
-                        lightEnteties.size(), projectionView);
-            });
-    }
-
-    void Scene::drawUI(const glm::mat4& projection, const glm::mat4& view, const glm::mat4& projectionView, const glm::vec3& viewPos) {
-        static std::string uiPath = "../../" + std::string(SHADER_PATHS[ShaderIndices::UI_VERT]);
-        auto& lightEnteties = _sceneRegistry.current->entityRegistry.view<LightComponent>();
-        _sceneRegistry.current->entityRegistry.view<MeshComponent, MeshRendererComponent, TransformComponent>()
-            .each([&](entt::entity entity, MeshComponent& meshComponent, MeshRendererComponent& meshRendererComponent, TransformComponent& transformComponent){
-                if(meshRendererComponent.shader->getVertPath() == uiPath)
-                    Renderer::execute(&meshComponent, &meshRendererComponent, transformComponent.getModel(), view, projection, viewPos,
-                        lightEnteties.size(), projectionView);
-            });
     }
 
     void Scene::cleanEntity(Entity& entity) {
@@ -495,6 +431,7 @@ namespace TWE {
     std::string Scene::getName() const noexcept { return _name; }
     FBO* Scene::getFrameBuffer() const noexcept { return _frameBuffer.get(); }
     Registry<DLLLoadData>* Scene::getScriptDLLRegistry() const noexcept { return _scriptDLLRegistry; }
+    int Scene::getLightsCount() const noexcept { return _sceneRegistry.current->entityRegistry.view<LightComponent>().size(); }
     SceneStateSpecification* Scene::getSceneStateSpecification() { return _sceneRegistry.current; }
     SceneAudio* Scene::getSceneAudio() { return &_sceneAudio; }
     SceneScripts* Scene::getSceneScripts() { return _sceneScripts; }

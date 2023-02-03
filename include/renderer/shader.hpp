@@ -54,6 +54,7 @@ namespace TWE {
         uint32_t _id;
         std::string _vertPath;
         std::string _fragPath;
+        static uint32_t currentShaderInUseID;
     };
 }
 

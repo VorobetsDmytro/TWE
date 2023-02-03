@@ -47,8 +47,6 @@ namespace TWE {
     public:
         Scene(uint32_t windowWidth, uint32_t windowHeight, const std::filesystem::path& rootPath);
         void update();
-        void draw(const glm::mat4& projection, const glm::mat4& view, const glm::mat4& projectionView, const glm::vec3& viewPos);
-        void drawUI(const glm::mat4& projection, const glm::mat4& view, const glm::mat4& projectionView, const glm::vec3& viewPos);
         void reset();
         void setDebugCamera(DebugCamera* debugCamera);
         void setName(const std::string& name);
@@ -64,6 +62,7 @@ namespace TWE {
         [[nodiscard]] std::string getName() const noexcept;
         [[nodiscard]] FBO* getFrameBuffer() const noexcept;
         [[nodiscard]] Registry<DLLLoadData>* getScriptDLLRegistry() const noexcept;
+        [[nodiscard]] int getLightsCount() const noexcept;
         [[nodiscard]] SceneStateSpecification* getSceneStateSpecification();
         [[nodiscard]] SceneAudio* getSceneAudio();
         [[nodiscard]] SceneScripts* getSceneScripts();

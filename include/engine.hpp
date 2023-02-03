@@ -50,6 +50,7 @@ namespace TWE {
         void updateTitle();
         void initGLFW(int& wndWidth, int& wndHeight, const char* title, GLFWmonitor* monitor, GLFWwindow* share);
         void initGLAD(int wndWidth, int wndHeight);
+        void render();
         static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
         static void mouseCallback(GLFWwindow* window, double xpos, double ypos);
         static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
