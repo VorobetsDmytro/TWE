@@ -35,7 +35,6 @@ struct Light {
     bool castShadows;
 };
 
-
 layout (location = 0) out vec4 color;
 layout (location = 1) out int outId;
 
@@ -44,8 +43,9 @@ in vec3 normal;
 in vec2 texCoord;
 
 uniform bool hasTexture = false;
+uniform bool calculateLight = true;
 uniform sampler2D textureImg;
-uniform int lightCount;
+uniform int lightCount = 0;
 uniform Light lights[MAX_LIGHTS];
 uniform float alpha = 1.f;
 uniform vec3 viewPos = vec3(0.f, 0.f, 0.f);
@@ -131,6 +131,11 @@ vec3 calculateSpotLight(Light light, vec3 viewDir, vec3 normalNormlz) {
 }
 
 void main() {
+    if(!calculateLight) {
+        color = vec4(material.objColor, alpha);
+        outId = id;
+        return;
+    }
     vec3 viewDir = normalize(viewPos - fragPos);
     vec3 normalNormlz = normalize(normal);
     vec3 lightColor = vec3(0.f, 0.f, 0.f);

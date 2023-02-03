@@ -175,18 +175,43 @@ namespace TWE {
             glfwPollEvents();
             updateTitle();
             updateInput();
-            #ifndef TWE_BUILD
-            gui->begin();
-            curScene->update();
-            gui->end();
-            #else
-            uiBuild->begin();
-            curScene->update();
-            uiBuild->end();
-            #endif
+            render();
             glfwSwapBuffers(window);
             Time::calculate();
         }
+    }
+
+    void Engine::render() {
+        auto camera = curScene->getSceneCamera();
+        #ifndef TWE_BUILD
+        gui->begin();
+        curScene->update();
+        auto frameBuffer = curScene->getFrameBuffer();
+        frameBuffer->bind();
+        Renderer::cleanScreen({});
+        if(!camera->camera) {
+            frameBuffer->unbind();
+            gui->end();
+            return;
+        }
+        Renderer::render(curScene.get(), true);
+        Renderer::cleanDepth();
+        if(!curScene->getIsFocusedOnDebugCamera())
+            Renderer::render(curScene.get(), false);
+        frameBuffer->unbind();
+        gui->end();
+        #else
+        uiBuild->begin();
+        curScene->update();
+        if(!camera->camera) {
+            uiBuild->end();
+            return;
+        }
+        Renderer::render(curScene.get(), true);
+        Renderer::cleanDepth();
+        Renderer::render(curScene.get(), false);
+        uiBuild->end();
+        #endif
     }
 
     #ifdef TWE_BUILD

@@ -1,6 +1,8 @@
 #include "renderer/shader.hpp"
 
 namespace TWE {
+    uint32_t Shader::currentShaderInUseID = UINT32_MAX;
+
     Shader::Shader(const char* vertPath, const char* fragPath)
     : _vertPath(vertPath), _fragPath(fragPath) {
         std::string vertBody = File::getBody(vertPath);
@@ -57,7 +59,10 @@ namespace TWE {
     }
 
     void Shader::use() {
-        glUseProgram(_id);
+        if(currentShaderInUseID != _id) {
+            glUseProgram(_id);
+            currentShaderInUseID = _id;
+        }
     }
 
     void Shader::clean() {
