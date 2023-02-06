@@ -319,6 +319,8 @@ namespace TWE {
         jsonShaders["VertPath"] = std::filesystem::relative(meshRendererComponent.shader->getVertPath(), "../../").string();
         jsonShaders["FragPath"] = std::filesystem::relative(meshRendererComponent.shader->getFragPath(), "../../").string();
         jsonMeshRendererComponent["Shaders"] = jsonShaders;
+
+        jsonMeshRendererComponent["Is3D"] = meshRendererComponent.is3D;
             
         jsonEntity["MeshRendererComponent"] = jsonMeshRendererComponent;
     }
@@ -361,6 +363,10 @@ namespace TWE {
                 }
             }
         }
+
+        auto jsonIs3D = jsonComponent.find("Is3D");
+        if(jsonIs3D != jsonComponent.end())
+            meshRendererComponent.is3D = jsonIs3D.value();
     }
 
     void SceneSerializer::serializeCameraComponent(Entity& entity, nlohmann::json& jsonEntity) {

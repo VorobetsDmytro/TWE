@@ -1,29 +1,57 @@
 #include "renderer/renderer.hpp"
 
 namespace TWE {
-    void Renderer::render(Scene* scene, bool is3D){
-        static std::string uiPath = "../../" + std::string(SHADER_PATHS[ShaderIndices::UI_VERT]);
-        int lightsCount = scene->getLightsCount();
+    void Renderer::render2D(const RendererSpecification& rendererSpec) {
+        auto& model = rendererSpec.transformComponent->getModel();
+        rendererSpec.meshRendererComponent->shader->setUniform("model", model);
+        rendererSpec.meshRendererComponent->shader->setUniform("hasTexture", !rendererSpec.meshComponent->texture->getAttachments().textureSpecifications.empty());
+        rendererSpec.meshRendererComponent->updateMaterialUniform();
+        rendererSpec.meshComponent->vao->bind();
+        rendererSpec.meshComponent->texture->bind();
+        glDrawElements(GL_TRIANGLES, rendererSpec.meshComponent->ebo->getSize() / sizeof(int), GL_UNSIGNED_INT, (void*)0);
+    }
+
+    void Renderer::render3D(const RendererSpecification& rendererSpec, const glm::vec3& cameraPosition, const glm::mat4& cameraView, const glm::mat4& cameraProjection, 
+    const glm::mat4& cameraProjectionView, int lightsCount) {
+        auto& model = rendererSpec.transformComponent->getModel();
+        rendererSpec.meshRendererComponent->updateMatsUniform(model, cameraView, cameraProjection, cameraProjectionView);
+        rendererSpec.meshRendererComponent->shader->setUniform("viewPos", cameraPosition);
+        rendererSpec.meshRendererComponent->shader->setUniform("hasTexture", !rendererSpec.meshComponent->texture->getAttachments().textureSpecifications.empty());
+        rendererSpec.meshRendererComponent->shader->setUniform("lightCount", lightsCount);
+        rendererSpec.meshRendererComponent->shader->setUniform("calculateLight", true);
+        rendererSpec.meshRendererComponent->updateMaterialUniform();
+        rendererSpec.meshComponent->vao->bind();
+        rendererSpec.meshComponent->texture->bind();
+        glDrawElements(GL_TRIANGLES, rendererSpec.meshComponent->ebo->getSize() / sizeof(int), GL_UNSIGNED_INT, (void*)0);
+    }
+
+    void Renderer::renderScene(Scene* scene) {
         SceneCameraSpecification* camera = scene->getSceneCamera();
         if(!camera->camera)
             return;
+        int lightsCount = scene->getLightsCount();
+        bool isFocusedOnDebugCamera = scene->getIsFocusedOnDebugCamera();
+        std::vector<RendererSpecification> _2DEntities;
         scene->getRegistry()->view<MeshComponent, MeshRendererComponent, TransformComponent>()
             .each([&](entt::entity entity, MeshComponent& meshComponent, MeshRendererComponent& meshRendererComponent, TransformComponent& transformComponent){
-                if((is3D && meshRendererComponent.shader->getVertPath() == uiPath)
-                || (!is3D && meshRendererComponent.shader->getVertPath() != uiPath))
+                if(!meshRendererComponent.is3D) {
+                    if(!isFocusedOnDebugCamera)
+                        _2DEntities.push_back({&meshComponent, &meshRendererComponent, &transformComponent});
                     return;
-                auto& model = transformComponent.getModel();
-                meshRendererComponent.shader->use();
-                meshRendererComponent.updateMatsUniform(model, camera->view, camera->projection, camera->projectionView);
-                meshRendererComponent.shader->setUniform("viewPos", camera->position);
-                meshRendererComponent.shader->setUniform("hasTexture", !meshComponent.texture->getAttachments().textureSpecifications.empty());
-                meshRendererComponent.shader->setUniform("lightCount", lightsCount);
-                meshRendererComponent.shader->setUniform("calculateLight", true);
-                meshRendererComponent.updateMaterialUniform();
-                meshComponent.vao->bind();
-                meshComponent.texture->bind();
-                glDrawElements(GL_TRIANGLES, meshComponent.ebo->getSize() / sizeof(int), GL_UNSIGNED_INT, (void*)0);
+                }
+                render3D({&meshComponent, &meshRendererComponent, &transformComponent}, camera->position, camera->view, camera->projection, camera->projectionView, lightsCount);
             });
+        if(isFocusedOnDebugCamera) {
+            #ifndef TWE_BUILD
+            scene->getSceneStateSpecification()->physics.getDebugDrawer()->setMats(camera->view, camera->projection);
+            scene->getSceneStateSpecification()->physics.debugDrawWorld();
+            #endif
+            return;
+        }
+        cleanDepth();
+        for(auto& rendererSpec : _2DEntities)
+            render2D(rendererSpec);
+        _2DEntities.clear();
     }
 
     void Renderer::cleanScreen(const glm::vec4& color) {
@@ -70,14 +98,16 @@ namespace TWE {
         glCullFace(GL_FRONT);
         fbo->bind();
         glClear(GL_DEPTH_BUFFER_BIT);
-        renderForShadowMap(scene, transformComponent.transform.position, lightView, lightProjection, lightProjection * lightView);
+        renderShadowMap(scene, transformComponent.transform.position, lightView, lightProjection, lightProjection * lightView);
         fbo->unbind();
         glCullFace(GL_BACK);
     }
 
-    void Renderer::renderForShadowMap(Scene* scene, const glm::vec3& position, const glm::mat4& view, const glm::mat4& projection, const glm::mat4& projectionView) {
+    void Renderer::renderShadowMap(Scene* scene, const glm::vec3& position, const glm::mat4& view, const glm::mat4& projection, const glm::mat4& projectionView) {
         scene->getRegistry()->view<MeshComponent, MeshRendererComponent, TransformComponent>()
             .each([&](entt::entity entity, MeshComponent& meshComponent, MeshRendererComponent& meshRendererComponent, TransformComponent& transformComponent){
+                if(!meshRendererComponent.is3D)
+                    return;
                 auto& model = transformComponent.getModel();
                 meshRendererComponent.shader->use();
                 meshRendererComponent.updateMatsUniform(model, view, projection, projectionView);

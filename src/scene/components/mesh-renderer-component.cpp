@@ -7,6 +7,7 @@ namespace TWE {
     : registryId(registryId), entityId(entityId) {
         shader = std::make_shared<Shader>(vertexShaderPath, fragmentShaderPath);
         shader->setUniform("id", entityId);
+        is3D = true;
     }
 
     MeshRendererComponent::MeshRendererComponent(const MeshRendererComponent& meshRendererComponent) {
@@ -14,6 +15,7 @@ namespace TWE {
         this->shader = meshRendererComponent.shader;
         this->registryId = meshRendererComponent.registryId;
         this->entityId = meshRendererComponent.entityId;
+        this->is3D = meshRendererComponent.is3D;
     }
 
     void MeshRendererComponent::setShader(const char* vertexShaderPath, const char* fragmentShaderPath, const std::string& registryId) {

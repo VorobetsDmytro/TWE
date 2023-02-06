@@ -4,7 +4,8 @@ namespace TWE {
     GUI::GUI(GLFWwindow *window) {
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
-        io.Fonts->AddFontFromFileTTF("../../fonts/Roboto-Bold.ttf", 16.f);
+        io.Fonts->Clear();
+        io.Fonts->AddFontFromFileTTF("../../fonts/Roboto-Bold.ttf", 16.f, nullptr, io.Fonts->GetGlyphRangesCyrillic());
         io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
         io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
