@@ -4,9 +4,10 @@ namespace TWE {
     void GUIStartPanel::initialize() {
         title = "The Worst Engine";
         ImGuiIO& io = ImGui::GetIO();
-        fontRobotoBold16 = io.Fonts->AddFontFromFileTTF("../../fonts/Roboto-Bold.ttf", 16.f);
-        fontRobotoBold32 = io.Fonts->AddFontFromFileTTF("../../fonts/Roboto-Bold.ttf", 32.f);
-        fontRobotoBold64 = io.Fonts->AddFontFromFileTTF("../../fonts/Roboto-Bold.ttf", 64.f);
+        io.Fonts->Clear();
+        fontRobotoBold16 = io.Fonts->AddFontFromFileTTF("../../fonts/Roboto-Bold.ttf", 16.f, nullptr, io.Fonts->GetGlyphRangesCyrillic());
+        fontRobotoBold32 = io.Fonts->AddFontFromFileTTF("../../fonts/Roboto-Bold.ttf", 32.f, nullptr, io.Fonts->GetGlyphRangesCyrillic());
+        fontRobotoBold64 = io.Fonts->AddFontFromFileTTF("../../fonts/Roboto-Bold.ttf", 64.f, nullptr, io.Fonts->GetGlyphRangesCyrillic());
 
         ImGuiFileDialog::Instance()->SetFileStyle(IGFD_FileStyleByExtention, ".project", ImVec4(1.0f, 1.0f, 0.0f, 1.f));
     }

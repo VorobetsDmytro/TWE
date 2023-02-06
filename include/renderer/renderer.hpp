@@ -12,9 +12,20 @@
 #include "renderer/texture.hpp"
 
 namespace TWE {
+    struct RendererSpecification {
+        RendererSpecification(MeshComponent* meshComponent, MeshRendererComponent* meshRendererComponent, TransformComponent* transformComponent)
+            : meshComponent(meshComponent), meshRendererComponent(meshRendererComponent), transformComponent(transformComponent) {}
+        MeshComponent* meshComponent;
+        MeshRendererComponent* meshRendererComponent;
+        TransformComponent* transformComponent;
+    };
+
     class Renderer {
     public:
-        static void render(Scene* scene, bool is3D);
+        static void render2D(const RendererSpecification& rendererSpec);
+        static void render3D(const RendererSpecification& rendererSpec, const glm::vec3& cameraPosition, const glm::mat4& cameraView, const glm::mat4& cameraProjection, 
+            const glm::mat4& cameraProjectionView, int lightsCount);
+        static void renderScene(Scene* scene);
         static void cleanScreen(const glm::vec4& color);
         static void cleanDepth();
         static void setViewport(int startX, int startY, int endX, int endY);
@@ -23,7 +34,7 @@ namespace TWE {
         static void generateDepthMap(LightComponent& lightComponent, const TransformComponent& transformComponent, const glm::mat4& lightProjection, 
                                      const glm::mat4& lightView, Scene* scene);
     private:
-        static void renderForShadowMap(Scene* scene, const glm::vec3& position, const glm::mat4& view, const glm::mat4& projection, const glm::mat4& projectionView);
+        static void renderShadowMap(Scene* scene, const glm::vec3& position, const glm::mat4& view, const glm::mat4& projection, const glm::mat4& projectionView);
     };
 }
 

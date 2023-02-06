@@ -392,6 +392,7 @@ namespace TWE {
             auto& meshRendererComponentCopy = to.entityRegistry.emplace<MeshRendererComponent>(instance, meshRendererComponent.shader->getVertPath().c_str(), 
                 meshRendererComponent.shader->getFragPath().c_str(), (int)instance, meshRendererComponent.registryId);
             meshRendererComponentCopy.setMaterial(meshRendererComponent.material);
+            meshRendererComponentCopy.is3D = meshRendererComponent.is3D;
         }
         if(entity.hasComponent<PhysicsComponent>()) {
             auto& physicsComponent = entity.getComponent<PhysicsComponent>();

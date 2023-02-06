@@ -394,6 +394,12 @@ namespace TWE {
                         meshRendererComponent.material.shininess = shininess;
                         newState = meshRendererComponent;
                     }
+                    auto is3D = meshRendererComponent.is3D;
+                    if(GUIComponents::checkBox("Is 3D", is3D)) {
+                        meshRendererComponent.is3D = is3D;
+                        newState = meshRendererComponent;
+                        _scene->_sceneRegistry.current->urControl.execute(new ChangeMeshRendererComponentState(entity, oldState, newState));
+                    }
                     if(Input::mouseButtonAction(Mouse::MOUSE_BUTTON_LEFT) == Action::RELEASE && addToURControl) {
                         addToURControl = false;
                         if(oldState.material != newState.material)

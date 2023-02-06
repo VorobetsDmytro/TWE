@@ -194,10 +194,7 @@ namespace TWE {
             gui->end();
             return;
         }
-        Renderer::render(curScene.get(), true);
-        Renderer::cleanDepth();
-        if(!curScene->getIsFocusedOnDebugCamera())
-            Renderer::render(curScene.get(), false);
+        Renderer::renderScene(curScene.get());
         frameBuffer->unbind();
         gui->end();
         #else
@@ -207,9 +204,7 @@ namespace TWE {
             uiBuild->end();
             return;
         }
-        Renderer::render(curScene.get(), true);
-        Renderer::cleanDepth();
-        Renderer::render(curScene.get(), false);
+        Renderer::renderScene(curScene.get());
         uiBuild->end();
         #endif
     }
