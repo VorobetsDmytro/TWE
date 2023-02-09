@@ -207,7 +207,7 @@ namespace TWE {
             if(ImGuiFileDialog::Instance()->IsOk()) {
                 std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
                 SceneSerializer::serialize(_specification._scene, filePathName, _specification.projectData);
-                _specification.projectData->lastScenePath = filePathName;
+                _specification.projectData->lastScenePath = std::filesystem::relative(filePathName, _specification.projectData->rootPath);
                 ProjectCreator::save(_specification.projectData, _specification._scene->_scriptDLLRegistry);
             }
             ImGuiFileDialog::Instance()->Close();

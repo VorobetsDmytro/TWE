@@ -119,7 +119,7 @@ namespace TWE {
         if(button == GLFW_MOUSE_BUTTON_RIGHT && !gui->getIsMouseDisabled()) {
             bool inputModeDissabled = action == GLFW_PRESS && gui->getIsFocusedOnViewport() && gui->getIsMouseOnViewport() && curScene->getIsFocusedOnDebugCamera();
             Input::setShowCursor(!inputModeDissabled);
-        } else if(curScene->getSceneState() != SceneState::Run && (button != GLFW_MOUSE_BUTTON_LEFT))
+        } else if(button != GLFW_MOUSE_BUTTON_LEFT && curScene->getIsFocusedOnDebugCamera())
             Input::setShowCursor(true);
         #endif
     }
