@@ -15,19 +15,23 @@ namespace TWE {
     #endif
 
     Engine::Engine(int wndWidth, int wndHeight, const char* title, GLFWmonitor* monitor, GLFWwindow* share) {
-        initGLFW(wndWidth, wndHeight, title, monitor, share);
-        initGLAD(wndWidth, wndHeight);
+        window = std::make_unique<Window>();
+        window->initGLFW(wndWidth, wndHeight, title, monitor, share);
+        window->setKeyCallback(&Engine::keyCallback);
+        window->setMouseButtonCallback(&Engine::mouseButtonCallback);
+        window->setCursorPosCallback(&Engine::mouseCallback);
+        window->setFramebufferSizeCallback(&Engine::framebufferSizeCallback);
+        window->initGLAD(wndWidth, wndHeight);
         std::filesystem::path rootPath;
         //imgui
         #ifndef TWE_BUILD
-        gui = std::make_unique<GUI>(window);
+        gui = std::make_unique<GUI>(window->getSource());
         rootPath = "../../";
         #else
-        uiBuild = std::make_unique<UIBuild>(window);
+        uiBuild = std::make_unique<UIBuild>(window->getSource());
         rootPath = "./";
         #endif
         //initialization vars
-        windowTitle = title;
         projectData = std::make_unique<ProjectData>();
         debugCamera->setPerspective(90.f, wndWidth, wndHeight);
         curScene = std::make_shared<Scene>(wndWidth, wndHeight, rootPath);
@@ -39,48 +43,9 @@ namespace TWE {
         gui->setProjectData(projectData.get());
         #endif
         Shape::initialize(&meshRegistry, &meshRendererRegistry, &textureRegistry, rootPath);
-        Input::setWindow(window);
+        Input::setWindow(window->getSource());
+        Renderer::init();
         setVSync(false);
-    }
-
-    Engine::~Engine(){
-        glfwDestroyWindow(window);
-        glfwTerminate();
-    }
-
-    void Engine::initGLFW(int& wndWidth, int& wndHeight, const char* title, GLFWmonitor* monitor, GLFWwindow* share) {
-        glfwInit();
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        #ifdef TWE_BUILD
-        monitor = glfwGetPrimaryMonitor();
-        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-        wndWidth = mode->width;
-        wndHeight = mode->height;
-        #endif
-        window = glfwCreateWindow(wndWidth, wndHeight, title, monitor, share);        
-        if(!window){
-            std::cout << "Error creating a window.\n";
-            glfwTerminate();
-            return;
-        }
-        glfwMakeContextCurrent(window);
-        glfwSetKeyCallback(window, &Engine::keyCallback);
-        glfwSetMouseButtonCallback(window, &Engine::mouseButtonCallback);
-        glfwSetCursorPos(window, static_cast<GLfloat>(wndWidth / 2), static_cast<GLfloat>(wndHeight / 2));
-        glfwSetCursorPosCallback(window, &Engine::mouseCallback);
-        glfwSetFramebufferSizeCallback(window, &Engine::framebufferSizeCallback);
-    }
-
-    void Engine::initGLAD(int wndWidth, int wndHeight) {
-        gladLoadGL();
-        glViewport(0, 0, wndWidth, wndHeight);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        glEnable(GL_BLEND);
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
     }
 
     void Engine::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
@@ -88,17 +53,17 @@ namespace TWE {
     }
 
     void Engine::updateInput(){
+        if(Input::getCloseApplication())
+            glfwSetWindowShouldClose(window->getSource(), GLFW_TRUE);
         static bool preShowCursor = Input::getShowCursor();
         bool showCursor = Input::getShowCursor();
         if(preShowCursor != showCursor) {
-            glfwSetInputMode(window, GLFW_CURSOR, showCursor ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+            glfwSetInputMode(window->getSource(), GLFW_CURSOR, showCursor ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
             preShowCursor = showCursor;
         }
-        if(Input::getCloseApplication())
-            glfwSetWindowShouldClose(window, GLFW_TRUE);
         #ifndef TWE_BUILD
         if(Input::isKeyPressed(Keyboard::KEY_ESCAPE) && !curScene->getIsFocusedOnDebugCamera()) {
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            glfwSetInputMode(window->getSource(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             Input::setShowCursor(true);
             preShowCursor = true;
         }
@@ -109,8 +74,7 @@ namespace TWE {
     }
 
     void Engine::setVSync(GLboolean isOn) {
-        vSync = isOn;
-        glfwSwapInterval(vSync ? 1 : 0);
+        window->setVSync(isOn);
     }
 
     void Engine::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
@@ -125,8 +89,9 @@ namespace TWE {
     }
 
     void Engine::mouseCallback(GLFWwindow* window, double xpos, double ypos) {
-        static bool debugCameraFlag = false;
         #ifndef TWE_BUILD
+        static bool debugCameraFlag = false;
+        Input::setIsMouseMoving(true);
         if(!gui->getIsFocusedOnViewport())
             return;
         Input::mouseCallback(window, xpos, ypos);
@@ -155,11 +120,9 @@ namespace TWE {
     void Engine::updateTitle() {
         static std::string title;
         static std::string preTitle;
-        if(projectData->projectName.empty())
-            return;
-        title = windowTitle + " - " + projectData->projectName + ": " + curScene->getName();
-        if(preTitle != title) {
-            glfwSetWindowTitle(window, title.c_str());
+        title = window->getTitle() + " - " + projectData->projectName + ": " + curScene->getName();
+        if(std::strcmp(preTitle.c_str(), title.c_str())) {
+            glfwSetWindowTitle(window->getSource(), title.c_str());
             preTitle = title;
         }
     }
@@ -170,14 +133,15 @@ namespace TWE {
         #else
         loadBuild(buildFilePath);
         #endif
-        while(!glfwWindowShouldClose(window)){
+        while(!glfwWindowShouldClose(window->getSource())){
             Renderer::cleanScreen({0.25f, 0.25f, 0.25f, 0.f});
             glfwPollEvents();
             updateTitle();
             updateInput();
             render();
-            glfwSwapBuffers(window);
+            glfwSwapBuffers(window->getSource());
             Time::calculate();
+            Input::flush();
         }
     }
 

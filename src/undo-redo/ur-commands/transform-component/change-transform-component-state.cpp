@@ -8,17 +8,17 @@ namespace TWE {
         if(!_entity.hasComponent<TransformComponent>())
             return;
         auto& transformComponent = _entity.getComponent<TransformComponent>();
-        transformComponent.setPosition(_newState.transform.position);
-        transformComponent.setRotation(_newState.transform.rotation);
-        transformComponent.setSize(_newState.transform.size);
+        transformComponent.setPosition(_newState.getPosition());
+        transformComponent.setRotation(_newState.getRotation());
+        transformComponent.setSize(_newState.getSize());
     }
 
     void ChangeTransformComponentState::unExecute() {
         if(!_entity.hasComponent<TransformComponent>())
             return;
         auto& transformComponent = _entity.getComponent<TransformComponent>();
-        transformComponent.setPosition(_oldState.transform.position);
-        transformComponent.setRotation(_oldState.transform.rotation);
-        transformComponent.setSize(_oldState.transform.size);
+        transformComponent.setPosition(_oldState.getPosition());
+        transformComponent.setRotation(_oldState.getRotation());
+        transformComponent.setSize(_oldState.getSize());
     }
 }

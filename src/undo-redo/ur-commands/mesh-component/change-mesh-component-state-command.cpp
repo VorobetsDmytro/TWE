@@ -10,23 +10,15 @@ namespace TWE {
         if(!_entity.hasComponent<MeshComponent>())
             return;
         auto& meshComponent = _entity.getComponent<MeshComponent>();
-        meshComponent.vao = _newState.vao;
-        meshComponent.vbo = _newState.vbo;
-        meshComponent.ebo = _newState.ebo;
-        meshComponent.registryId = _newState.registryId;
-        meshComponent.modelSpec = _newState.modelSpec;
-        meshComponent.texture = _newState.texture;
+        meshComponent.setMesh(_newState.getVAO(), _newState.getVBO(), _newState.getEBO(), _newState.getRegistryId(), _newState.getModelMeshSpecification());
+        meshComponent.setTexture(_newState.getTexture());
     }
 
     void ChangeMeshComponentStateCommand::unExecute() {
         if(!_entity.hasComponent<MeshComponent>())
             return;
         auto& meshComponent = _entity.getComponent<MeshComponent>();
-        meshComponent.vao = _oldState.vao;
-        meshComponent.vbo = _oldState.vbo;
-        meshComponent.ebo = _oldState.ebo;
-        meshComponent.registryId = _oldState.registryId;
-        meshComponent.modelSpec = _oldState.modelSpec;
-        meshComponent.texture = _oldState.texture;
+        meshComponent.setMesh(_oldState.getVAO(), _oldState.getVBO(), _oldState.getEBO(), _oldState.getRegistryId(), _oldState.getModelMeshSpecification());
+        meshComponent.setTexture(_oldState.getTexture());
     }
 }

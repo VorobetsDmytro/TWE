@@ -14,7 +14,7 @@ namespace TWE {
     void RemoveMeshComponentCommand::unExecute() {
         if(_entity.hasComponent<MeshComponent>())
             return;
-        _entity.addComponent<MeshComponent>(_meshComponent.vao, _meshComponent.vbo, _meshComponent.ebo,
-            _meshComponent.registryId, _meshComponent.modelSpec, _meshComponent.texture);
+        _entity.addComponent<MeshComponent>(_meshComponent.getVAO(), _meshComponent.getVBO(), _meshComponent.getEBO(),
+            _meshComponent.getRegistryId(), _meshComponent.getModelMeshSpecification(), _meshComponent.getTexture());
     }
 }

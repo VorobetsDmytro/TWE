@@ -1,6 +1,6 @@
 #version 330 core
 
-#define MAX_LIGHTS 59
+#define MAX_LIGHTS 30
 
 struct Material {
     vec3 objColor;

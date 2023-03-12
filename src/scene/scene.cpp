@@ -62,22 +62,16 @@ namespace TWE {
         }
     }
 
-    void Scene::setLight(const LightComponent& light, TransformComponent& transform, const  uint32_t index) {
-        std::string lightIndex = "lights[]";
-        lightIndex.insert(lightIndex.length() - 1, std::to_string(index));
+    void Scene::setLight(const LightComponent& light, TransformComponent& transform, const glm::mat4& lightSpaceMat, const uint32_t index) {
         _sceneRegistry.current->entityRegistry.view<MeshRendererComponent>().each([&](entt::entity entity, MeshRendererComponent& meshRendererComponent){
-            Renderer::setLight(meshRendererComponent, light, transform, lightIndex);
+            Renderer::setLight(meshRendererComponent, light, transform, index);
+            Renderer::setShadows(meshRendererComponent, lightSpaceMat, index);
         });
     }
 
-    void Scene::setShadows(const LightComponent& lightComponent, const glm::mat4& lightSpaceMat, int index) {
-        std::string indexStr = std::to_string(index);
-        std::string lightIndex = "lights[]";
-        lightIndex.insert(lightIndex.length() - 1, indexStr);
+    void Scene::setLight(const LightComponent& light, TransformComponent& transform, const uint32_t index) {
         _sceneRegistry.current->entityRegistry.view<MeshRendererComponent>().each([&](entt::entity entity, MeshRendererComponent& meshRendererComponent){
-            if(_sceneRegistry.current->entityRegistry.any_of<LightComponent>(entity))
-                return;
-            Renderer::setShadows(meshRendererComponent, lightSpaceMat, lightIndex);
+            Renderer::setLight(meshRendererComponent, light, transform, index);
         });
     }
 
@@ -102,20 +96,23 @@ namespace TWE {
         *registry = {};
     }
 
-    void Scene::updateShadows(uint32_t windowWidth, uint32_t windowHeight) {
-        int lightIndex = -1;
-        _sceneRegistry.current->entityRegistry.view<LightComponent, TransformComponent>().each([&](entt::entity entity, LightComponent& lightComponent, 
-        TransformComponent& transformComponent){
-            ++lightIndex;
-            if(!lightComponent.castShadows)
-                return;
-            glm::mat4& lightProjection = lightComponent.getLightProjection();
-            glm::mat4& lightView = glm::lookAt(transformComponent.transform.position, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f});
-            Renderer::generateDepthMap(lightComponent, transformComponent, lightProjection, lightView, this);
-            setShadows(lightComponent, lightProjection * lightView, lightIndex);
-        });
-        Renderer::setViewport(0, 0, windowWidth, windowHeight);
-    }
+    void Scene::updateLight() {
+        uint32_t lightIndex = 0;
+        const auto& fboSize = _frameBuffer->getSize();
+        _sceneRegistry.current->entityRegistry.view<LightComponent, TransformComponent>()
+            .each([&](entt::entity entity, LightComponent& lightComponent, TransformComponent& transformComponent){
+                if(!lightComponent.getCastShadows()) {
+                    setLight(lightComponent, transformComponent, lightIndex++);
+                    return;
+                }
+                glm::mat4& lightProjection = lightComponent.getLightProjection();
+                glm::mat4& lightView = glm::lookAt(transformComponent.getPosition(), {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f});
+                auto projectionView = lightProjection * lightView;
+                Renderer::generateDepthMap(lightComponent, transformComponent, lightProjection, lightView, projectionView, this);
+                setLight(lightComponent, transformComponent, projectionView, lightIndex++);
+            });
+        Renderer::setViewport(0, 0, fboSize.first, fboSize.second);
+    } 
 
     bool Scene::updateView() {
         _sceneCamera.camera = nullptr;
@@ -138,7 +135,7 @@ namespace TWE {
                 auto& cameraComponent = entity.getComponent<CameraComponent>();
                 if(cameraComponent.isFocusedOn()){
                     _sceneCamera.camera = cameraComponent.getSource();
-                    _sceneCamera.position = transformComponent.transform.position;
+                    _sceneCamera.position = transformComponent.getPosition();
                     _sceneCamera.forward = -transformComponent.getForward();
                     _sceneCamera.up = transformComponent.getUp();
                     break;
@@ -155,8 +152,6 @@ namespace TWE {
 
     void Scene::updateEditState() {
         updateTransforms();
-        auto& fboSize = _frameBuffer->getSize();
-        updateShadows(fboSize.first, fboSize.second);
         if(!updateView())
             return;
         updateLight();
@@ -168,37 +163,29 @@ namespace TWE {
         updateTransforms();
         _sceneAudio.updateAudioListenerPosition(_sceneCamera);
         _sceneRegistry.current->physics.cleanCollisionDetection();
-        auto& fboSize = _frameBuffer->getSize();
-        updateShadows(fboSize.first, fboSize.second);
         if(!updateView())
             return;
         updateLight();
     }
 
-    void Scene::updateLight() {
-        uint32_t lightIndex = 0;
-        _sceneRegistry.current->entityRegistry.view<LightComponent, TransformComponent>()
-            .each([&](entt::entity entity, LightComponent& lightComponent, TransformComponent& transformComponent){
-                setLight(lightComponent, transformComponent, lightIndex++);
-            });
-    } 
-
     void Scene::updateTransforms() {
         _sceneRegistry.current->entityRegistry.view<TransformComponent>().each([&](entt::entity entity, TransformComponent& transformComponent){
-            if(transformComponent.preTransform == transformComponent.transform)
+            if(transformComponent.getPreTransform() == transformComponent.getTransform())
                 return;
+            auto& transform = transformComponent.getTransform();
+            auto& preTransform = transformComponent.getPreTransform();
             Entity instance = { entity, this };
             if(!instance.hasComponent<ParentChildsComponent>())
                 return;
             auto& parentChildsComponent = instance.getComponent<ParentChildsComponent>();
             ModelSpecification ratioTransform(
-                transformComponent.transform.position - transformComponent.preTransform.position,
-                transformComponent.transform.rotation - transformComponent.preTransform.rotation,
-                transformComponent.transform.size - transformComponent.preTransform.size
+                transform.position - preTransform.position,
+                transform.rotation - preTransform.rotation,
+                transform.size - preTransform.size
             );
             for(auto& child : parentChildsComponent.childs) {
                 Entity childInstance = { child, this };
-                updateChildsTransform(childInstance, ratioTransform, transformComponent.transform.position);
+                updateChildsTransform(childInstance, ratioTransform, transform.position);
             }
             if(instance.hasComponent<PhysicsComponent>()) {
                 auto& physicsComponent = instance.getComponent<PhysicsComponent>();
@@ -208,7 +195,7 @@ namespace TWE {
                     if(ratioTransform.position != glm::vec3(0.f))
                         physicsComponent.setPosition(physicsComponent.getPosition() + ratioTransform.position);
                     if(ratioTransform.rotation != glm::vec3(0.f))
-                        physicsComponent.setRotation(glm::quat(transformComponent.transform.rotation));
+                        physicsComponent.setRotation(glm::quat(transform.rotation));
                     if(ratioTransform.size != glm::vec3(0.f))
                         physicsComponent.setSize(physicsComponent.getLocalScale() + ratioTransform.size);
                 }
@@ -219,13 +206,13 @@ namespace TWE {
                 for(auto soundSource : soundSources) {
                     auto& sounds = soundSource->getSounds();
                     for(auto sound : sounds) {
-                        irrklang::vec3df position = {transformComponent.transform.position.x, 
-                            transformComponent.transform.position.y, transformComponent.transform.position.z};
+                        irrklang::vec3df position = {transform.position.x, 
+                            transform.position.y, transform.position.z};
                         sound->setPosition(position);
                     }
                 }
             }
-            transformComponent.preTransform = transformComponent.transform;
+            transformComponent.setPreTransform(transform);
         });
     } 
 
@@ -233,24 +220,26 @@ namespace TWE {
         if(!entity.hasComponent<TransformComponent>())
             return;
         auto& transformComponent = entity.getComponent<TransformComponent>();
+        auto& transform = transformComponent.getTransform();
+        auto& preTransform = transformComponent.getPreTransform();
         bool hasPhysics = entity.hasComponent<PhysicsComponent>();
         PhysicsComponent* physicsComponent;
         if(hasPhysics)
             physicsComponent = &entity.getComponent<PhysicsComponent>();
         if(ratioTransform.position != glm::vec3(0.f)) {
-            transformComponent.setPosition(transformComponent.transform.position + ratioTransform.position);
+            transformComponent.setPosition(transform.position + ratioTransform.position);
             if(hasPhysics)
                 physicsComponent->setPosition(physicsComponent->getPosition() + ratioTransform.position);
         }
         if(ratioTransform.rotation != glm::vec3(0.f)) {
             transformComponent.rotateAroundOrigin(ratioTransform.rotation, centerPositon);
             if(hasPhysics) {
-                physicsComponent->setRotation(glm::quat(transformComponent.transform.rotation));
-                physicsComponent->setPosition(transformComponent.transform.position);
+                physicsComponent->setRotation(glm::quat(transform.rotation));
+                physicsComponent->setPosition(transform.position);
             }
         }
         if(ratioTransform.size != glm::vec3(0.f)) {
-            transformComponent.setSize(transformComponent.transform.size + ratioTransform.size);
+            transformComponent.setSize(transform.size + ratioTransform.size);
             if(hasPhysics)
                 physicsComponent->setSize(physicsComponent->getLocalScale() + ratioTransform.size);
         }
@@ -265,13 +254,13 @@ namespace TWE {
             for(auto soundSource : soundSources) {
                 auto& sounds = soundSource->getSounds();
                 for(auto sound : sounds) {
-                    irrklang::vec3df position = {transformComponent.transform.position.x, 
-                        transformComponent.transform.position.y, transformComponent.transform.position.z};
+                    irrklang::vec3df position = {transform.position.x, 
+                        transform.position.y, transform.position.z};
                     sound->setPosition(position);
                 }
             }
         }
-        transformComponent.preTransform = transformComponent.transform;
+        transformComponent.setPreTransform(transform);
     }
 
     void Scene::update() {
@@ -384,15 +373,16 @@ namespace TWE {
         }
         if(entity.hasComponent<MeshComponent>()) {
             auto& meshComponent = entity.getComponent<MeshComponent>();
-            to.entityRegistry.emplace<MeshComponent>(instance, meshComponent.vao, meshComponent.vbo, meshComponent.ebo, 
-                meshComponent.registryId, meshComponent.modelSpec, meshComponent.texture);
+            to.entityRegistry.emplace<MeshComponent>(instance, meshComponent.getVAO(), meshComponent.getVBO(), meshComponent.getEBO(), 
+                meshComponent.getRegistryId(), meshComponent.getModelMeshSpecification(), meshComponent.getTexture());
         }
         if(entity.hasComponent<MeshRendererComponent>()) {
             auto& meshRendererComponent = entity.getComponent<MeshRendererComponent>();
-            auto& meshRendererComponentCopy = to.entityRegistry.emplace<MeshRendererComponent>(instance, meshRendererComponent.shader->getVertPath().c_str(), 
-                meshRendererComponent.shader->getFragPath().c_str(), (int)instance, meshRendererComponent.registryId);
-            meshRendererComponentCopy.setMaterial(meshRendererComponent.material);
-            meshRendererComponentCopy.is3D = meshRendererComponent.is3D;
+            auto& shader = meshRendererComponent.getShader();
+            auto& meshRendererComponentCopy = to.entityRegistry.emplace<MeshRendererComponent>(instance, shader->getVertPath().c_str(), 
+                shader->getFragPath().c_str(), (int)instance, meshRendererComponent.getRegistryId());
+            meshRendererComponentCopy.setMaterial(meshRendererComponent.getMaterial());
+            meshRendererComponentCopy.setIs3D(meshRendererComponent.getIs3D());
         }
         if(entity.hasComponent<PhysicsComponent>()) {
             auto& physicsComponent = entity.getComponent<PhysicsComponent>();
@@ -429,7 +419,7 @@ namespace TWE {
     bool& Scene::getIsFocusedOnDebugCamera() { return _isFocusedOnDebugCamera; }
     entt::registry* Scene::getRegistry() const noexcept { return &_sceneRegistry.current->entityRegistry; }
     btDynamicsWorld* Scene::getDynamicWorld() const noexcept { return _sceneRegistry.current->physics.getDynamicWorld(); }
-    std::string Scene::getName() const noexcept { return _name; }
+    const std::string& Scene::getName() const noexcept { return _name; }
     FBO* Scene::getFrameBuffer() const noexcept { return _frameBuffer.get(); }
     Registry<DLLLoadData>* Scene::getScriptDLLRegistry() const noexcept { return _scriptDLLRegistry; }
     int Scene::getLightsCount() const noexcept { return _sceneRegistry.current->entityRegistry.view<LightComponent>().size(); }

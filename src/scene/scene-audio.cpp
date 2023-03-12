@@ -20,7 +20,7 @@ namespace TWE {
         AudioComponent& audioComponent, TransformComponent& transformComponent){
             auto& soundSources = audioComponent.getSoundSources();
             for(auto soundSource : soundSources)
-                soundSource->play(transformComponent.transform.position);
+                soundSource->play(transformComponent.getPosition());
         });
     }
 

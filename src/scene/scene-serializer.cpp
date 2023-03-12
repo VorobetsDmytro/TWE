@@ -197,7 +197,7 @@ namespace TWE {
             auto& meshComponent = entity.getComponent<MeshComponent>();
             Texture* texture = new Texture();
             texture->setAttachments(*textureInRegistry);
-            meshComponent.texture = std::make_shared<Texture>(*texture);
+            meshComponent.setTexture(texture);
             int a = 5;
         }
         return entity;
@@ -231,21 +231,24 @@ namespace TWE {
         nlohmann::json jsonTransformComponent;
 
         nlohmann::json jsonPosition = nlohmann::json::array();
-        jsonPosition.push_back(transformComponent.transform.position.x);
-        jsonPosition.push_back(transformComponent.transform.position.y);
-        jsonPosition.push_back(transformComponent.transform.position.z);
+        auto& position = transformComponent.getPosition();
+        jsonPosition.push_back(position.x);
+        jsonPosition.push_back(position.y);
+        jsonPosition.push_back(position.z);
         jsonTransformComponent["Position"] = jsonPosition;
 
         nlohmann::json jsonRotation = nlohmann::json::array();
-        jsonRotation.push_back(transformComponent.transform.rotation.x);
-        jsonRotation.push_back(transformComponent.transform.rotation.y);
-        jsonRotation.push_back(transformComponent.transform.rotation.z);
+        auto& rotation = transformComponent.getRotation();
+        jsonRotation.push_back(rotation.x);
+        jsonRotation.push_back(rotation.y);
+        jsonRotation.push_back(rotation.z);
         jsonTransformComponent["Rotation"] = jsonRotation;
 
         nlohmann::json jsonSize = nlohmann::json::array();
-        jsonSize.push_back(transformComponent.transform.size.x);
-        jsonSize.push_back(transformComponent.transform.size.y);
-        jsonSize.push_back(transformComponent.transform.size.z);
+        auto& size = transformComponent.getSize();
+        jsonSize.push_back(size.x);
+        jsonSize.push_back(size.y);
+        jsonSize.push_back(size.z);
         jsonTransformComponent["Size"] = jsonSize;
 
         jsonEntity["TransformComponent"] = jsonTransformComponent;
@@ -261,17 +264,16 @@ namespace TWE {
         nlohmann::json jsonPosition = jsonComponent["Position"];
         glm::vec3 position = {jsonPosition[0], jsonPosition[1], jsonPosition[2]};
         transformComponent.setPosition(position);
-        transformComponent.preTransform.position = position;
 
         nlohmann::json jsonRotation = jsonComponent["Rotation"];
         glm::vec3 rotation = {jsonRotation[0], jsonRotation[1], jsonRotation[2]};
         transformComponent.setRotation(rotation);
-        transformComponent.preTransform.rotation = rotation;
 
         nlohmann::json jsonSize = jsonComponent["Size"];
         glm::vec3 size = {jsonSize[0], jsonSize[1], jsonSize[2]};
         transformComponent.setSize(size);
-        transformComponent.preTransform.size = size;
+
+        transformComponent.setPreTransform({position, rotation, size});
     }
 
     void SceneSerializer::serializeMeshComponent(Entity& entity, nlohmann::json& jsonEntity, ProjectData* projectData) {
@@ -279,12 +281,13 @@ namespace TWE {
             return;
         auto& meshComponent = entity.getComponent<MeshComponent>();
         nlohmann::json jsonMeshComponent;
-        jsonMeshComponent["ModelPath"] = std::filesystem::relative(meshComponent.modelSpec.modelPath, projectData->rootPath).string();
-        jsonMeshComponent["ModelIndex"] = meshComponent.modelSpec.modelIndex;
-        jsonMeshComponent["IsModel"] = meshComponent.modelSpec.isModel;
+        auto modelSpec = meshComponent.getModelMeshSpecification();
+        jsonMeshComponent["ModelPath"] = std::filesystem::relative(modelSpec.modelPath, projectData->rootPath).string();
+        jsonMeshComponent["ModelIndex"] = modelSpec.modelIndex;
+        jsonMeshComponent["IsModel"] = modelSpec.isModel;
             
         nlohmann::json jsonMeshTextures = nlohmann::json::array();
-        for(auto& textureSpec : meshComponent.texture->getAttachments().textureSpecifications) {
+        for(auto& textureSpec : meshComponent.getTexture()->getAttachments().textureSpecifications) {
             nlohmann::json jsonMeshTexture = nlohmann::json::object();
             jsonMeshTexture["ImgPath"] = std::filesystem::relative(textureSpec.imgPath, projectData->rootPath).string();
             jsonMeshTexture["TexNumber"] = textureSpec.texNumber;
@@ -304,23 +307,25 @@ namespace TWE {
         nlohmann::json jsonMeshRendererComponent;
 
         nlohmann::json jsonMaterial = nlohmann::json::object();
-        jsonMaterial["Ambient"] = meshRendererComponent.material.ambient;
-        jsonMaterial["Diffuse"] = meshRendererComponent.material.diffuse;
-        jsonMaterial["Shininess"] = meshRendererComponent.material.shininess;
-        jsonMaterial["Specular"] = meshRendererComponent.material.specular;
+        auto& material = meshRendererComponent.getMaterial();
+        jsonMaterial["Ambient"] = material.ambient;
+        jsonMaterial["Diffuse"] = material.diffuse;
+        jsonMaterial["Shininess"] = material.shininess;
+        jsonMaterial["Specular"] = material.specular;
         nlohmann::json jsonMaterialColor = nlohmann::json::array();
-        jsonMaterialColor.push_back(meshRendererComponent.material.objColor.x);
-        jsonMaterialColor.push_back(meshRendererComponent.material.objColor.y);
-        jsonMaterialColor.push_back(meshRendererComponent.material.objColor.z);
+        jsonMaterialColor.push_back(material.objColor.x);
+        jsonMaterialColor.push_back(material.objColor.y);
+        jsonMaterialColor.push_back(material.objColor.z);
         jsonMaterial["ObjColor"] = jsonMaterialColor;
         jsonMeshRendererComponent["Material"] = jsonMaterial;
 
         nlohmann::json jsonShaders;
-        jsonShaders["VertPath"] = std::filesystem::relative(meshRendererComponent.shader->getVertPath(), "../../").string();
-        jsonShaders["FragPath"] = std::filesystem::relative(meshRendererComponent.shader->getFragPath(), "../../").string();
+        auto& shader = meshRendererComponent.getShader();
+        jsonShaders["VertPath"] = std::filesystem::relative(shader->getVertPath(), "../../").string();
+        jsonShaders["FragPath"] = std::filesystem::relative(shader->getFragPath(), "../../").string();
         jsonMeshRendererComponent["Shaders"] = jsonShaders;
 
-        jsonMeshRendererComponent["Is3D"] = meshRendererComponent.is3D;
+        jsonMeshRendererComponent["Is3D"] = meshRendererComponent.getIs3D();
             
         jsonEntity["MeshRendererComponent"] = jsonMeshRendererComponent;
     }
@@ -333,12 +338,13 @@ namespace TWE {
         auto& meshRendererComponent = entity.getComponent<MeshRendererComponent>();
 
         nlohmann::json jsonMaterial = jsonComponent["Material"];
-        meshRendererComponent.material.ambient = jsonMaterial["Ambient"];
-        meshRendererComponent.material.diffuse = jsonMaterial["Diffuse"];
-        meshRendererComponent.material.shininess = jsonMaterial["Shininess"];
-        meshRendererComponent.material.specular = jsonMaterial["Specular"];
+        auto& material = meshRendererComponent.getMaterial();
+        material.ambient = jsonMaterial["Ambient"];
+        material.diffuse = jsonMaterial["Diffuse"];
+        material.shininess = jsonMaterial["Shininess"];
+        material.specular = jsonMaterial["Specular"];
         nlohmann::json jsonObjColor = jsonMaterial["ObjColor"];
-        meshRendererComponent.material.objColor = { jsonObjColor[0], jsonObjColor[1], jsonObjColor[2] };
+        material.objColor = { jsonObjColor[0], jsonObjColor[1], jsonObjColor[2] };
 
         std::string rootPath;
         #ifndef TWE_BUILD
@@ -349,8 +355,9 @@ namespace TWE {
         nlohmann::json jsonShaders = jsonComponent["Shaders"];
         std::string vertPath = rootPath + '/' + (std::string)jsonShaders["VertPath"];
         std::string fragPath = rootPath + '/' + (std::string)jsonShaders["FragPath"];
-        std::string componentShaderVertName = std::filesystem::path(meshRendererComponent.shader->getVertPath()).filename().string();
-        std::string componentShaderFragName = std::filesystem::path(meshRendererComponent.shader->getFragPath()).filename().string();
+        auto&& shader = meshRendererComponent.getShader();
+        std::string componentShaderVertName = std::filesystem::path(shader->getVertPath()).filename().string();
+        std::string componentShaderFragName = std::filesystem::path(shader->getFragPath()).filename().string();
         std::string vertName = std::filesystem::path(vertPath).filename().string();
         std::string fragName = std::filesystem::path(fragPath).filename().string();
         if(componentShaderVertName != vertName || componentShaderFragName != fragName) {
@@ -366,7 +373,7 @@ namespace TWE {
 
         auto jsonIs3D = jsonComponent.find("Is3D");
         if(jsonIs3D != jsonComponent.end())
-            meshRendererComponent.is3D = jsonIs3D.value();
+            meshRendererComponent.setIs3D(jsonIs3D.value());
     }
 
     void SceneSerializer::serializeCameraComponent(Entity& entity, nlohmann::json& jsonEntity) {
@@ -458,21 +465,22 @@ namespace TWE {
         auto& lightComponent = entity.getComponent<LightComponent>();
         nlohmann::json jsonLightComponent;
 
-        jsonLightComponent["CastShadows"] = lightComponent.castShadows;
-        jsonLightComponent["Type"] = lightComponent.type;
-        jsonLightComponent["Constant"] = lightComponent.constant;
-        jsonLightComponent["Linear"] = lightComponent.linear;
-        jsonLightComponent["Quadratic"] = lightComponent.quadratic;
-        jsonLightComponent["InnerRadius"] = lightComponent.innerRadius;
-        jsonLightComponent["OuterRadius"] = lightComponent.outerRadius;
+        jsonLightComponent["CastShadows"] = lightComponent.getCastShadows();
+        jsonLightComponent["Type"] = lightComponent.getType();
+        jsonLightComponent["Constant"] = lightComponent.getConstant();
+        jsonLightComponent["Linear"] = lightComponent.getLinear();
+        jsonLightComponent["Quadratic"] = lightComponent.getQuadratic();
+        jsonLightComponent["InnerRadius"] = lightComponent.getInnerRadius();
+        jsonLightComponent["OuterRadius"] = lightComponent.getOuterRadius();
         jsonLightComponent["LightProjectionAspect"] = lightComponent.getLightProjectionAspect();
         auto fbo = lightComponent.getFBO();
         jsonLightComponent["ShadowMapSize"] = fbo ? fbo->getSize().first : 0;
 
         nlohmann::json jsonLightColor = nlohmann::json::array();
-        jsonLightColor.push_back(lightComponent.color.x);
-        jsonLightColor.push_back(lightComponent.color.y);
-        jsonLightColor.push_back(lightComponent.color.z);
+        auto color = lightComponent.getColor();
+        jsonLightColor.push_back(color.x);
+        jsonLightColor.push_back(color.y);
+        jsonLightColor.push_back(color.z);
         jsonLightComponent["Color"] = jsonLightColor;
             
         jsonEntity["LightComponent"] = jsonLightComponent;
@@ -485,17 +493,17 @@ namespace TWE {
             entity.addComponent<LightComponent>();
         auto& lightComponent = entity.getComponent<LightComponent>();
 
-        lightComponent.castShadows = jsonComponent["CastShadows"];
-        lightComponent.constant = jsonComponent["Constant"];
-        lightComponent.linear = jsonComponent["Linear"];
-        lightComponent.quadratic = jsonComponent["Quadratic"];
-        lightComponent.innerRadius = jsonComponent["InnerRadius"];
-        lightComponent.outerRadius = jsonComponent["OuterRadius"];
-        lightComponent.type = jsonComponent["Type"];
+        lightComponent.setCastShadows(jsonComponent["CastShadows"]);
+        lightComponent.setConstant(jsonComponent["Constant"]);
+        lightComponent.setLinear(jsonComponent["Linear"]);
+        lightComponent.setQuadratic(jsonComponent["Quadratic"]);
+        lightComponent.setInnerRadius(jsonComponent["InnerRadius"]);
+        lightComponent.setOuterRadius(jsonComponent["OuterRadius"]);
+        lightComponent.setType(jsonComponent["Type"]);
         lightComponent.setLightProjectionAspect(jsonComponent["LightProjectionAspect"]);
         lightComponent.setShadowMapSize(jsonComponent["ShadowMapSize"]);
         nlohmann::json jsonLightColor = jsonComponent["Color"];
-        lightComponent.color = { jsonLightColor[0], jsonLightColor[1], jsonLightColor[2] };
+        lightComponent.setColor({ jsonLightColor[0], jsonLightColor[1], jsonLightColor[2] });
     }
 
     void SceneSerializer::serializePhysicsComponent(Entity& entity, nlohmann::json& jsonEntity) {
@@ -566,7 +574,7 @@ namespace TWE {
         }
         else {
             auto& meshComponent = entity.getComponent<MeshComponent>();
-            TriangleMeshSpecification triangleMesh = { meshComponent.vbo, meshComponent.ebo };
+            TriangleMeshSpecification triangleMesh = { meshComponent.getVBO(), meshComponent.getEBO() };
             auto& physicsComponent = entity.addComponent<PhysicsComponent>(scene->getDynamicWorld(), type, triangleMesh, localScale, position, rotation, entity.getSource());
             physicsComponent.setIsTrigger(isTrigger);
         }

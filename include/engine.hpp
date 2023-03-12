@@ -17,6 +17,7 @@
 #include "scene/time.hpp"
 #include "model-loader/model-loader.hpp"
 #include "entity/entity.hpp"
+#include "input/window.hpp"
 #include "input/input.hpp"
 #include "registry/registry.hpp"
 #include "stream/build-creator.hpp"
@@ -30,15 +31,12 @@
 namespace TWE {
     class Engine {
     public:
-        Engine(int wndWidth, int wndHeight, const char* title, GLFWmonitor *monitor, GLFWwindow *share);
-        ~Engine();
+        Engine(int wndWidth, int wndHeight, const char* title, GLFWmonitor* monitor, GLFWwindow* share);
         void start(const std::string& buildFilePath = "");
     protected:
         void updateInput();
         void setVSync(GLboolean isOn);
-        GLboolean vSync;
-        GLFWwindow* window;
-        std::string windowTitle;
+        std::unique_ptr<Window> window;
         static std::unique_ptr<ProjectData> projectData;
         static std::shared_ptr<Scene> curScene;
         static std::shared_ptr<DebugCamera> debugCamera;
@@ -48,8 +46,6 @@ namespace TWE {
         static Registry<TextureAttachmentSpecification> textureRegistry;
     private:
         void updateTitle();
-        void initGLFW(int& wndWidth, int& wndHeight, const char* title, GLFWmonitor* monitor, GLFWwindow* share);
-        void initGLAD(int wndWidth, int wndHeight);
         void render();
         static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
         static void mouseCallback(GLFWwindow* window, double xpos, double ypos);
