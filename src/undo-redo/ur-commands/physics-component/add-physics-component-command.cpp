@@ -11,8 +11,8 @@ namespace TWE {
         if(_entity.hasComponent<PhysicsComponent>())
             return;
         _entity.addComponent<PhysicsComponent>(_entity.getScene()->getDynamicWorld(), ColliderType::Box, 
-            glm::vec3{1.f, 1.f, 1.f}, transformComponent.transform.size, transformComponent.transform.position, 
-            transformComponent.transform.rotation, 0.f, _entity.getSource());
+            glm::vec3{1.f, 1.f, 1.f}, transformComponent.getSize(), transformComponent.getPosition(), 
+            transformComponent.getRotation(), 0.f, _entity.getSource());
     }
 
     void AddPhysicsComponentCommand::unExecute() {

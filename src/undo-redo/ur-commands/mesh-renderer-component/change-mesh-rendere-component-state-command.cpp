@@ -8,19 +8,21 @@ namespace TWE {
         if(!_entity.hasComponent<MeshRendererComponent>())
             return;
         auto& meshRendererComponent = _entity.getComponent<MeshRendererComponent>();
-        meshRendererComponent.setShader(_newState.shader->getVertPath().c_str(), 
-            _newState.shader->getFragPath().c_str(), _newState.registryId);
-        meshRendererComponent.setMaterial(_newState.material);
-        meshRendererComponent.is3D = _newState.is3D;
+        auto& shader = _newState.getShader();
+        meshRendererComponent.setShader(shader->getVertPath().c_str(), 
+            shader->getFragPath().c_str(), _newState.getRegistryId());
+        meshRendererComponent.setMaterial(_newState.getMaterial());
+        meshRendererComponent.setIs3D(_newState.getIs3D());
     }
 
     void ChangeMeshRendererComponentState::unExecute() {
         if(!_entity.hasComponent<MeshRendererComponent>())
             return;
         auto& meshRendererComponent = _entity.getComponent<MeshRendererComponent>();
-        meshRendererComponent.setShader(_oldState.shader->getVertPath().c_str(), 
-            _oldState.shader->getFragPath().c_str(), _oldState.registryId);
-        meshRendererComponent.setMaterial(_oldState.material);
-        meshRendererComponent.is3D = _oldState.is3D;
+        auto& shader = _oldState.getShader();
+        meshRendererComponent.setShader(shader->getVertPath().c_str(), 
+            shader->getFragPath().c_str(), _oldState.getRegistryId());
+        meshRendererComponent.setMaterial(_oldState.getMaterial());
+        meshRendererComponent.setIs3D(_oldState.getIs3D());
     }
 }

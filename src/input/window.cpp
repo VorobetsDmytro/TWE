@@ -1,0 +1,70 @@
+#include "input/window.hpp"
+
+namespace TWE {
+    Window::Window() {
+        _window = nullptr;
+    }
+
+    Window::~Window() {
+        if(!_window)
+            return;
+        glfwDestroyWindow(_window);
+        glfwTerminate();
+    }
+
+    void Window::initGLFW(int& width, int& height, const char* title, GLFWmonitor* monitor, GLFWwindow* share) {
+        _title = title;
+        glfwInit();
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        #ifdef TWE_BUILD
+        monitor = glfwGetPrimaryMonitor();
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+        width = mode->width;
+        height = mode->height;
+        #endif
+        _window = glfwCreateWindow(width, height, title, monitor, share);        
+        if(!_window){
+            std::cout << "Error creating a window.\n";
+            glfwTerminate();
+            return;
+        }
+        glfwMakeContextCurrent(_window);
+        glfwSetCursorPos(_window, static_cast<GLfloat>(width / 2), static_cast<GLfloat>(height / 2));
+    }
+
+    void Window::initGLAD(int width, int height) {
+        gladLoadGL();
+        glViewport(0, 0, width, height);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glEnable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+    }
+
+    void Window::setKeyCallback(GLFWkeyfun callback) {
+        glfwSetKeyCallback(_window, callback);
+    }
+
+    void Window::setMouseButtonCallback(GLFWmousebuttonfun callback) {
+        glfwSetMouseButtonCallback(_window, callback);
+    }
+
+    void Window::setCursorPosCallback(GLFWcursorposfun callback) {
+        glfwSetCursorPosCallback(_window, callback);
+    }
+
+    void Window::setFramebufferSizeCallback(GLFWframebuffersizefun callback) {
+        glfwSetFramebufferSizeCallback(_window, callback);
+    }
+
+    void Window::setVSync(GLboolean isOn) {
+        _vSync = isOn;
+        glfwSwapInterval(_vSync ? 1 : 0);
+    }
+
+    GLFWwindow* Window::getSource() const noexcept { return _window; }
+    const std::string& Window::getTitle() const noexcept { return _title; }
+}

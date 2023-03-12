@@ -96,7 +96,7 @@ namespace TWE {
         }
         if(Input::mouseButtonAction(Mouse::MOUSE_BUTTON_LEFT) == Action::RELEASE && addToURControl) {
             addToURControl = false;
-            if(oldState.transform != newState.transform)
+            if(oldState.getTransform() != newState.getTransform())
                 _scene->getSceneStateSpecification()->urControl.execute(
                     new ChangeTransformComponentState(selectedEntity, oldState, newState));
         }

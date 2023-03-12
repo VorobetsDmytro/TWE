@@ -4,12 +4,13 @@ namespace TWE {
     InputSpecification::InputSpecification() {
         _keyboardPressedKeys = new bool[512]{0};
         _mousePressedButtons = new bool[24]{0};
-        _mouseOffset = new float[2]{0};
+        _mouseOffset = {0.f, 0.f};
         _keyboardPressedActions = new int[512]{0};
-        _mousePressedActions = new int[512]{0};
-        _mousePosition = new int[2]{0};
+        _mousePressedActions = new int[24]{0};
+        _mousePosition = {0, 0};
         _showCursor = true;
         _closeApp = false;
+        _isMouseMoving = false;
     }
 
     InputSpecification::InputSpecification(const InputSpecification& inputSpecification) {
@@ -22,6 +23,13 @@ namespace TWE {
         this->_mousePosition = inputSpecification._mousePosition;
         this->_showCursor = inputSpecification._showCursor;
         this->_closeApp = inputSpecification._closeApp;
+        this->_isMouseMoving = inputSpecification._isMouseMoving;
+    }
+
+    void InputSpecification::flush() {
+        _mouseOffset.x = 0;
+        _mouseOffset.y = 0;
+        _isMouseMoving = false;
     }
 
     void InputSpecification::setWindow(GLFWwindow* window) {
@@ -34,6 +42,10 @@ namespace TWE {
 
     void InputSpecification::setCloseApplication(bool close) {
         _closeApp = close;
+    }
+
+    void InputSpecification::setIsMouseMoving(bool isMouseMoving) {
+        _isMouseMoving = isMouseMoving;
     }
 
     bool InputSpecification::isKeyPressed(Keyboard key) { 
@@ -66,9 +78,10 @@ namespace TWE {
 
     bool InputSpecification::getShowCursor() { return _showCursor; }
     bool InputSpecification::getCloseApplication() { return _closeApp; }
+    bool InputSpecification::isMouseMoving() { return _isMouseMoving; }
     Action InputSpecification::keyAction(Keyboard key) { return static_cast<Action>(_keyboardPressedActions[key]); }
     Action InputSpecification::mouseButtonAction(Mouse button) { return static_cast<Action>(_mousePressedActions[button]); }
-    glm::vec2 InputSpecification::getMouseOffset() { return { _mouseOffset[0], _mouseOffset[1] }; }
-    glm::vec2 InputSpecification::getMousePosition() { return { _mousePosition[0], _mousePosition[1] }; }
+    const glm::vec<2, float, glm::qualifier::defaultp>& InputSpecification::getMouseOffset() const noexcept { return _mouseOffset; }
+    const glm::vec<2, int, glm::qualifier::defaultp>& InputSpecification::getMousePosition() const noexcept { return _mousePosition; }
     GLFWwindow* InputSpecification::getWindow() { return _window; }
 }

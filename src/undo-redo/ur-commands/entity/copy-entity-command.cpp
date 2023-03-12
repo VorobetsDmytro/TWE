@@ -52,15 +52,16 @@ namespace TWE {
             cameraComponent = new CameraComponent(entity.getComponent<CameraComponent>());
         if(entity.hasComponent<MeshComponent>()) {
             auto& meshComponentCopy = entity.getComponent<MeshComponent>();
-            meshComponent = new MeshComponent(meshComponentCopy.vao, meshComponentCopy.vbo, meshComponentCopy.ebo, 
-                meshComponentCopy.registryId, meshComponentCopy.modelSpec, meshComponentCopy.texture);
+            meshComponent = new MeshComponent(meshComponentCopy.getVAO(), meshComponentCopy.getVBO(), meshComponentCopy.getEBO(), 
+                meshComponentCopy.getRegistryId(), meshComponentCopy.getModelMeshSpecification(), meshComponentCopy.getTexture());
         }
         if(entity.hasComponent<MeshRendererComponent>()) {
             auto& meshRendererComponentCopy = entity.getComponent<MeshRendererComponent>();
-            meshRendererComponent = new MeshRendererComponent(meshRendererComponentCopy.shader->getVertPath().c_str(),
-                meshRendererComponentCopy.shader->getFragPath().c_str(), (int)to.getSource(), meshRendererComponentCopy.registryId);
-            meshRendererComponent->setMaterial(meshRendererComponentCopy.material);
-            meshRendererComponent->is3D = meshRendererComponentCopy.is3D;
+            auto& shader = meshRendererComponentCopy.getShader();
+            meshRendererComponent = new MeshRendererComponent(shader->getVertPath().c_str(),
+                shader->getFragPath().c_str(), (int)to.getSource(), meshRendererComponentCopy.getRegistryId());
+            meshRendererComponent->setMaterial(meshRendererComponentCopy.getMaterial());
+            meshRendererComponent->setIs3D(meshRendererComponentCopy.getIs3D());
         }
         if(entity.hasComponent<PhysicsComponent>()) {
             auto& physicsComponentCopy = entity.getComponent<PhysicsComponent>();

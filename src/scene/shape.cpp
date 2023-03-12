@@ -112,17 +112,17 @@ namespace TWE {
         std::string cubeMeshId = "Cube mesh";
         auto cubeMeshComponent = MeshComponent(Shape::cubeVertices, sizeof(Shape::cubeVertices), 
             Shape::cubeIndices, sizeof(Shape::cubeIndices), cubeMeshId, ModelMeshSpecification{}, TextureAttachmentSpecification{});
-        registerMeshSpecification(cubeMeshComponent.vao, cubeMeshComponent.vbo, cubeMeshComponent.ebo, EntityCreationType::Cube, cubeMeshId);
+        registerMeshSpecification(cubeMeshComponent.getVAO(), cubeMeshComponent.getVBO(), cubeMeshComponent.getEBO(), EntityCreationType::Cube, cubeMeshId);
         // Plate mesh
         std::string plateMeshId = "Plate mesh";
         auto plateMeshComponent = MeshComponent(Shape::plateVertices, sizeof(Shape::plateVertices), 
             Shape::plateIndices, sizeof(Shape::plateIndices), plateMeshId, ModelMeshSpecification{}, TextureAttachmentSpecification{});
-        registerMeshSpecification(plateMeshComponent.vao, plateMeshComponent.vbo, plateMeshComponent.ebo, EntityCreationType::Plate, plateMeshId);
+        registerMeshSpecification(plateMeshComponent.getVAO(), plateMeshComponent.getVBO(), plateMeshComponent.getEBO(), EntityCreationType::Plate, plateMeshId);
         // Cubemap mesh
         std::string cubemapMeshId = "Cubemap mesh";
         auto cubemapMeshComponent = MeshComponent(Shape::cubeVertices, sizeof(Shape::cubeVertices), 
             Shape::cubemapIndices, sizeof(Shape::cubemapIndices), cubemapMeshId, ModelMeshSpecification{}, TextureAttachmentSpecification{});
-        registerMeshSpecification(cubemapMeshComponent.vao, cubemapMeshComponent.vbo, cubemapMeshComponent.ebo, EntityCreationType::Cubemap, cubemapMeshId);
+        registerMeshSpecification(cubemapMeshComponent.getVAO(), cubemapMeshComponent.getVBO(), cubemapMeshComponent.getEBO(), EntityCreationType::Cubemap, cubemapMeshId);
     }
 
     void Shape::fillMeshRendererRegistry() {
@@ -157,7 +157,7 @@ namespace TWE {
         else {
             auto& meshComponent = entity.addComponent<MeshComponent>(Shape::cubeVertices, sizeof(Shape::cubeVertices), 
                 Shape::cubeIndices, sizeof(Shape::cubeIndices), meshId, ModelMeshSpecification{}, textureAtttachments);
-            registerMeshSpecification(meshComponent.vao, meshComponent.vbo, meshComponent.ebo, EntityCreationType::Cube, meshId);
+            registerMeshSpecification(meshComponent.getVAO(), meshComponent.getVBO(), meshComponent.getEBO(), EntityCreationType::Cube, meshId);
         }
         auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(meshRendererSpecification->vertexShaderPath.c_str(), 
             meshRendererSpecification->fragmentShaderPath.c_str(), (int)entity.getSource(), meshRendererId);
@@ -180,7 +180,7 @@ namespace TWE {
         else {
             auto& meshComponent = entity.addComponent<MeshComponent>(Shape::plateVertices, sizeof(Shape::plateVertices), 
                 Shape::plateIndices, sizeof(Shape::plateIndices), meshId, ModelMeshSpecification{}, textureAtttachments);
-            registerMeshSpecification(meshComponent.vao, meshComponent.vbo, meshComponent.ebo, EntityCreationType::Plate, meshId);
+            registerMeshSpecification(meshComponent.getVAO(), meshComponent.getVBO(), meshComponent.getEBO(), EntityCreationType::Plate, meshId);
         }
         auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(meshRendererSpecification->vertexShaderPath.c_str(), 
             meshRendererSpecification->fragmentShaderPath.c_str(), (int)entity.getSource(), meshRendererId);
@@ -209,11 +209,11 @@ namespace TWE {
             if(texture) {
                 auto& meshComponent = entity.addComponent<MeshComponent>(Shape::cubeVertices, sizeof(Shape::cubeVertices), 
                     Shape::cubemapIndices, sizeof(Shape::cubemapIndices), meshId, ModelMeshSpecification{}, texture);
-                registerMeshSpecification(meshComponent.vao, meshComponent.vbo, meshComponent.ebo, EntityCreationType::Cubemap, meshId);
+                registerMeshSpecification(meshComponent.getVAO(), meshComponent.getVBO(), meshComponent.getEBO(), EntityCreationType::Cubemap, meshId);
             } else {
                 auto& meshComponent = entity.addComponent<MeshComponent>(Shape::cubeVertices, sizeof(Shape::cubeVertices), 
                     Shape::cubemapIndices, sizeof(Shape::cubemapIndices), meshId, ModelMeshSpecification{});
-                registerMeshSpecification(meshComponent.vao, meshComponent.vbo, meshComponent.ebo, EntityCreationType::Cubemap, meshId);
+                registerMeshSpecification(meshComponent.getVAO(), meshComponent.getVBO(), meshComponent.getEBO(), EntityCreationType::Cubemap, meshId);
             }
         }
         auto& meshRendererComponent = entity.addComponent<MeshRendererComponent>(meshRendererSpecification->vertexShaderPath.c_str(), 
@@ -270,10 +270,10 @@ namespace TWE {
             auto modelLoaderData = mloader.loadModel(modelPath.string());
             int index = 0;
             for(auto& mesh : modelLoaderData->meshComponents){
-                mesh.registryId = "Model mesh-" + std::to_string(shapeSpec->meshCounter++);
+                std::string registryId = "Model mesh-" + std::to_string(shapeSpec->meshCounter++);
                 MeshComponent meshComponent(mesh);
                 ModelMeshSpecification modelSpec(true, modelLoaderData->fullPath, index++);
-                registerMeshSpecification(meshComponent.vao, meshComponent.vbo, meshComponent.ebo, EntityCreationType::Model, mesh.registryId, modelSpec);
+                registerMeshSpecification(meshComponent.getVAO(), meshComponent.getVBO(), meshComponent.getEBO(), EntityCreationType::Model, registryId, modelSpec);
             }
         } catch(const std::exception& error) {
             std::cout << error.what() << std::endl;

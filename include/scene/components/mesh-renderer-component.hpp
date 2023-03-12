@@ -16,12 +16,20 @@ namespace TWE {
         void updateMaterialUniform();
         void updateMatsUniform(const glm::mat4& model, const glm::mat4& view, const glm::mat4& projection, const glm::mat4& projectionView);
         void setShader(const char* vertexShaderPath, const char* fragmentShaderPath, const std::string& registryId);
+        void setShader(std::shared_ptr<Shader> shader);
         void setMaterial(const Material& material);
-        Material material;
-        std::shared_ptr<Shader> shader;
-        std::string registryId;
-        int entityId;
-        bool is3D;
+        void setIs3D(bool is3D);
+        [[nodiscard]] int getEntityId() const noexcept;
+        [[nodiscard]] bool getIs3D() const noexcept;
+        [[nodiscard]] Material& getMaterial() noexcept;
+        [[nodiscard]] std::shared_ptr<Shader> getShader() const noexcept;
+        [[nodiscard]] const std::string& getRegistryId() const noexcept;
+    private:
+        Material _material;
+        std::shared_ptr<Shader> _shader;
+        std::string _registryId;
+        int _entityId;
+        bool _is3D;
     };
 }
 

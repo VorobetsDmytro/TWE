@@ -21,7 +21,7 @@ namespace TWE {
         return *this;
     }
 
-    bool Material::operator==(const Material& material) {
+    bool Material::operator==(const Material& material) const {
         return this->objColor == material.objColor
             && this->ambient == material.ambient
             && this->diffuse == material.diffuse
@@ -29,7 +29,7 @@ namespace TWE {
             && this->shininess == material.shininess;
     }
 
-    bool Material::operator!=(const Material& material) {
+    bool Material::operator!=(const Material& material) const {
         return !(*this == material);
     }
 }

@@ -3,6 +3,10 @@
 namespace TWE {
     InputSpecification* Input::inputSpecification = new InputSpecification();
 
+    void Input::flush() {
+        inputSpecification->flush();
+    }
+
     void Input::setWindow(GLFWwindow* window) {
         inputSpecification->setWindow(window);
     }
@@ -15,12 +19,20 @@ namespace TWE {
         inputSpecification->setCloseApplication(close);
     }
 
+    void Input::setIsMouseMoving(bool isMouseMoving) {
+        inputSpecification->setIsMouseMoving(isMouseMoving);
+    }
+
     bool Input::getCloseApplication() {
         return inputSpecification->getCloseApplication();
     }
 
     bool Input::getShowCursor() {
         return inputSpecification->getShowCursor();
+    }
+
+    bool Input::isMouseMoving() {
+        return inputSpecification->isMouseMoving();
     }
     
     bool Input::isKeyPressed(Keyboard key) {
@@ -47,11 +59,11 @@ namespace TWE {
         return inputSpecification->mouseButtonAction(button);
     }
 
-    glm::vec2 Input::getMouseOffset() {
+    const glm::vec<2, float, glm::qualifier::defaultp>& Input::getMouseOffset() noexcept {
         return inputSpecification->getMouseOffset();
     }
 
-    glm::vec2 Input::getMousePosition() {
+    const glm::vec<2, int, glm::qualifier::defaultp>& Input::getMousePosition() noexcept {
         return inputSpecification->getMousePosition();
     }
 
@@ -62,10 +74,10 @@ namespace TWE {
     void Input::mouseCallback(GLFWwindow* window, double xpos, double ypos) {
         static float preViewX = xpos;
         static float preViewY = ypos;
-        inputSpecification->_mouseOffset[0] = xpos - preViewX;
-        inputSpecification->_mouseOffset[1] = preViewY - ypos;
-        inputSpecification->_mousePosition[0] = xpos;
-        inputSpecification->_mousePosition[1] = ypos;
+        inputSpecification->_mouseOffset.x = xpos - preViewX;
+        inputSpecification->_mouseOffset.y = preViewY - ypos;
+        inputSpecification->_mousePosition.x = xpos;
+        inputSpecification->_mousePosition.y = ypos;
         preViewX = xpos;
         preViewY = ypos;
     }

@@ -66,7 +66,7 @@ namespace TWE {
                     }
                     Texture* texture = new Texture();
                     texture->setAttachments(*textureInRegistry);
-                    newState.texture = std::make_shared<Texture>(*texture);
+                    newState.setTexture(texture);
                     _scene->_sceneRegistry.current->urControl.execute(new ChangeMeshComponentStateCommand(entity, newState));
                 }
             }
@@ -113,7 +113,7 @@ namespace TWE {
                             }
                             Texture* texture = new Texture();
                             texture->setAttachments(*textureInRegistry);
-                            newState.texture = std::make_shared<Texture>(*texture);
+                            newState.setTexture(texture);
                             _scene->_sceneRegistry.current->urControl.execute(new ChangeMeshComponentStateCommand(entity, newState));
                         }
                     }
@@ -198,7 +198,7 @@ namespace TWE {
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Transform")) {
                 auto& transformComponent = entity.getComponent<TransformComponent>();
-                auto position = transformComponent.transform.position;
+                auto position = transformComponent.getPosition();
                 static bool addToURControl = false;
                 static TransformComponent oldState;
                 static TransformComponent newState;
@@ -209,14 +209,14 @@ namespace TWE {
                     transformComponent.setPosition(position);
                     newState = transformComponent;
                 }
-                auto rotation = transformComponent.transform.rotation * 180.f / PI;
+                auto rotation = transformComponent.getRotation() * 180.f / PI;
                 if(GUIComponents::dragFloat3("Rotation", rotation, 0.5f, 0.f)) {
                     addToURControl = true;
                     rotation *= PI / 180.f;
                     transformComponent.setRotation(rotation);
                     newState = transformComponent;
                 }
-                auto size = transformComponent.transform.size;
+                auto size = transformComponent.getSize();
                 if(GUIComponents::dragFloat3("Scale", size, 0.01f, 1.f, 0.01f, 999999.f)) {
                     addToURControl = true;
                     transformComponent.setSize(size);
@@ -224,7 +224,7 @@ namespace TWE {
                 }
                 if(Input::mouseButtonAction(Mouse::MOUSE_BUTTON_LEFT) == Action::RELEASE && addToURControl) {
                     addToURControl = false;
-                    if(oldState.transform != newState.transform)
+                    if(oldState.getTransform() != newState.getTransform())
                         _scene->_sceneRegistry.current->urControl.execute(new ChangeTransformComponentState(entity, oldState, newState));
                 }
                 ImGui::TreePop();
@@ -250,7 +250,8 @@ namespace TWE {
                     ImGui::OpenPopup(popUpId.c_str());
                 auto& meshComponent = entity.getComponent<MeshComponent>();
                 std::vector<std::string> meshRegistryKeys = Shape::shapeSpec->meshRegistry->getKeys();
-                int meshIndex = GUIComponents::combo("Mesh", meshComponent.registryId, meshRegistryKeys);
+                std::string selectedMesh = meshComponent.getRegistryId();
+                int meshIndex = GUIComponents::combo("Mesh", selectedMesh, meshRegistryKeys);
                 if(meshIndex != -1) {
                     auto newState = meshComponent;
                     std::string meshId = meshRegistryKeys[meshIndex];
@@ -263,11 +264,11 @@ namespace TWE {
                 bool isCubemap = false;
                 if(entity.hasComponent<MeshRendererComponent>()) {
                     auto& meshRendererComponent = entity.getComponent<MeshRendererComponent>();
-                    if(meshRendererComponent.registryId == "Cubemap renderer")
+                    if(meshRendererComponent.getRegistryId() == "Cubemap renderer")
                         isCubemap = true;
                 }
                 if(ImGui::TreeNodeEx(id, flags, "Texture")) {
-                    auto baseTexture = meshComponent.texture->getTextureSpecByTexNumber(0);
+                    auto baseTexture = meshComponent.getTexture()->getTextureSpecByTexNumber(0);
                     std::function<void()> baseDragAndDropFunc;
                     if(isCubemap)
                         baseDragAndDropFunc = [](){};
@@ -295,7 +296,7 @@ namespace TWE {
                                 }
                                 Texture* texture = new Texture();
                                 texture->setAttachments(*textureInRegistry);
-                                newState.texture = std::make_shared<Texture>(*texture);
+                                newState.setTexture(texture);
                                 _scene->_sceneRegistry.current->urControl.execute(new ChangeMeshComponentStateCommand(entity, newState));
                             }
                         };
@@ -310,14 +311,14 @@ namespace TWE {
                     else if(baseBtnPressed == 1) {
                         auto newState = meshComponent;
                         if(isCubemap) {
-                            int size = meshComponent.texture->getAttachments().textureSpecifications.size();
-                            newState.texture = std::make_shared<Texture>(meshComponent.texture->getAttachments());
+                            int size = meshComponent.getTexture()->getAttachments().textureSpecifications.size();
+                            newState.setTexture(meshComponent.getTexture()->getAttachments());
                             for(int i = 0; i < size; ++i)
-                                newState.texture->removeTexture(0);
+                                newState.getTexture()->removeTexture(0);
                             _scene->_sceneRegistry.current->urControl.execute(new ChangeMeshComponentStateCommand(entity, newState));
                         } else {
-                            newState.texture = std::make_shared<Texture>(meshComponent.texture->getAttachments());
-                            newState.texture->removeTexture(0);
+                            newState.setTexture(meshComponent.getTexture()->getAttachments());
+                            newState.getTexture()->removeTexture(0);
                             _scene->_sceneRegistry.current->urControl.execute(new ChangeMeshComponentStateCommand(entity, newState));
                         }
                     }
@@ -348,8 +349,10 @@ namespace TWE {
                 if(ImGui::IsItemClicked(1))
                     ImGui::OpenPopup(popUpId.c_str());
                 auto& meshRendererComponent = entity.getComponent<MeshRendererComponent>();
+                auto& material = meshRendererComponent.getMaterial();
                 std::vector<std::string> meshRendererRegistryKeys = Shape::shapeSpec->meshRendererRegistry->getKeys();
-                int meshRendererIndex = GUIComponents::combo("Shader", meshRendererComponent.registryId, meshRendererRegistryKeys);
+                std::string registryId = meshRendererComponent.getRegistryId();
+                int meshRendererIndex = GUIComponents::combo("Shader", registryId, meshRendererRegistryKeys);
                 if(meshRendererIndex != -1) {
                     auto newState = meshRendererComponent;
                     std::string meshRendererId = meshRendererRegistryKeys[meshRendererIndex];
@@ -364,45 +367,45 @@ namespace TWE {
                 if(!addToURControl)
                     oldState = meshRendererComponent;
                 if(ImGui::TreeNodeEx(id, flags, "Material")) {
-                    glm::vec3 color = meshRendererComponent.material.objColor;
+                    glm::vec3 color = material.objColor;
                     if(GUIComponents::colorEdit3("Color", color)) {
                         addToURControl = true;
-                        meshRendererComponent.material.objColor = color;
+                        material.objColor = color;
                         newState = meshRendererComponent;
                     }
-                    float ambient = meshRendererComponent.material.ambient;
+                    float ambient = material.ambient;
                     if(GUIComponents::dragFloat("Ambient", ambient, 0.01f)) {
                         addToURControl = true;
-                        meshRendererComponent.material.ambient = ambient;
+                        material.ambient = ambient;
                         newState = meshRendererComponent;
                     }
-                    float diffuse = meshRendererComponent.material.diffuse;
+                    float diffuse = material.diffuse;
                     if(GUIComponents::dragFloat("Diffuse", diffuse, 0.1f, 0.1f, 999999.f)) {
                         addToURControl = true;
-                        meshRendererComponent.material.diffuse = diffuse;
+                        material.diffuse = diffuse;
                         newState = meshRendererComponent;
                     }
-                    float specular = meshRendererComponent.material.specular;
+                    float specular = material.specular;
                     if(GUIComponents::dragFloat("Specular", specular, 0.1f, 0.f, 999999.f)) {
                         addToURControl = true;
-                        meshRendererComponent.material.specular = specular;
+                        material.specular = specular;
                         newState = meshRendererComponent;
                     }
-                    float shininess = meshRendererComponent.material.shininess;
+                    float shininess = material.shininess;
                     if(GUIComponents::dragFloat("Shininess", shininess, 1.f, 12.f, 999999.f)) {
                         addToURControl = true;
-                        meshRendererComponent.material.shininess = shininess;
+                        material.shininess = shininess;
                         newState = meshRendererComponent;
                     }
-                    auto is3D = meshRendererComponent.is3D;
+                    auto is3D = meshRendererComponent.getIs3D();
                     if(GUIComponents::checkBox("Is 3D", is3D)) {
-                        meshRendererComponent.is3D = is3D;
+                        meshRendererComponent.setIs3D(is3D);
                         newState = meshRendererComponent;
                         _scene->_sceneRegistry.current->urControl.execute(new ChangeMeshRendererComponentState(entity, oldState, newState));
                     }
                     if(Input::mouseButtonAction(Mouse::MOUSE_BUTTON_LEFT) == Action::RELEASE && addToURControl) {
                         addToURControl = false;
-                        if(oldState.material != newState.material)
+                        if(oldState.getMaterial() != newState.getMaterial())
                             _scene->_sceneRegistry.current->urControl.execute(new ChangeMeshRendererComponentState(entity, oldState, newState));
                     }
                     ImGui::TreePop();
@@ -508,60 +511,61 @@ namespace TWE {
                 if(ImGui::IsItemClicked(1))
                     ImGui::OpenPopup(popUpId.c_str());
                 auto& lightComponent = entity.getComponent<LightComponent>();
-                std::string selectedType = lightTypes[lightComponent.type];
+                auto lightType = lightComponent.getType();
+                std::string selectedType = lightTypes[lightType];
                 static bool addToURControl = false;
                 static LightComponent oldState;
                 static LightComponent newState;
                 if(!addToURControl)
                     oldState = lightComponent;
-                int typeIndex = GUIComponents::combo("Type", lightTypes[lightComponent.type], lightTypes, 120.f);
+                int typeIndex = GUIComponents::combo("Type", lightTypes[lightType], lightTypes, 120.f);
                 if(typeIndex > -1) {
                     addToURControl = true;
                     lightComponent.setType(static_cast<LightType>(typeIndex));
                     newState = lightComponent;
                 }
-                glm::vec3 color = lightComponent.color;
+                glm::vec3 color = lightComponent.getColor();
                 if(GUIComponents::colorEdit3("Color", color, 120.f)) {
                     addToURControl = true;
-                    lightComponent.color = color;
+                    lightComponent.setColor(color);
                     newState = lightComponent;
                 }
-                if(lightComponent.type == LightType::Spot) {
-                    float innderRadius = lightComponent.innerRadius;
+                if(lightType == LightType::Spot) {
+                    float innderRadius = lightComponent.getInnerRadius();
                     if(GUIComponents::dragFloat("Inner radius", innderRadius, 0.2f, 0.f, 999999.f, 120.f)) {
                         addToURControl = true;
-                        lightComponent.innerRadius = innderRadius;
+                        lightComponent.setInnerRadius(innderRadius);
                         newState = lightComponent;
                     }
-                    float outerRadius = lightComponent.outerRadius;
+                    float outerRadius = lightComponent.getOuterRadius();
                     if(GUIComponents::dragFloat("Outer radius", outerRadius, 0.2f, 0.f, 999999.f, 120.f)) {
                         addToURControl = true;
-                        lightComponent.outerRadius = outerRadius;
+                        lightComponent.setOuterRadius(outerRadius);
                         newState = lightComponent;
                     }
                 }
-                if(lightComponent.type == LightType::Spot || lightComponent.type == LightType::Point) {
-                    float constant = lightComponent.constant;
+                if(lightType == LightType::Spot || lightType == LightType::Point) {
+                    float constant = lightComponent.getConstant();
                     if(GUIComponents::dragFloat("Constant", constant, 0.05f, 0.01f, 999999.f, 120.f)) {
                         addToURControl = true;
-                        lightComponent.constant = constant;
+                        lightComponent.setConstant(constant);
                         newState = lightComponent;
                     }
-                    float linear = lightComponent.linear;
+                    float linear = lightComponent.getLinear();
                     if(GUIComponents::dragFloat("Linear", linear, 0.01f, 0.01f, 999999.f, 120.f)) {
                         addToURControl = true;
-                        lightComponent.linear = linear;
+                        lightComponent.setLinear(linear);
                         newState = lightComponent;
                     }
-                    float quadratic = lightComponent.quadratic;
+                    float quadratic = lightComponent.getQuadratic();
                     if(GUIComponents::dragFloat("Quadratic", quadratic, 0.001f, 0.001f, 999999.f, 120.f)) {
                         addToURControl = true;
-                        lightComponent.quadratic = quadratic;
+                        lightComponent.setQuadratic(quadratic);
                         newState = lightComponent;
                     }
                 }
-                if(lightComponent.type == LightType::Dir) {
-                    bool castShadows = lightComponent.castShadows;
+                if(lightType == LightType::Dir) {
+                    bool castShadows = lightComponent.getCastShadows();
                     if(GUIComponents::checkBox("Cast shadows", castShadows, 120.f)) {
                         lightComponent.setCastShadows(castShadows);
                         newState = lightComponent;
@@ -621,7 +625,7 @@ namespace TWE {
                 if(colliderTypeIndex != -1) {
                     ColliderType newColliderType = static_cast<ColliderType>(colliderTypeIndex);
                     _scene->_sceneRegistry.current->urControl.execute(new SetColliderTypePhysicsComponentCommand(entity, newColliderType, 
-                    colliderType, entity.getComponent<TransformComponent>().transform.size));
+                    colliderType, entity.getComponent<TransformComponent>().getSize()));
                 }
 
                 static bool addToURControl = false;

@@ -59,7 +59,7 @@ namespace TWE {
         [[nodiscard]] bool& getIsFocusedOnDebugCamera();
         [[nodiscard]] entt::registry* getRegistry() const noexcept;
         [[nodiscard]] btDynamicsWorld* getDynamicWorld() const noexcept;
-        [[nodiscard]] std::string getName() const noexcept;
+        [[nodiscard]] const std::string& getName() const noexcept;
         [[nodiscard]] FBO* getFrameBuffer() const noexcept;
         [[nodiscard]] Registry<DLLLoadData>* getScriptDLLRegistry() const noexcept;
         [[nodiscard]] int getLightsCount() const noexcept;
@@ -77,9 +77,8 @@ namespace TWE {
         void updateLight();
         bool updateView();
         void resetEntityRegistry(entt::registry* registry);
-        void updateShadows(uint32_t windowWidth, uint32_t windowHeight);
-        void setShadows(const LightComponent& lightComponent, const glm::mat4& lightSpaceMat, int index);
-        void setLight(const LightComponent& light, TransformComponent& transform, const  uint32_t index);
+        void setLight(const LightComponent& light, TransformComponent& transform, const glm::mat4& lightSpaceMat, const uint32_t index);
+        void setLight(const LightComponent& light, TransformComponent& transform, const uint32_t index);
         void copySceneState(SceneStateSpecification& from, SceneStateSpecification& to);
 
         SceneState _sceneState;

@@ -36,15 +36,23 @@ namespace TWE {
             const ModelMeshSpecification& modelSpec, std::shared_ptr<Texture> texture);
         MeshComponent(const MeshComponent& mesh);
         void setMesh(std::shared_ptr<VAO> vao, std::shared_ptr<VBO> vbo, std::shared_ptr<EBO> ebo, const std::string& registryId, const ModelMeshSpecification& modelSpec = {});
-        std::shared_ptr<VAO> vao;
-        std::shared_ptr<VBO> vbo;
-        std::shared_ptr<EBO> ebo;
-        std::shared_ptr<Texture> texture;
-        // std::string modelPath;
-        std::string registryId;
-        ModelMeshSpecification modelSpec;
+        void setTexture(const TextureAttachmentSpecification& textureAtttachments);
+        void setTexture(Texture* texture);
+        void setTexture(std::shared_ptr<Texture> texture);
+        [[nodiscard]] std::shared_ptr<VAO> getVAO() const noexcept;
+        [[nodiscard]] std::shared_ptr<VBO> getVBO() const noexcept;
+        [[nodiscard]] std::shared_ptr<EBO> getEBO() const noexcept;
+        [[nodiscard]] std::shared_ptr<Texture> getTexture() const noexcept;
+        [[nodiscard]] const std::string& getRegistryId() const noexcept;
+        [[nodiscard]] const ModelMeshSpecification& getModelMeshSpecification() const noexcept;
     private:
         void create(GLfloat* vertices, GLsizei vertSize, GLuint* indices, GLsizei indSize);
+        std::shared_ptr<VAO> _vao;
+        std::shared_ptr<VBO> _vbo;
+        std::shared_ptr<EBO> _ebo;
+        std::shared_ptr<Texture> _texture;
+        std::string _registryId;
+        ModelMeshSpecification _modelSpec;
     };
 }
 

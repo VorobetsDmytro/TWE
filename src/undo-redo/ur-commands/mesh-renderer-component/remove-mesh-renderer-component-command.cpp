@@ -15,8 +15,9 @@ namespace TWE {
     void RemoveMeshRendererComponentCommand::unExecute() {
         if(_entity.hasComponent<MeshRendererComponent>())
             return;
-        auto& meshRendererComponent = _entity.addComponent<MeshRendererComponent>(_meshRendererComponent.shader->getVertPath().c_str(), 
-            _meshRendererComponent.shader->getFragPath().c_str(), _meshRendererComponent.entityId, _meshRendererComponent.registryId);
-        meshRendererComponent.setMaterial(_meshRendererComponent.material);
+        auto& shader = _meshRendererComponent.getShader();
+        auto& meshRendererComponent = _entity.addComponent<MeshRendererComponent>(shader->getVertPath().c_str(), 
+            shader->getFragPath().c_str(), _meshRendererComponent.getEntityId(), _meshRendererComponent.getRegistryId());
+        meshRendererComponent.setMaterial(_meshRendererComponent.getMaterial());
     }
 }
