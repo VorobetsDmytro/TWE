@@ -1,7 +1,7 @@
 #pragma once
 
 #include "entity/behavior.hpp"
-#include "scene/scene.hpp"
+#include "scene/iscene.hpp"
 #include "scene/components/components.hpp"
 
 using namespace TWE;
@@ -23,14 +23,14 @@ public:
 
 	void collisionDetection(Entity collidedEntity, const btCollisionObject* collisionObj) override {
 		mrc = getComponent<MeshRendererComponent>();
-		if(mrc->material.objColor != glm::vec3{1.f, 0.f, 0.f}) {
+		if(mrc->getMaterial().objColor != glm::vec3{1.f, 0.f, 0.f}) {
 			if(!hasComponent<AudioComponent>())
 				addComponent<AudioComponent>(gameObject.getScene()->getSceneAudio()->getSoundEngine());
 			ac = getComponent<AudioComponent>();
 			auto soundSource = ac->addSoundSource(rootPath.string() + '\\' + "audio\\vot-blt-ti-nh.mp3", true, 0.1f);
 			soundSource->play();
 		}
-		mrc->material.objColor = {1.f, 0.f, 0.f};
+		mrc->getMaterial().objColor = {1.f, 0.f, 0.f};
 	}
 };
 

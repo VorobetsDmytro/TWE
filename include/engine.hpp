@@ -36,7 +36,7 @@ namespace TWE {
     protected:
         void updateInput();
         void setVSync(GLboolean isOn);
-        std::unique_ptr<Window> window;
+        static std::unique_ptr<Window> window;
         static std::unique_ptr<ProjectData> projectData;
         static std::shared_ptr<Scene> curScene;
         static std::shared_ptr<DebugCamera> debugCamera;

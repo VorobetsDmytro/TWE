@@ -13,7 +13,7 @@ namespace TWE {
         bool showSeparatorOnce = true;
         std::string entityPopup = guiPopups[GUIPopupIds::EntityPopup];
         if(_scene)  
-            _scene->_sceneRegistry.current->entityRegistry.each([&](entt::entity entity){
+            _scene->getSceneRegistry()->current->entityRegistry.each([&](entt::entity entity){
                 Entity entityInstance = {entity, _scene};
                 if(!entityInstance.hasComponent<NameComponent>())
                     return;
@@ -45,9 +45,9 @@ namespace TWE {
                 const wchar_t* item = static_cast<const wchar_t*>(payload->Data);
                 std::wstring itemWSTR = item;
                 entt::entity entityItem = (entt::entity)std::stoi(itemWSTR);
-                if(_scene->_sceneRegistry.current->entityRegistry.valid(entityItem)) {
+                if(_scene->getSceneRegistry()->current->entityRegistry.valid(entityItem)) {
                     Entity entityItemEnt = { entityItem, _scene };
-                    _scene->_sceneRegistry.current->urControl.execute(new DragAndDropEntityCommand(entityItemEnt, {}));
+                    _scene->getSceneRegistry()->current->urControl.execute(new DragAndDropEntityCommand(entityItemEnt, {}));
                 }
             }
             ImGui::EndDragDropTarget();
@@ -55,7 +55,7 @@ namespace TWE {
         ImGui::End();
     }
 
-    void GUIScenePanel::setScene(Scene* scene) {
+    void GUIScenePanel::setScene(IScene* scene) {
         _scene = scene;
     }
 
@@ -92,10 +92,10 @@ namespace TWE {
                 const wchar_t* item = static_cast<const wchar_t*>(payload->Data);
                 std::wstring itemWSTR = item;
                 entt::entity entityItem = (entt::entity)std::stoi(itemWSTR);
-                if(_scene->_sceneRegistry.current->entityRegistry.valid(entityItem)) {
+                if(_scene->getSceneRegistry()->current->entityRegistry.valid(entityItem)) {
                     if(entityItem != entity.getSource()) {
                         Entity entityItemEnt = { entityItem, _scene };
-                        _scene->_sceneRegistry.current->urControl.execute(new DragAndDropEntityCommand(entityItemEnt, entity));
+                        _scene->getSceneRegistry()->current->urControl.execute(new DragAndDropEntityCommand(entityItemEnt, entity));
                     }
                 }
             }
@@ -119,14 +119,14 @@ namespace TWE {
             auto& availSize = ImGui::GetContentRegionAvail();
             if(showCreateEntityMenu(selectedEntity)) {
                 addEntityToSelected(selectedEntity);
-                _scene->_sceneRegistry.current->urControl.execute(new CreateEntityCommand(selectedEntity, 
+                _scene->getSceneRegistry()->current->urControl.execute(new CreateEntityCommand(selectedEntity, 
                     [&](){ unselectEntity(selectedEntity); }));
             }
             ImGui::Separator();
             if(ImGui::Button("Remove", {availSize.x, 0.f})) {
                 auto removeEntity = selectedEntity;
                 unselectEntity(selectedEntity);
-                _scene->_sceneRegistry.current->urControl.execute(new RemoveEntityCommand(removeEntity, 
+                _scene->getSceneRegistry()->current->urControl.execute(new RemoveEntityCommand(removeEntity, 
                     [&](){
                         unselectEntity(selectedEntity);
                     }
@@ -203,7 +203,7 @@ namespace TWE {
         ImGui::SetNextWindowSize({popUpWidth, 0.f});
         if(ImGui::BeginPopup(popupId.c_str())) {
             if(showCreateEntityMenu(selectedEntity))
-                _scene->_sceneRegistry.current->urControl.execute(new CreateEntityCommand(selectedEntity, 
+                _scene->getSceneRegistry()->current->urControl.execute(new CreateEntityCommand(selectedEntity, 
                     [&](){ unselectEntity(selectedEntity); }));
             ImGui::EndPopup();
         }

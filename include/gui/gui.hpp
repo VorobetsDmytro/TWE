@@ -1,7 +1,7 @@
 #ifndef GUI_HPP
 #define GUI_HPP
 
-#include "scene/scene.hpp"
+#include "scene/iscene.hpp"
 #include "scene/scene-serializer.hpp"
 
 #include "gui/gui-components-panel.hpp"
@@ -31,7 +31,7 @@ namespace TWE {
 
     struct GUISpecification {
         GUISpecification() = default;
-        Scene* _scene;
+        IScene* _scene;
         Entity _selectedEntity;
         ProjectData* projectData;
         int readPixelFBOData;
@@ -48,7 +48,8 @@ namespace TWE {
         void addCheckbox(const char* name, bool& var);
         void addInputText(const char* name, std::string& var);
         void addButton(const char* name, std::function<void()> func);
-        void setScene(Scene* scene);
+        void setScene(IScene* scene);
+        void setWindow(Window* window);
         void setProjectData(ProjectData* projectData);
         [[nodiscard]] bool getIsMouseOnViewport();
         [[nodiscard]] bool getIsFocusedOnViewport();

@@ -9,7 +9,7 @@ namespace TWE {
         });
     }
 
-    void SceneScripts::update(entt::registry* registry, Scene* scene) {
+    void SceneScripts::update(entt::registry* registry, IScene* scene) {
         static std::filesystem::path loadScenePath;
         bool needLoadScene = false;
         registry->view<ScriptComponent>().each([&](entt::entity entity, ScriptComponent& scriptComponent){
@@ -24,7 +24,7 @@ namespace TWE {
                     }
                     if(script.instance->gameObject.hasComponent<PhysicsComponent>()) {
                         auto& physicsComponent = script.instance->gameObject.getComponent<PhysicsComponent>();
-                        auto collisions = scene->getSceneStateSpecification()->physics.getCollisionDetection(physicsComponent.getRigidBody());
+                        auto collisions = scene->getSceneStateSpecification()->physics->getCollisionDetection(physicsComponent.getRigidBody());
                         for(auto collisionObj : collisions){
                             auto userPointer = (PhysicsUserPointer*)collisionObj->getUserPointer();
                             script.instance->collisionDetection(Entity{ userPointer->entity, scene }, collisionObj);
@@ -69,7 +69,7 @@ namespace TWE {
             bindScript(dllData, entity);
     }
 
-    std::vector<Entity> SceneScripts::unbindScript(entt::registry* registry, DLLLoadData* dllData, Scene* scene) {
+    std::vector<Entity> SceneScripts::unbindScript(entt::registry* registry, DLLLoadData* dllData, IScene* scene) {
         std::vector<Entity> res;
         auto& view = registry->view<ScriptComponent>();
         for(auto entity : view) {
@@ -84,15 +84,16 @@ namespace TWE {
         return res;
     }
 
-    void SceneScripts::validateScript(const std::string scriptName, Scene* scene) {
-        auto scriptDLLData = scene->_scriptDLLRegistry->get(scriptName);
+    void SceneScripts::validateScript(const std::string scriptName, IScene* scene) {
+        auto dllRegistry = scene->getScriptDLLRegistry();
+        auto scriptDLLData = dllRegistry->get(scriptName);
         if(scriptDLLData) {
-            auto& editEntities = unbindScript(&scene->_sceneRegistry.edit.entityRegistry, scriptDLLData, scene);
-            unbindScript(&scene->_sceneRegistry.run.entityRegistry, scriptDLLData, scene);
+            auto& editEntities = unbindScript(&scene->getSceneRegistry()->edit.entityRegistry, scriptDLLData, scene);
+            unbindScript(&scene->getSceneRegistry()->run.entityRegistry, scriptDLLData, scene);
             DLLCreator::freeDLLFunc(*scriptDLLData);
-            scene->_scriptDLLRegistry->erase(scriptName);
+            dllRegistry->erase(scriptName);
             auto dllData = new DLLLoadData(DLLCreator::compileScript(scriptName, scriptDLLData->scriptDirectoryPath));
-            scene->_scriptDLLRegistry->add(scriptName, dllData);
+            dllRegistry->add(scriptName, dllData);
             if(!dllData || !dllData->isValid) {
                 std::cout << "Script " +  scriptName + " compile error!\n";
                 dllData->dllPath = scriptDLLData->dllPath;
@@ -105,8 +106,8 @@ namespace TWE {
             std::cout << "Script " +  scriptName + " was not found in the script dll registry!\n";
     }
 
-    void SceneScripts::validateScripts(Scene* scene) {
-        auto& scriptDLLRegistryKeys = scene->_scriptDLLRegistry->getKeys();
+    void SceneScripts::validateScripts(IScene* scene) {
+        auto& scriptDLLRegistryKeys = scene->getScriptDLLRegistry()->getKeys();
         for(auto& scriptName : scriptDLLRegistryKeys)
             validateScript(scriptName, scene);
     }

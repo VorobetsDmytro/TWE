@@ -14,7 +14,7 @@ namespace TWE {
 
         os << "#pragma once\n\n";
         os << "#include \"entity/behavior.hpp\"\n";
-        os << "#include \"scene/scene.hpp\"\n";
+        os << "#include \"scene/iscene.hpp\"\n";
         os << "#include \"scene/components/components.hpp\"\n\n";
         os << "using namespace TWE;\n\n";
         os << "class " << scriptName << " : public Behavior {\n";

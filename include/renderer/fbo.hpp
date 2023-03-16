@@ -26,6 +26,14 @@ namespace TWE {
         std::vector<FBOTextureSpecification> textureSpecifications;
     };
 
+    struct FBOSizeSpecification {
+        FBOSizeSpecification() = default;
+        FBOSizeSpecification(uint32_t width, uint32_t height):
+            width(width), height(height) {}
+        uint32_t width = 0;
+        uint32_t height = 0;
+    };
+
     class FBO {
     public:
         FBO(uint32_t width, uint32_t height, const FBOAttachmentSpecification& attachments);
@@ -39,14 +47,13 @@ namespace TWE {
         [[nodiscard]] uint32_t getId() const noexcept;
         [[nodiscard]] uint32_t getColorAttachment(uint32_t index) const noexcept;
         [[nodiscard]] uint32_t getDepthAttachment() const noexcept;
-        [[nodiscard]] std::pair<uint32_t, uint32_t> getSize() const noexcept;
+        [[nodiscard]] const FBOSizeSpecification& getSize() const noexcept;
     private:
         void create();
         void attachColorTexture(uint32_t id, uint32_t index, uint32_t inFormat, uint32_t outFormat, uint32_t width, uint32_t height);
         void attachDepthTexture(uint32_t id, uint32_t inFormat, uint32_t outFormat, uint32_t width, uint32_t height);
         uint32_t _id;
-        uint32_t _width;
-        uint32_t _height;
+        FBOSizeSpecification _size;
         FBOAttachmentSpecification _attachments;
         std::vector<FBOTextureSpecification> _colorSpecifications;
         FBOTextureSpecification _depthSpecification;

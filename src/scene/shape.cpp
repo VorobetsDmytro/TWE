@@ -144,7 +144,7 @@ namespace TWE {
         registerMeshRendererSpecification(rootPathStr + SHADER_PATHS[ShaderIndices::UI_VERT], rootPathStr + SHADER_PATHS[ShaderIndices::UI_FRAG], uiRendererId);
     }
 
-    Entity Shape::createCubeEntity(Scene* scene, const TextureAttachmentSpecification& textureAtttachments) {
+    Entity Shape::createCubeEntity(IScene* scene, const TextureAttachmentSpecification& textureAtttachments) {
         Entity entity = scene->createEntity();
         auto& creationType = entity.getComponent<CreationTypeComponent>();
         creationType.setType(EntityCreationType::Cube);
@@ -167,7 +167,7 @@ namespace TWE {
         return entity;
     }
 
-    Entity Shape::createPlateEntity(Scene* scene, const TextureAttachmentSpecification& textureAtttachments) {
+    Entity Shape::createPlateEntity(IScene* scene, const TextureAttachmentSpecification& textureAtttachments) {
         Entity entity = scene->createEntity();
         auto& creationType = entity.getComponent<CreationTypeComponent>();
         creationType.setType(EntityCreationType::Plate);
@@ -190,7 +190,7 @@ namespace TWE {
         return entity;
     }
 
-    Entity Shape::createCubemapEntity(Scene* scene, TextureAttachmentSpecification& textureAtttachments) {
+    Entity Shape::createCubemapEntity(IScene* scene, TextureAttachmentSpecification& textureAtttachments) {
         Texture* texture = Texture::generateCubemapTexture(textureAtttachments);
         Entity entity = scene->createEntity();
         auto& creationType = entity.getComponent<CreationTypeComponent>();
@@ -224,7 +224,7 @@ namespace TWE {
         return entity;
     }
 
-    Entity Shape::createSpotLightEntity(Scene* scene, const glm::vec3& color, float innerRadius, float outerRadius, float constant, float linear, float quadratic) {
+    Entity Shape::createSpotLightEntity(IScene* scene, const glm::vec3& color, float innerRadius, float outerRadius, float constant, float linear, float quadratic) {
         Entity entity = scene->createEntity();
         auto& creationType = entity.getComponent<CreationTypeComponent>();
         creationType.setType(EntityCreationType::SpotLight);
@@ -234,7 +234,7 @@ namespace TWE {
         return entity;
     }
 
-    Entity Shape::createPointLightEntity(Scene* scene, const glm::vec3& color, float constant, float linear, float quadratic) {
+    Entity Shape::createPointLightEntity(IScene* scene, const glm::vec3& color, float constant, float linear, float quadratic) {
         Entity entity = scene->createEntity();
         auto& creationType = entity.getComponent<CreationTypeComponent>();
         creationType.setType(EntityCreationType::PointLight);
@@ -244,7 +244,7 @@ namespace TWE {
         return entity;
     }
 
-    Entity Shape::createDirLightEntity(Scene* scene, const glm::vec3& color) {
+    Entity Shape::createDirLightEntity(IScene* scene, const glm::vec3& color) {
         Entity entity = scene->createEntity();
         auto& creationType = entity.getComponent<CreationTypeComponent>();
         creationType.setType(EntityCreationType::DirLight);
@@ -254,7 +254,7 @@ namespace TWE {
         return entity;
     }
 
-    Entity Shape::createCameraEntity(Scene* scene) {
+    Entity Shape::createCameraEntity(IScene* scene) {
         Entity entity = scene->createEntity();
         auto& creationType = entity.getComponent<CreationTypeComponent>();
         creationType.setType(EntityCreationType::Camera);
@@ -282,7 +282,7 @@ namespace TWE {
         return true;
     }
 
-    Entity Shape::createModelEntity(Scene* scene, const std::filesystem::path& modelPath) {
+    Entity Shape::createModelEntity(IScene* scene, const std::filesystem::path& modelPath) {
         auto meshSpecs = shapeSpec->meshRegistry->getValues();
         std::string meshId;
         for(auto& spec : meshSpecs)
@@ -326,7 +326,7 @@ namespace TWE {
             return {};
     }
 
-    Entity Shape::createModelEntity(Scene* scene, const std::filesystem::path& modelPath, int index) {
+    Entity Shape::createModelEntity(IScene* scene, const std::filesystem::path& modelPath, int index) {
         auto meshSpecs = shapeSpec->meshRegistry->getValues();
         std::string meshId;
         for(auto& spec : meshSpecs)

@@ -4,11 +4,11 @@
 #include "entt/entt.hpp"
 
 namespace TWE {
-    class Scene;
+    class IScene;
     class Entity {
     public:
         Entity();
-        Entity(entt::entity entity, Scene* scene);
+        Entity(entt::entity entity, IScene* scene);
         Entity(const Entity& entity);
         template<typename T>
         bool hasComponent();
@@ -27,16 +27,16 @@ namespace TWE {
 
         bool operator==(const Entity& other);
         bool operator!=(const Entity& other);
-        [[nodiscard]] Scene* getScene();
+        [[nodiscard]] IScene* getScene();
         [[nodiscard]] entt::entity getSource() const noexcept;
     private:
         entt::entity _entity;
-        Scene* _scene;
+        IScene* _scene;
     };
 
     template<typename T>
     bool Entity::hasComponent() {
-        return _scene->_sceneRegistry.current->entityRegistry.any_of<T>(_entity);
+        return _scene->getSceneRegistry()->current->entityRegistry.any_of<T>(_entity);
     }
 
     template<typename T>
@@ -46,7 +46,7 @@ namespace TWE {
             componentName = componentName.substr(6);
             throw std::runtime_error("Error: A " + componentName + " was not found.");
         }
-        return _scene->_sceneRegistry.current->entityRegistry.get<T>(_entity);
+        return _scene->getSceneRegistry()->current->entityRegistry.get<T>(_entity);
     }
 
     template<typename T, typename ...Args>
@@ -56,7 +56,7 @@ namespace TWE {
             componentName = componentName.substr(6);
             throw std::runtime_error("Error: A " + componentName + " is already exists.");
         }
-        return _scene->_sceneRegistry.current->entityRegistry.emplace<T>(_entity, std::forward<Args>(args)...);
+        return _scene->getSceneRegistry()->current->entityRegistry.emplace<T>(_entity, std::forward<Args>(args)...);
     }
 
     template<typename T>
@@ -66,7 +66,7 @@ namespace TWE {
             componentName = componentName.substr(6);
             throw std::runtime_error("Error: A " + componentName + " was not found.");
         }
-        _scene->_sceneRegistry.current->entityRegistry.remove<T>(_entity);
+        _scene->getSceneRegistry()->current->entityRegistry.remove<T>(_entity);
     }
 
     template<typename T>

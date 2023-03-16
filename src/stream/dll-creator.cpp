@@ -31,7 +31,7 @@ namespace TWE {
         #if defined(TWE_PLATFORM_WINDOWS)
         HINSTANCE hDll = LoadLibrary(loadData.dllPath.c_str());
         if (hDll == NULL) {
-            std::cout << "Failed to load library.\n";
+            std::cout << "Failed to load library:\n" << loadData.dllPath << "\n";
             return nullptr;
         }
         loadData.hDlls.push_back(hDll);

@@ -28,13 +28,13 @@ namespace TWE {
     class PhysicsRaycast {
     public:
         template<typename T = void>
-        static RaycastClosestInfo raycastClosest(Scene* scene, const glm::vec3& from, const glm::vec3& to);
+        static RaycastClosestInfo raycastClosest(IScene* scene, const glm::vec3& from, const glm::vec3& to);
         template<typename T = void>
-        static RaycastAllHitsInfo raycastAllHits(Scene* scene, const glm::vec3& from, const glm::vec3& to);
+        static RaycastAllHitsInfo raycastAllHits(IScene* scene, const glm::vec3& from, const glm::vec3& to);
     };
 
     template<typename T>
-    RaycastClosestInfo PhysicsRaycast::raycastClosest(Scene* scene, const glm::vec3& from, const glm::vec3& to) {
+    RaycastClosestInfo PhysicsRaycast::raycastClosest(IScene* scene, const glm::vec3& from, const glm::vec3& to) {
         btVector3 rayFromWorld = {from.x, from.y, from.z};
         btVector3 rayToWorld = {to.x, to.y, to.z};
         btCollisionWorld::ClosestRayResultCallback rayResultCallback(rayFromWorld, rayToWorld);
@@ -46,7 +46,7 @@ namespace TWE {
     }
 
     template<typename T>
-    RaycastAllHitsInfo PhysicsRaycast::raycastAllHits(Scene* scene, const glm::vec3& from, const glm::vec3& to) {
+    RaycastAllHitsInfo PhysicsRaycast::raycastAllHits(IScene* scene, const glm::vec3& from, const glm::vec3& to) {
         btVector3 rayFromWorld = {from.x, from.y, from.z};
         btVector3 rayToWorld = {to.x, to.y, to.z};
         btCollisionWorld::AllHitsRayResultCallback rayResultCallback(rayFromWorld, rayToWorld);

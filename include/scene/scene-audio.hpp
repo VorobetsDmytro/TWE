@@ -5,19 +5,19 @@
 #include <entt/entt.hpp>
 #include "irrKlang/include/irrKlang.h"
 
+#include "scene/iscene-audio.hpp"
 #include "scene/components/components.hpp"
-#include "scene/scene-camera-specification.hpp"
 
 namespace TWE {
-    class SceneAudio {
+    class SceneAudio: public ISceneAudio {
     public:
         SceneAudio();
         ~SceneAudio();
-        void reset();
-        void startAudioOnRun(entt::registry* registry);
-        void setAudioPauseState(entt::registry* registry, bool paused);
-        bool updateAudioListenerPosition(const SceneCameraSpecification& cameraSpec);
-        irrklang::ISoundEngine* getSoundEngine();
+        void reset() override;
+        void startAudioOnRun(entt::registry* registry) override;
+        void setAudioPauseState(entt::registry* registry, bool paused) override;
+        bool updateAudioListenerPosition(const SceneCameraSpecification& cameraSpec) override;
+        irrklang::ISoundEngine* getSoundEngine() override;
     private:
         irrklang::ISoundEngine* _soundEngine;
         std::vector<irrklang::ISound*> _pausedSounds;

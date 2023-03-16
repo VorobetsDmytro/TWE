@@ -41,7 +41,7 @@ namespace TWE {
         ImGui::End();
     }
 
-    void GUIDirectoryPanel::setScene(Scene* scene) {
+    void GUIDirectoryPanel::setScene(IScene* scene) {
         _scene = scene;
     }
 
@@ -69,7 +69,7 @@ namespace TWE {
         float contentCellSize = 75.f;
         float padding = 16.f;
         float panelWidth = ImGui::GetContentRegionAvail().x;
-        int columns = max(static_cast<int>(panelWidth / contentCellSize), 1);
+        int columns = std::max(static_cast<int>(panelWidth / contentCellSize), 1);
 
         ImGui::Columns(columns, 0, false);
         auto dirIt = std::filesystem::directory_iterator(_curPath);
@@ -107,7 +107,7 @@ namespace TWE {
                         selectedEntity = {};
                         SceneSerializer::deserialize(_scene, path.string());
                         _projectData->lastScenePath = std::filesystem::relative(path, _projectData->rootPath);
-                        ProjectCreator::save(_projectData, _scene->_scriptDLLRegistry);
+                        ProjectCreator::save(_projectData, _scene->getScriptDLLRegistry());
                     }
                 } else if(ImGui::IsMouseClicked(1)) {
                     ImGui::SetWindowFocus();
@@ -135,11 +135,11 @@ namespace TWE {
                     selectedEntity = {};
                     SceneSerializer::deserialize(_scene, filePath.string());
                     _projectData->lastScenePath = std::filesystem::relative(filePath, _projectData->rootPath);
-                    ProjectCreator::save(_projectData, _scene->_scriptDLLRegistry);
+                    ProjectCreator::save(_projectData, _scene->getScriptDLLRegistry());
                     ImGui::CloseCurrentPopup();
                 }
             }
-            bool validateScriptFlag = _scene->_sceneState != SceneState::Edit;
+            bool validateScriptFlag = _scene->getSceneState() != SceneState::Edit;
             if(fileExtension == ".hpp") {
                 if(validateScriptFlag) {
                     ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
@@ -167,16 +167,16 @@ namespace TWE {
             if(ImGui::Button("Remove", {availSize.x, 0.f})) {
                 if(fileExtension == ".hpp") {
                     std::string fileName = filePath.stem().string();
-                    if(_scene->_scriptDLLRegistry->has(fileName)) {
-                        auto scriptDLLData = _scene->_scriptDLLRegistry->get(fileName);
+                    if(_scene->getScriptDLLRegistry()->has(fileName)) {
+                        auto scriptDLLData = _scene->getScriptDLLRegistry()->get(fileName);
                         if(scriptDLLData) {
                             auto sceneScripts = _scene->getSceneScripts();
-                            sceneScripts->unbindScript(&_scene->_sceneRegistry.edit.entityRegistry, scriptDLLData, _scene);
-                            sceneScripts->unbindScript(&_scene->_sceneRegistry.run.entityRegistry, scriptDLLData, _scene);
+                            sceneScripts->unbindScript(&_scene->getSceneRegistry()->edit.entityRegistry, scriptDLLData, _scene);
+                            sceneScripts->unbindScript(&_scene->getSceneRegistry()->run.entityRegistry, scriptDLLData, _scene);
                             DLLCreator::freeDLLFunc(*scriptDLLData);
-                            _scene->_scriptDLLRegistry->erase(fileName);
+                            _scene->getScriptDLLRegistry()->erase(fileName);
                             DLLCreator::removeScript(fileName);
-                            ProjectCreator::save(_projectData, _scene->_scriptDLLRegistry);
+                            ProjectCreator::save(_projectData, _scene->getScriptDLLRegistry());
                         }
                     }
                 }
@@ -211,7 +211,7 @@ namespace TWE {
             if(ImGui::BeginMenu("Create scene")) {
                 static std::string sceneName;
                 if(GUIComponents::inputAndButton("Scene name", sceneName, "Create")) {
-                    Scene* newScene = new Scene(0.f, 0.f, "../../");
+                    IScene* newScene = new IScene();
                     SceneSerializer::serialize(newScene, _curPath.string() + '/' + sceneName + ".scene", _projectData);
                     delete newScene;
                     sceneName.clear();
@@ -222,14 +222,14 @@ namespace TWE {
             if(ImGui::BeginMenu("Create script")) {
                 static std::string scriptName;
                 if(GUIComponents::inputAndButton("Script name", scriptName, "Create")) {
-                    auto checkScriptUniqName = _scene->_scriptDLLRegistry->get(scriptName);
+                    auto checkScriptUniqName = _scene->getScriptDLLRegistry()->get(scriptName);
                     if(!checkScriptUniqName) {
                         std::string scriptDirectoryPath = _curPath.string();
                         if(ScriptCreator::create(scriptName, scriptDirectoryPath)) {
                             auto dllData = new DLLLoadData(DLLCreator::compileScript(scriptName, scriptDirectoryPath));
                             if(dllData->isValid)
-                                _scene->_scriptDLLRegistry->add(scriptName, dllData);
-                            ProjectCreator::save(_projectData, _scene->_scriptDLLRegistry);
+                                _scene->getScriptDLLRegistry()->add(scriptName, dllData);
+                            ProjectCreator::save(_projectData, _scene->getScriptDLLRegistry());
                             scriptName.clear();
                             ImGui::CloseCurrentPopup();
                         }

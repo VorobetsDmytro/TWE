@@ -13,17 +13,21 @@
 namespace TWE {
     class SceneBulletDebugDrawer: public btIDebugDraw {
     public:
-        SceneBulletDebugDrawer(const std::filesystem::path& rootPath) {
+        void initShader(const std::filesystem::path& rootPath) {
             std::string vert = SHADER_PATHS[ShaderIndices::COLLIDER_VERT];
             std::string frag = SHADER_PATHS[ShaderIndices::COLLIDER_FRAG];
             _shader = new Shader((rootPath / vert).string().c_str(), (rootPath / frag).string().c_str());
         }
 
         void setMats(const glm::mat4& view, const glm::mat4& projection) {
+            if(!_shader)
+                return;
             _shader->setUniform(TRANS_MAT_OPTIONS[TransformMatrixOptions::VP], projection * view);
         }
         
         void drawLine(const btVector3& from, const btVector3& to, const btVector3& color) override {
+            if(!_shader)
+                return;
             GLfloat points[12] = {
                 from.x(), from.y(), from.z(), color.x(), color.y(), color.z(),
                 to.x(),   to.y(),   to.z(),   color.x(), color.y(), color.z(),
@@ -54,7 +58,7 @@ namespace TWE {
         int getDebugMode() const override { return _debugMode; }
     private:
         GLuint _VBO, _VAO;
-        Shader* _shader;
+        Shader* _shader = nullptr;
         int _debugMode;
     };
 }

@@ -1,14 +1,13 @@
 #include "scene/scene.hpp"
 
 namespace TWE {
-    Scene::Scene(uint32_t windowWidth, uint32_t windowHeight, const std::filesystem::path& rootPath) {
-        _sceneRegistry.edit.physics = { rootPath };
-        _sceneRegistry.run.physics = { rootPath };
+    Scene::Scene() {
+        _sceneRegistry.edit.physics = new ScenePhysics();
+        _sceneRegistry.run.physics = new ScenePhysics();
         _sceneRegistry.current = &_sceneRegistry.edit;
         _sceneState = SceneState::Edit;
+        _sceneAudio = std::make_unique<SceneAudio>();
 
-        FBOAttachmentSpecification attachments = { FBOTextureFormat::RGBA8, FBOTextureFormat::R32I, FBOTextureFormat::DEPTH24STENCIL8 };
-        _frameBuffer = std::make_unique<FBO>(windowWidth, windowHeight, attachments);
         _debugCamera = nullptr;
         _scriptDLLRegistry = nullptr;
         _projectData = nullptr;
@@ -30,7 +29,7 @@ namespace TWE {
 
     void Scene::setProjectData(ProjectData* projectData) {
         _projectData = projectData;
-        _sceneScripts = new SceneScripts(projectData);
+        _sceneScripts = std::make_unique<SceneScripts>(projectData);
     }
 
     void Scene::setState(SceneState state) {
@@ -38,25 +37,25 @@ namespace TWE {
         switch (_sceneState) {
         case SceneState::Edit:
             _isFocusedOnDebugCamera = true;
-            _sceneAudio.reset();
+            _sceneAudio->reset();
             _sceneRegistry.current = &_sceneRegistry.edit;
             break;
         case SceneState::Run:
             _isFocusedOnDebugCamera = false;
             _sceneRegistry.run.lastId = 0;
             _sceneRegistry.run.urControl.reset();
-            _sceneRegistry.run.physics.reset(&_sceneRegistry.run.entityRegistry);
+            _sceneRegistry.run.physics->reset(&_sceneRegistry.run.entityRegistry);
             _sceneScripts->reset(&_sceneRegistry.run.entityRegistry);
             resetEntityRegistry(&_sceneRegistry.run.entityRegistry);
             copySceneState(_sceneRegistry.edit, _sceneRegistry.run);
             _sceneRegistry.current = &_sceneRegistry.run;
-            _sceneAudio.startAudioOnRun(&_sceneRegistry.current->entityRegistry);
+            _sceneAudio->startAudioOnRun(&_sceneRegistry.current->entityRegistry);
             break;
         case SceneState::Pause:
-            _sceneAudio.setAudioPauseState(&_sceneRegistry.current->entityRegistry, true);
+            _sceneAudio->setAudioPauseState(&_sceneRegistry.current->entityRegistry, true);
             break;
         case SceneState::Unpause:
-            _sceneAudio.setAudioPauseState(&_sceneRegistry.current->entityRegistry, false);
+            _sceneAudio->setAudioPauseState(&_sceneRegistry.current->entityRegistry, false);
             _sceneState = SceneState::Run;
             break;
         }
@@ -76,10 +75,10 @@ namespace TWE {
     }
 
     void Scene::reset() {
-        _sceneRegistry.run.physics.reset(&_sceneRegistry.run.entityRegistry);
+        _sceneRegistry.run.physics->reset(&_sceneRegistry.run.entityRegistry);
         _sceneScripts->reset(&_sceneRegistry.run.entityRegistry);
         resetEntityRegistry(&_sceneRegistry.run.entityRegistry);
-        _sceneRegistry.edit.physics.reset(&_sceneRegistry.edit.entityRegistry);
+        _sceneRegistry.edit.physics->reset(&_sceneRegistry.edit.entityRegistry);
         _sceneScripts->reset(&_sceneRegistry.edit.entityRegistry);
         resetEntityRegistry(&_sceneRegistry.edit.entityRegistry);
         setState(SceneState::Edit);
@@ -87,7 +86,7 @@ namespace TWE {
         _sceneRegistry.edit.lastId = 0;
         _sceneRegistry.run.urControl.reset();
         _sceneRegistry.edit.urControl.reset();
-        _sceneAudio.reset();
+        _sceneAudio->reset();
         Shape::reset();
     }
 
@@ -98,7 +97,6 @@ namespace TWE {
 
     void Scene::updateLight() {
         uint32_t lightIndex = 0;
-        const auto& fboSize = _frameBuffer->getSize();
         _sceneRegistry.current->entityRegistry.view<LightComponent, TransformComponent>()
             .each([&](entt::entity entity, LightComponent& lightComponent, TransformComponent& transformComponent){
                 if(!lightComponent.getCastShadows()) {
@@ -111,7 +109,6 @@ namespace TWE {
                 Renderer::generateDepthMap(lightComponent, transformComponent, lightProjection, lightView, projectionView, this);
                 setLight(lightComponent, transformComponent, projectionView, lightIndex++);
             });
-        Renderer::setViewport(0, 0, fboSize.first, fboSize.second);
     } 
 
     bool Scene::updateView() {
@@ -158,11 +155,11 @@ namespace TWE {
     }
 
     void Scene::updateRunState() {
-        _sceneRegistry.current->physics.updateWorldSimulation(&_sceneRegistry.current->entityRegistry, Time::getDeltaTime());
+        _sceneRegistry.current->physics->updateWorldSimulation(&_sceneRegistry.current->entityRegistry, Time::getDeltaTime());
         _sceneScripts->update(&_sceneRegistry.current->entityRegistry, this);
         updateTransforms();
-        _sceneAudio.updateAudioListenerPosition(_sceneCamera);
-        _sceneRegistry.current->physics.cleanCollisionDetection();
+        _sceneAudio->updateAudioListenerPosition(_sceneCamera);
+        _sceneRegistry.current->physics->cleanCollisionDetection();
         if(!updateView())
             return;
         updateLight();
@@ -387,13 +384,13 @@ namespace TWE {
         if(entity.hasComponent<PhysicsComponent>()) {
             auto& physicsComponent = entity.getComponent<PhysicsComponent>();
             if(physicsComponent.getColliderType() != ColliderType::TriangleMesh) {
-                auto& physxComp = to.entityRegistry.emplace<PhysicsComponent>(instance, to.physics.getDynamicWorld(), physicsComponent.getColliderType(), 
+                auto& physxComp = to.entityRegistry.emplace<PhysicsComponent>(instance, to.physics->getDynamicWorld(), physicsComponent.getColliderType(), 
                     physicsComponent.getShapeDimensions(), physicsComponent.getLocalScale(), physicsComponent.getPosition(),
                     physicsComponent.getRotation(), physicsComponent.getMass(), instance);
                 physxComp.setIsRotated(physicsComponent.getIsRotated());
                 physxComp.setIsTrigger(physicsComponent.getIsTrigger());
             } else {
-                auto& physxComp = to.entityRegistry.emplace<PhysicsComponent>(instance, to.physics.getDynamicWorld(), physicsComponent.getColliderType(), 
+                auto& physxComp = to.entityRegistry.emplace<PhysicsComponent>(instance, to.physics->getDynamicWorld(), physicsComponent.getColliderType(), 
                     physicsComponent.getTriangleMesh(), physicsComponent.getLocalScale(), physicsComponent.getPosition(),
                     physicsComponent.getRotation(), instance);
                 physxComp.setIsTrigger(physicsComponent.getIsTrigger());
@@ -401,7 +398,7 @@ namespace TWE {
         }
         if(entity.hasComponent<AudioComponent>()) {
             auto& audioComponent = entity.getComponent<AudioComponent>();
-            auto& audioComponentCopy = to.entityRegistry.emplace<AudioComponent>(instance, _sceneAudio.getSoundEngine());
+            auto& audioComponentCopy = to.entityRegistry.emplace<AudioComponent>(instance, _sceneAudio->getSoundEngine());
             auto& soundSources = audioComponent.getSoundSources();
             for(auto soundSource : soundSources) {
                 auto newSoundSource = audioComponentCopy.addSoundSource(soundSource->getSoundSourcePath(), soundSource->getIs3D());
@@ -418,15 +415,16 @@ namespace TWE {
 
     bool& Scene::getIsFocusedOnDebugCamera() { return _isFocusedOnDebugCamera; }
     entt::registry* Scene::getRegistry() const noexcept { return &_sceneRegistry.current->entityRegistry; }
-    btDynamicsWorld* Scene::getDynamicWorld() const noexcept { return _sceneRegistry.current->physics.getDynamicWorld(); }
+    btDynamicsWorld* Scene::getDynamicWorld() const noexcept { return _sceneRegistry.current->physics->getDynamicWorld(); }
     const std::string& Scene::getName() const noexcept { return _name; }
-    FBO* Scene::getFrameBuffer() const noexcept { return _frameBuffer.get(); }
     Registry<DLLLoadData>* Scene::getScriptDLLRegistry() const noexcept { return _scriptDLLRegistry; }
     int Scene::getLightsCount() const noexcept { return _sceneRegistry.current->entityRegistry.view<LightComponent>().size(); }
     SceneStateSpecification* Scene::getSceneStateSpecification() { return _sceneRegistry.current; }
-    SceneAudio* Scene::getSceneAudio() { return &_sceneAudio; }
-    SceneScripts* Scene::getSceneScripts() { return _sceneScripts; }
+    ISceneAudio* Scene::getSceneAudio() { return _sceneAudio.get(); }
+    ISceneScripts* Scene::getSceneScripts() { return _sceneScripts.get(); }
+    IScenePhysics* Scene::getScenePhysics() { return _sceneRegistry.current->physics; }
     ProjectData* Scene::getProjectData() { return _projectData; }
     SceneCameraSpecification* Scene::getSceneCamera() { return &_sceneCamera; }
+    SceneRegistrySpecification* Scene::getSceneRegistry() { return &_sceneRegistry; }
     SceneState Scene::getSceneState() { return _sceneState; }
 }

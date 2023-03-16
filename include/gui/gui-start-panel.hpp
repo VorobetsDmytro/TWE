@@ -1,7 +1,7 @@
 #ifndef START_PANEL_HPP
 #define START_PANEL_HPP
 
-#include "scene/scene.hpp"
+#include "scene/iscene.hpp"
 
 #include <imgui.h>
 #include <imgui_stdlib.h>
@@ -15,9 +15,9 @@ namespace TWE {
         GUIStartPanel() = default;
         void initialize();
         void showPanel();
-        void setScene(Scene* scene);
+        void setScene(IScene* scene);
     private:
-        Scene* _scene;
+        IScene* _scene;
         ImFont* fontRobotoBold16;
         ImFont* fontRobotoBold32;
         ImFont* fontRobotoBold64;

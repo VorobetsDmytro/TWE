@@ -3,9 +3,13 @@
 namespace TWE {
     GUIViewportPanel::GUIViewportPanel() {
         _gizmoOperation = GizmoOperation::Translate;
+        _scene = nullptr;
+        _window = nullptr;
     }
 
     void GUIViewportPanel::showPanel(Entity& selectedEntity, bool& isFocusedOnViewport, bool& isMouseOnViewport) {
+        if(!_scene || !_window)
+            return;
         ImGui::Begin("Viewport");
         showViewportStatePanel(selectedEntity);
         auto& cursorPos = ImGui::GetCursorPos();
@@ -13,10 +17,10 @@ namespace TWE {
             ImGui::SetWindowFocus();
         isFocusedOnViewport = ImGui::IsWindowFocused();
         ImVec2 viewPortSize = ImGui::GetContentRegionAvail();
-        auto frameSize = _scene->getFrameBuffer()->getSize();
-        if(viewPortSize.x != frameSize.first || viewPortSize.y != frameSize.second)
-            _scene->getFrameBuffer()->resize(viewPortSize.x, viewPortSize.y);
-        auto frameId = (void*)(uint64_t)_scene->getFrameBuffer()->getColorAttachment(0);
+        auto& frameSize = _window->getFrameBuffer()->getSize();
+        if(viewPortSize.x != frameSize.width || viewPortSize.y != frameSize.height)
+            _window->getFrameBuffer()->resize(viewPortSize.x, viewPortSize.y);
+        auto frameId = (void*)(uint64_t)_window->getFrameBuffer()->getColorAttachment(0);
         ImGui::Image(frameId, viewPortSize, {0, 1}, {1, 0});
 
         auto& windowSize = ImGui::GetWindowSize();
@@ -33,7 +37,7 @@ namespace TWE {
             if(mousePos.x >= 0.f && mousePos.y >= 0.f && mousePos.x < viewPortSize.x && mousePos.y < viewPortSize.y) {
                 isMouseOnViewport = true;
                 if(!isUsing && !getIsMouseDisabled() && ImGui::IsMouseClicked(0)) {
-                    int data = _scene->getFrameBuffer()->readPixel(1, (int)mousePos.x, (int)mousePos.y);
+                    int data = _window->getFrameBuffer()->readPixel(1, (int)mousePos.x, (int)mousePos.y);
                     if(data == -1 || !_scene->getSceneStateSpecification()->entityRegistry.valid((entt::entity)data))
                         unselectEntity(selectedEntity);
                     else
@@ -166,8 +170,12 @@ namespace TWE {
         _gizmoOperation = operation;
     }
 
-    void GUIViewportPanel::setScene(Scene* scene) {
+    void GUIViewportPanel::setScene(IScene* scene) {
         _scene = scene;
+    }
+
+    void GUIViewportPanel::setWindow(Window* window) {
+        _window = window;
     }
 
     bool GUIViewportPanel::getIsMouseDisabled() { return ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_NoMouse; }

@@ -17,7 +17,7 @@ namespace TWE {
         lightComponent.setQuadratic(_newState.getQuadratic());
         lightComponent.setType(_newState.getType());
         if(_newState.getFBO())
-            lightComponent.setShadowMapSize(_newState.getFBO()->getSize().first);
+            lightComponent.setShadowMapSize(_newState.getFBO()->getSize().width);
         lightComponent.setFBO(_newState.getFBO());
         lightComponent.setLightProjectionAspect(_newState.getLightProjectionAspect());
     }
@@ -35,7 +35,7 @@ namespace TWE {
         lightComponent.setQuadratic(_oldState.getQuadratic());
         lightComponent.setType(_oldState.getType());
         if(_oldState.getFBO())
-            lightComponent.setShadowMapSize(_oldState.getFBO()->getSize().first);
+            lightComponent.setShadowMapSize(_oldState.getFBO()->getSize().width);
         lightComponent.setFBO(_oldState.getFBO());
         lightComponent.setLightProjectionAspect(_oldState.getLightProjectionAspect());
     }

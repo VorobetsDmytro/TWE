@@ -79,7 +79,7 @@ namespace TWE {
     }
 
     void PhysicsComponent::setPosition(const glm::vec3& pos) {
-        btTransform oldTransform = _rigidBody->getWorldTransform();
+        btTransform& oldTransform = _rigidBody->getWorldTransform();
         btQuaternion oldBodyRotation = oldTransform.getRotation();
         _transform.setIdentity();
         _transform.setRotation(oldBodyRotation);
@@ -145,10 +145,9 @@ namespace TWE {
     }
 
     glm::vec3 PhysicsComponent::getShapeDimensions() { 
-        btVector3 shapeDimensions;
         btCollisionShape* collisionShape = _rigidBody->getCollisionShape();
         btBoxShape* boxShape = boxShape = (btBoxShape*)collisionShape;
-        shapeDimensions = boxShape->getImplicitShapeDimensions();
+        const btVector3& shapeDimensions = boxShape->getImplicitShapeDimensions();
         btVector3& size = (shapeDimensions * 2);
         return { size.x(), size.y(), size.z() };
     }

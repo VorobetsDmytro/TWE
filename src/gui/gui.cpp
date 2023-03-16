@@ -91,7 +91,7 @@ namespace TWE {
                     ImGuiFileDialog::Instance()->OpenDialog("SaveSceneAs", "Choose File", ".scene", 
                         (_specification.projectData->rootPath.string() + '/').c_str(), 1, nullptr);
                 ImGui::Separator();
-                bool validateScriptsFlag = _specification._scene->_sceneState != SceneState::Edit;
+                bool validateScriptsFlag = _specification._scene->getSceneState() != SceneState::Edit;
                 if(validateScriptsFlag) {
                     ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
                     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
@@ -167,9 +167,9 @@ namespace TWE {
                 std::string projectDir = std::filesystem::path(filePathName).parent_path().string();
                 if(ProjectCreator::create(projectName, projectDir)) {
                     unselectEntity();
-                    _specification._scene->_scriptDLLRegistry->clean();
+                    _specification._scene->getScriptDLLRegistry()->clean();
                     std::string projectFilePath = projectDir + '/' + projectName + '/' + projectName + ".project";
-                    auto projectData = ProjectCreator::load(projectFilePath, _specification._scene->_scriptDLLRegistry);
+                    auto projectData = ProjectCreator::load(projectFilePath, _specification._scene->getScriptDLLRegistry());
                     if(projectData) {
                         std::filesystem::path dllTempDir = projectData->rootPath.string() + '/' + projectData->dllTempDir.string();
                         DLLCreator::initPaths(dllTempDir.string());
@@ -187,8 +187,8 @@ namespace TWE {
             if(ImGuiFileDialog::Instance()->IsOk()) {
                 std::string projectFilePath = ImGuiFileDialog::Instance()->GetFilePathName();
                 unselectEntity();
-                _specification._scene->_scriptDLLRegistry->clean();
-                auto projectData = ProjectCreator::load(projectFilePath, _specification._scene->_scriptDLLRegistry);
+                _specification._scene->getScriptDLLRegistry()->clean();
+                auto projectData = ProjectCreator::load(projectFilePath, _specification._scene->getScriptDLLRegistry());
                 if(projectData) {
                     std::filesystem::path dllTempDir = projectData->rootPath.string() + '/' + projectData->dllTempDir.string();
                     DLLCreator::initPaths(dllTempDir.string());
@@ -208,7 +208,7 @@ namespace TWE {
                 std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
                 SceneSerializer::serialize(_specification._scene, filePathName, _specification.projectData);
                 _specification.projectData->lastScenePath = std::filesystem::relative(filePathName, _specification.projectData->rootPath);
-                ProjectCreator::save(_specification.projectData, _specification._scene->_scriptDLLRegistry);
+                ProjectCreator::save(_specification.projectData, _specification._scene->getScriptDLLRegistry());
             }
             ImGuiFileDialog::Instance()->Close();
             return;
@@ -220,7 +220,7 @@ namespace TWE {
                 if(modelEntity.getSource() != entt::null) {
                     selectEntity(modelEntity);
                     _scene.addEntityToSelected(_specification._selectedEntity);
-                    _specification._scene->_sceneRegistry.current->urControl.execute(new CreateEntityCommand(_specification._selectedEntity, 
+                    _specification._scene->getSceneRegistry()->current->urControl.execute(new CreateEntityCommand(_specification._selectedEntity, 
                         [&](){ unselectEntity(); }));
                 }
             }
@@ -249,7 +249,7 @@ namespace TWE {
                     if(attachemnts.textureSpecifications.size() == 6) {
                         selectEntity(Shape::createCubemapEntity(_specification._scene, attachemnts));
                         _scene.addEntityToSelected(_specification._selectedEntity);
-                        _specification._scene->_sceneRegistry.current->urControl.execute(new CreateEntityCommand(_specification._selectedEntity, 
+                        _specification._scene->getSceneRegistry()->current->urControl.execute(new CreateEntityCommand(_specification._selectedEntity, 
                             [&](){ unselectEntity(); }));
                     }
                 }
@@ -291,7 +291,7 @@ namespace TWE {
         if(io.KeysDown[Keyboard::KEY_DELETE] && !hasFunc(Keyboard::KEY_DELETE) && _specification._selectedEntity.getSource() != entt::null) {
             auto removeEntity = _specification._selectedEntity;
             unselectEntity();
-            _specification._scene->_sceneRegistry.current->urControl.execute(new RemoveEntityCommand(removeEntity, 
+            _specification._scene->getSceneRegistry()->current->urControl.execute(new RemoveEntityCommand(removeEntity, 
                 [&](){
                     unselectEntity();
                 }
@@ -300,15 +300,15 @@ namespace TWE {
         }
         if(io.KeysDown[Keyboard::KEY_LEFT_CONTROL]) {
             if(io.KeysDown[Keyboard::KEY_Z] && !hasFunc(Keyboard::KEY_Z)) {
-                _specification._scene->_sceneRegistry.current->urControl.undo();
+                _specification._scene->getSceneRegistry()->current->urControl.undo();
                 keysDown.push_back(Keyboard::KEY_Z);
             }
             if(io.KeysDown[Keyboard::KEY_Y] && !hasFunc(Keyboard::KEY_Y)) {
-                _specification._scene->_sceneRegistry.current->urControl.redo();
+                _specification._scene->getSceneRegistry()->current->urControl.redo();
                 keysDown.push_back(Keyboard::KEY_Y);
             }
             if(io.KeysDown[Keyboard::KEY_D] && !hasFunc(Keyboard::KEY_D) && _specification._selectedEntity.getSource() != entt::null) {
-                _specification._scene->_sceneRegistry.current->urControl.execute(new CopyEntityCommand(_specification._selectedEntity, {}, [&](){ unselectEntity(); }));
+                _specification._scene->getSceneRegistry()->current->urControl.execute(new CopyEntityCommand(_specification._selectedEntity, {}, [&](){ unselectEntity(); }));
                 keysDown.push_back(Keyboard::KEY_D);
             }
             if(io.KeysDown[Keyboard::KEY_S] && !hasFunc(Keyboard::KEY_S)) {
@@ -340,13 +340,18 @@ namespace TWE {
         _buttons.push_back({name, func});
     }
 
-    void GUI::setScene(Scene* scene) {
+    void GUI::setScene(IScene* scene) {
         _specification._scene = scene;
         _components.setScene(scene);
         _directory.setScene(scene);
         _start.setScene(scene);
         _scene.setScene(scene);
         _viewport.setScene(scene);
+    }
+
+    void GUI::setWindow(Window* window) {
+        _components.setWindow(window);
+        _viewport.setWindow(window);
     }
 
     void GUI::setProjectData(ProjectData* projectData) {

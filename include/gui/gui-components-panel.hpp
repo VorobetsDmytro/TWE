@@ -1,8 +1,10 @@
 #ifndef GUI_COMPONENTS_PANEL_HPP
 #define GUI_COMPONENTS_PANEL_HPP
 
-#include "scene/scene.hpp"
+#include "scene/iscene.hpp"
 #include "scene/shape.hpp"
+
+#include "input/window.hpp"
 
 #include "gui/gui-components.hpp"
 #include "gui/gui-types.hpp"
@@ -20,7 +22,8 @@ namespace TWE {
     public:
         GUIComponentsPanel();
         void showPanel(Entity& entity);
-        void setScene(Scene* scene);
+        void setScene(IScene* scene);
+        void setWindow(Window* window);
     private:
         void showFileDialog(Entity& entity);
         void showNameComponent(Entity& entity);
@@ -34,7 +37,8 @@ namespace TWE {
         void showAudioComponent(Entity& entity);
         void showAddComponentMenu(Entity& entity);
         void showSeparator();
-        Scene* _scene;
+        IScene* _scene;
+        Window* _window;
     };
 }
 

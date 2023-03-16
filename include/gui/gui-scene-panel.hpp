@@ -1,7 +1,7 @@
 #ifndef SCENE_PANEL_HPP
 #define SCENE_PANEL_HPP
 
-#include "scene/scene.hpp"
+#include "scene/iscene.hpp"
 #include "scene/shape.hpp"
 #include "gui/gui-components.hpp"
 #include "gui/gui-types.hpp"
@@ -17,7 +17,7 @@ namespace TWE {
     public:
         GUIScenePanel() = default;
         void showPanel(Entity& selectedEntity);
-        void setScene(Scene* scene);
+        void setScene(IScene* scene);
         void addEntityToSelected(Entity& selectedEntity);
         bool isSceneEntityPopupOpen();
     private:
@@ -28,7 +28,7 @@ namespace TWE {
         void selectEntity(Entity& entity, Entity& selectedEntity);
         void unselectEntity(Entity& entity);
         void showSeparator(Entity& entity, bool isUpper = false);
-        Scene* _scene;
+        IScene* _scene;
         bool _canOpenWindowPopup;
         bool _showSceneEntityPopup;
         Entity _showSceneEntity;
