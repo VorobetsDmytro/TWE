@@ -1,7 +1,8 @@
 #ifndef CHANGE_TRANSFORM_COMPONENT_STATE_HPP
 #define CHANGE_TRANSFORM_COMPONENT_STATE_HPP
 
-#include "scene/scene.hpp"
+#include "scene/iscene.hpp"
+#include "scene/components/components.hpp"
 #include "undo-redo/iur-command.hpp"
 
 namespace TWE {

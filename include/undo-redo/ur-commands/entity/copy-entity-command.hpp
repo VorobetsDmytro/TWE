@@ -1,7 +1,8 @@
 #ifndef COPY_ENTITY_COMMAND_HPP
 #define COPY_ENTITY_COMMAND_HPP
 
-#include "scene/scene.hpp"
+#include "scene/iscene.hpp"
+#include "scene/components/components.hpp"
 #include "undo-redo/iur-command.hpp"
 
 namespace TWE {
@@ -34,7 +35,7 @@ namespace TWE {
 
         std::function<void()> _unselectFunc;
         std::vector<CopyEntityCommand*> _childsCommand;
-        Scene* _sourceScene;
+        IScene* _sourceScene;
         btDynamicsWorld* _dynamicsWorld = nullptr;
         btDynamicsWorld* _tempWorld;
     };

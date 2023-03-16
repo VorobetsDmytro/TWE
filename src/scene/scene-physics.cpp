@@ -1,14 +1,14 @@
 #include "scene/scene-physics.hpp"
 
 namespace TWE {
-    ScenePhysics::ScenePhysics(const std::filesystem::path& rootPath) {
+    ScenePhysics::ScenePhysics() {
         _collisionConfig = new btDefaultCollisionConfiguration();
         _dispatcher = new btCollisionDispatcher(_collisionConfig);
         _broadPhase = new btDbvtBroadphase();
         _solver = new btSequentialImpulseConstraintSolver();
         _world = new btDiscreteDynamicsWorld(_dispatcher, _broadPhase, _solver, _collisionConfig); 
         _world->setGravity({0.f, -9.81f, 0.f});
-        _debugDrawer = new SceneBulletDebugDrawer(rootPath);
+        _debugDrawer = new SceneBulletDebugDrawer();
         _debugDrawer->setDebugMode(btIDebugDraw::DBG_DrawWireframe);
         _world->setDebugDrawer(_debugDrawer);
     }

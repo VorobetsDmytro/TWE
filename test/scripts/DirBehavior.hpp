@@ -1,7 +1,7 @@
 #pragma once
 
 #include "entity/behavior.hpp"
-#include "scene/scene.hpp"
+#include "scene/iscene.hpp"
 #include "scene/components/components.hpp"
 
 using namespace TWE;

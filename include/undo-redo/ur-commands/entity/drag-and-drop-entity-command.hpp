@@ -1,7 +1,8 @@
 #ifndef DRAG_AND_DROP_ENTITY_COMMAND_HPP
 #define DRAG_AND_DROP_ENTITY_COMMAND_HPP
 
-#include "scene/scene.hpp"
+#include "scene/iscene.hpp"
+#include "scene/components/components.hpp"
 #include "undo-redo/iur-command.hpp"
 
 namespace TWE {

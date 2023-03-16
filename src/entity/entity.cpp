@@ -3,7 +3,7 @@
 namespace TWE {
     Entity::Entity(): _entity(entt::null), _scene(nullptr) {}
 
-    Entity::Entity(entt::entity entity, TWE::Scene* scene): _entity(entity), _scene(scene) {}
+    Entity::Entity(entt::entity entity, IScene* scene): _entity(entity), _scene(scene) {}
 
     Entity::Entity(const Entity& entity) {
         this->_entity = entity._entity;
@@ -18,6 +18,6 @@ namespace TWE {
         return !(*this == other);
     }
 
-    Scene* Entity::getScene() { return _scene; }
+    IScene* Entity::getScene() { return _scene; }
     entt::entity Entity::getSource() const noexcept { return _entity; }
 }

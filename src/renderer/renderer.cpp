@@ -54,7 +54,7 @@ namespace TWE {
         glDrawElements(GL_TRIANGLES, rendererSpec.meshComponent->getEBO()->getSize() / sizeof(int), GL_UNSIGNED_INT, (void*)0);
     }
 
-    void Renderer::renderScene(Scene* scene) {
+    void Renderer::renderScene(IScene* scene) {
         SceneCameraSpecification* camera = scene->getSceneCamera();
         if(!camera->camera)
             return;
@@ -72,8 +72,8 @@ namespace TWE {
             });
         if(isFocusedOnDebugCamera) {
             #ifndef TWE_BUILD
-            scene->getSceneStateSpecification()->physics.getDebugDrawer()->setMats(camera->view, camera->projection);
-            scene->getSceneStateSpecification()->physics.debugDrawWorld();
+            scene->getSceneStateSpecification()->physics->getDebugDrawer()->setMats(camera->view, camera->projection);
+            scene->getSceneStateSpecification()->physics->debugDrawWorld();
             #endif
             return;
         }
@@ -125,12 +125,12 @@ namespace TWE {
     }
 
     void Renderer::generateDepthMap(LightComponent& lightComponent, const TransformComponent& transformComponent, const glm::mat4& lightProjection, 
-    const glm::mat4& lightView, const glm::mat4& projectionView, Scene* scene) {
+    const glm::mat4& lightView, const glm::mat4& projectionView, IScene* scene) {
         auto fbo = lightComponent.getFBO();
         auto& depthMapSize = fbo->getSize();
         glActiveTexture(GL_TEXTURE31);
         glBindTexture(GL_TEXTURE_2D, lightComponent.getDepthTextureId());
-        Renderer::setViewport(0, 0, depthMapSize.first, depthMapSize.second);
+        Renderer::setViewport(0, 0, depthMapSize.width, depthMapSize.height);
         glCullFace(GL_FRONT);
         fbo->bind();
         glClear(GL_DEPTH_BUFFER_BIT);
@@ -139,7 +139,7 @@ namespace TWE {
         glCullFace(GL_BACK);
     }
 
-    void Renderer::renderShadowMap(Scene* scene, const glm::vec3& position, const glm::mat4& view, const glm::mat4& projection, const glm::mat4& projectionView) {
+    void Renderer::renderShadowMap(IScene* scene, const glm::vec3& position, const glm::mat4& view, const glm::mat4& projection, const glm::mat4& projectionView) {
         scene->getRegistry()->view<MeshComponent, MeshRendererComponent, TransformComponent>()
             .each([&](entt::entity entity, MeshComponent& meshComponent, MeshRendererComponent& meshRendererComponent, TransformComponent& transformComponent){
                 if(!meshRendererComponent.getIs3D())

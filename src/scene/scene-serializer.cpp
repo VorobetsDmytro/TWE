@@ -1,8 +1,8 @@
 #include "scene/scene-serializer.hpp"
 
 namespace TWE {
-    bool SceneSerializer::serialize(Scene* scene, const std::string& path, ProjectData* projectData) {
-        if(scene->_sceneState != SceneState::Edit)
+    bool SceneSerializer::serialize(IScene* scene, const std::string& path, ProjectData* projectData) {
+        if(scene->getSceneState() != SceneState::Edit)
             return false;
         nlohmann::json jsonMain;
         std::string sceneName = std::filesystem::path(path).stem().string();
@@ -10,7 +10,7 @@ namespace TWE {
         jsonMain["Scene"] = sceneName;
         jsonMain["RootPath"] = projectData->rootPath;
         nlohmann::json jsonEntities = nlohmann::json::array();
-        auto& view = scene->_sceneRegistry.edit.entityRegistry.view<NameComponent>();
+        auto& view = scene->getSceneRegistry()->edit.entityRegistry.view<NameComponent>();
         int size = view.size();
         for(int i = size - 1; i >= 0; --i) {
             Entity instance = { view[i], scene };
@@ -22,7 +22,7 @@ namespace TWE {
         return true;
     }
 
-    bool SceneSerializer::deserialize(Scene* scene, const std::string& path) {
+    bool SceneSerializer::deserialize(IScene* scene, const std::string& path) {
         std::string jsonBodyStr = File::getBody(path.c_str());
         nlohmann::json jsonMain = nlohmann::json::parse(jsonBodyStr);
         if(!jsonMain.contains("Scene"))
@@ -45,14 +45,15 @@ namespace TWE {
         return true;
     }
 
-    void SceneSerializer::revalidateParentChildsComponent(Scene* scene) {
+    void SceneSerializer::revalidateParentChildsComponent(IScene* scene) {
         int lastId = -1;
         std::map<entt::entity, ParentChildsComponent> newParentChilds;
-        scene->_sceneRegistry.edit.entityRegistry.view<ParentChildsComponent>().each([&](entt::entity entityOut, ParentChildsComponent& parentChildsComponent){
+        auto sceneRegistry = scene->getSceneRegistry(); 
+        sceneRegistry->edit.entityRegistry.view<ParentChildsComponent>().each([&](entt::entity entityOut, ParentChildsComponent& parentChildsComponent){
             Entity outInstance = { entityOut, scene };
             std::vector<entt::entity> childs;
             entt::entity parent = entt::null;
-            scene->_sceneRegistry.edit.entityRegistry.view<IDComponent>().each([&](entt::entity entityIn, IDComponent& idComponent) {
+            sceneRegistry->edit.entityRegistry.view<IDComponent>().each([&](entt::entity entityIn, IDComponent& idComponent) {
                 if(idComponent.id > lastId)
                     lastId = idComponent.id;
                 if(entityOut == entityIn)
@@ -69,7 +70,7 @@ namespace TWE {
             });
             newParentChilds.insert({entityOut, ParentChildsComponent{parent, childs}});
         });
-        scene->_sceneRegistry.edit.lastId = ++lastId;
+        sceneRegistry->edit.lastId = ++lastId;
         for(auto [entity, parentChilds] : newParentChilds) {
             Entity instance = { entity, scene };
             auto& parentChildsComponent = instance.getComponent<ParentChildsComponent>();
@@ -78,7 +79,7 @@ namespace TWE {
         }
     }
 
-    void SceneSerializer::serializeEntity(Entity& entity, nlohmann::json& jsonEntities, ProjectData* projectData, Scene* scene) {
+    void SceneSerializer::serializeEntity(Entity& entity, nlohmann::json& jsonEntities, ProjectData* projectData, IScene* scene) {
         nlohmann::json jsonEntity;
         jsonEntity["Entity ID"] = entity.getComponent<IDComponent>().id;
         serializeCreationTypeComponent(entity, jsonEntity);
@@ -95,7 +96,7 @@ namespace TWE {
         jsonEntities.push_back(jsonEntity);
     }
 
-    void SceneSerializer::deserializeEntity(Scene* scene, Entity& entity, nlohmann::json& jsonComponents, const std::filesystem::path& rootPath) {
+    void SceneSerializer::deserializeEntity(IScene* scene, Entity& entity, nlohmann::json& jsonComponents, const std::filesystem::path& rootPath) {
         auto& components = jsonComponents.items();
         for(auto& [key, value] : components) {
             deserializeNameComponent(entity, key, value);
@@ -122,7 +123,7 @@ namespace TWE {
         jsonEntity["CreationTypeComponent"] = jsonCreationTypeComponent;
     }
 
-    Entity SceneSerializer::deserializeCreationTypeComponent(Scene* scene, nlohmann::json& jsonComponent, const std::filesystem::path& rootPath) {
+    Entity SceneSerializer::deserializeCreationTypeComponent(IScene* scene, nlohmann::json& jsonComponent, const std::filesystem::path& rootPath) {
         auto creationTypeComponent = static_cast<EntityCreationType>(jsonComponent["CreationTypeComponent"]["Type"]);
         auto jsonMeshComponent = jsonComponent.find("MeshComponent");
         TextureAttachmentSpecification* textureAtttachments = new TextureAttachmentSpecification();
@@ -474,7 +475,7 @@ namespace TWE {
         jsonLightComponent["OuterRadius"] = lightComponent.getOuterRadius();
         jsonLightComponent["LightProjectionAspect"] = lightComponent.getLightProjectionAspect();
         auto fbo = lightComponent.getFBO();
-        jsonLightComponent["ShadowMapSize"] = fbo ? fbo->getSize().first : 0;
+        jsonLightComponent["ShadowMapSize"] = fbo ? fbo->getSize().width : 0;
 
         nlohmann::json jsonLightColor = nlohmann::json::array();
         auto color = lightComponent.getColor();
@@ -550,7 +551,7 @@ namespace TWE {
         jsonEntity["PhysicsComponent"] = jsonPhysicsComponent;
     }
 
-    void SceneSerializer::deserializePhysicsComponent(Scene* scene, Entity& entity, const std::string& key, nlohmann::json& jsonComponent) {
+    void SceneSerializer::deserializePhysicsComponent(IScene* scene, Entity& entity, const std::string& key, nlohmann::json& jsonComponent) {
         if(key != "PhysicsComponent")
             return;
         if(entity.hasComponent<PhysicsComponent>())
@@ -599,7 +600,7 @@ namespace TWE {
         jsonEntity["ScriptComponent"] = jsonScriptComponent;
     }
 
-    void SceneSerializer::deserializeScriptComponent(Scene* scene, Entity& entity, const std::string& key, nlohmann::json& jsonComponent) {
+    void SceneSerializer::deserializeScriptComponent(IScene* scene, Entity& entity, const std::string& key, nlohmann::json& jsonComponent) {
         if(key != "ScriptComponent")
             return;
         if(!entity.hasComponent<ScriptComponent>())
@@ -609,7 +610,7 @@ namespace TWE {
         for(auto& [index, behavior] : jsonComponent["Behaviors"].items()) {
             std::string behaviorClassName = behavior["BehaviorClassName"];
             bool isEnabled = behavior["IsEnabled"];
-            auto scriptDLLData = scene->_scriptDLLRegistry->get(behaviorClassName);
+            auto scriptDLLData = scene->getScriptDLLRegistry()->get(behaviorClassName);
             if(scriptDLLData && scriptDLLData->isValid) {
                 auto behaviorFactory = DLLCreator::loadDLLFunc(*scriptDLLData);
                 if(behaviorFactory) {
@@ -624,7 +625,7 @@ namespace TWE {
         }
     }
 
-    void SceneSerializer::serializeParentChildsComponent(Entity& entity, nlohmann::json& jsonEntity, Scene* scene) {
+    void SceneSerializer::serializeParentChildsComponent(Entity& entity, nlohmann::json& jsonEntity, IScene* scene) {
         auto& parentChildsComponent = entity.getComponent<ParentChildsComponent>();
         nlohmann::json jsonParentChildsComponent;
 

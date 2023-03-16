@@ -1,7 +1,7 @@
 #pragma once
 
 #include "entity/behavior.hpp"
-#include "scene/scene.hpp"
+#include "scene/iscene.hpp"
 #include "scene/components/components.hpp"
 
 using namespace TWE;
@@ -18,7 +18,7 @@ public:
     void update(float deltaTime) override {
         light = getComponent<LightComponent>();
         time += deltaTime;
-        light->color = {cos(time) / 2 + 0.5f, sin(time) / 2 + 0.5f, -cos(time) / 2 + 0.5f};
+        light->setColor({cos(time) / 2 + 0.5f, sin(time) / 2 + 0.5f, -cos(time) / 2 + 0.5f});
     }
 };
 

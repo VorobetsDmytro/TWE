@@ -18,7 +18,7 @@ namespace TWE {
             this->isEnabled = scriptSpecification.isEnabled;
             this->isInitialized = scriptSpecification.isInitialized;
         }
-        void initialize(entt::entity entity, Scene* scene, const std::filesystem::path& rootPath, ShapeSpecification* shapeSpec) {
+        void initialize(entt::entity entity, IScene* scene, const std::filesystem::path& rootPath, ShapeSpecification* shapeSpec) {
             instance->gameObject = { entity, scene };
             instance->setInput(Input::getSource());
             instance->setImguiContext(ImGui::GetCurrentContext());

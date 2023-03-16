@@ -2,6 +2,7 @@
 
 namespace TWE {
     std::shared_ptr<DebugCamera> Engine::debugCamera = std::make_shared<DebugCamera>(glm::vec3(0.f, 0.f, 0.f), 0.1f);
+    std::unique_ptr<Window> Engine::window;
     std::shared_ptr<Scene> Engine::curScene;
     Registry<DLLLoadData> Engine::scriptDLLRegistry;
     Registry<MeshSpecification> Engine::meshRegistry;
@@ -22,6 +23,7 @@ namespace TWE {
         window->setCursorPosCallback(&Engine::mouseCallback);
         window->setFramebufferSizeCallback(&Engine::framebufferSizeCallback);
         window->initGLAD(wndWidth, wndHeight);
+        window->initFBO(wndWidth, wndHeight);
         std::filesystem::path rootPath;
         //imgui
         #ifndef TWE_BUILD
@@ -34,13 +36,16 @@ namespace TWE {
         //initialization vars
         projectData = std::make_unique<ProjectData>();
         debugCamera->setPerspective(90.f, wndWidth, wndHeight);
-        curScene = std::make_shared<Scene>(wndWidth, wndHeight, rootPath);
+        curScene = std::make_shared<Scene>();
         curScene->setDebugCamera(debugCamera.get());
         curScene->setScriptDLLRegistry(&scriptDLLRegistry);
         curScene->setProjectData(projectData.get());
+        curScene->getSceneRegistry()->edit.physics->getDebugDrawer()->initShader(rootPath);
+        curScene->getSceneRegistry()->run.physics->getDebugDrawer()->initShader(rootPath);
         #ifndef TWE_BUILD
         gui->setScene(curScene.get());
         gui->setProjectData(projectData.get());
+        gui->setWindow(window.get());
         #endif
         Shape::initialize(&meshRegistry, &meshRendererRegistry, &textureRegistry, rootPath);
         Input::setWindow(window->getSource());
@@ -112,9 +117,9 @@ namespace TWE {
         #endif
     }
 
-    void Engine::framebufferSizeCallback(GLFWwindow* window, int width, int height) {
+    void Engine::framebufferSizeCallback(GLFWwindow* windowA, int width, int height) {
         Renderer::setViewport(0, 0, width, height);
-        curScene->getFrameBuffer()->resize(width, height);
+        window->getFrameBuffer()->resize(width, height);
     }
 
     void Engine::updateTitle() {
@@ -147,10 +152,11 @@ namespace TWE {
 
     void Engine::render() {
         auto camera = curScene->getSceneCamera();
+        auto frameBuffer = window->getFrameBuffer();
+        auto& fboSize = frameBuffer->getSize();
         #ifndef TWE_BUILD
         gui->begin();
         curScene->update();
-        auto frameBuffer = curScene->getFrameBuffer();
         frameBuffer->bind();
         Renderer::cleanScreen({});
         if(!camera->camera) {
@@ -158,6 +164,7 @@ namespace TWE {
             gui->end();
             return;
         }
+        Renderer::setViewport(0, 0, fboSize.width, fboSize.height);
         Renderer::renderScene(curScene.get());
         frameBuffer->unbind();
         gui->end();
@@ -168,6 +175,7 @@ namespace TWE {
             uiBuild->end();
             return;
         }
+        Renderer::setViewport(0, 0, fboSize.width, fboSize.height);
         Renderer::renderScene(curScene.get());
         uiBuild->end();
         #endif

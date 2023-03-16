@@ -1,7 +1,9 @@
 #ifndef ADD_MESH_COMPONENT_COMMAND_HPP
 #define ADD_MESH_COMPONENT_COMMAND_HPP
 
-#include "scene/scene.hpp"
+#include "scene/iscene.hpp"
+#include "scene/components/components.hpp"
+#include "scene/shape.hpp"
 #include "undo-redo/iur-command.hpp"
 
 namespace TWE {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "entity/behavior.hpp"
-#include "scene/scene.hpp"
+#include "scene/iscene.hpp"
 #include "scene/components/components.hpp"
 
 using namespace TWE;
@@ -21,7 +21,7 @@ public:
         meshRendererComponent = getComponent<MeshRendererComponent>();
         time += deltaTime;
         transform->rotate(100.f * deltaTime, {0.f, 0.f, 1.f});
-        meshRendererComponent->material.objColor = {cos(time) / 2 + 0.5f, sin(time) / 2 + 0.5f, -cos(time) / 2 + 0.5f};
+        meshRendererComponent->getMaterial().objColor = {cos(time) / 2 + 0.5f, sin(time) / 2 + 0.5f, -cos(time) / 2 + 0.5f};
     }
 };
 

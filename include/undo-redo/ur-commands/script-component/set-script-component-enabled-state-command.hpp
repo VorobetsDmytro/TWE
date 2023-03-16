@@ -1,7 +1,8 @@
 #ifndef SET_SCRIPT_COMPONENT_ENABLED_STATE_COMMAND_HPP
 #define SET_SCRIPT_COMPONENT_ENABLED_STATE_COMMAND_HPP
 
-#include "scene/scene.hpp"
+#include "scene/iscene.hpp"
+#include "scene/components/components.hpp"
 #include "undo-redo/iur-command.hpp"
 
 namespace TWE {

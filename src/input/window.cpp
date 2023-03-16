@@ -1,6 +1,8 @@
 #include "input/window.hpp"
 
 namespace TWE {
+    const FBOAttachmentSpecification Window::_fboAttachments = { FBOTextureFormat::RGBA8, FBOTextureFormat::R32I, FBOTextureFormat::DEPTH24STENCIL8 };
+
     Window::Window() {
         _window = nullptr;
     }
@@ -44,6 +46,10 @@ namespace TWE {
         glEnable(GL_CULL_FACE);
     }
 
+    void Window::initFBO(int width, int height) {
+        _frameBuffer = std::make_unique<FBO>(width, height, _fboAttachments);
+    }
+
     void Window::setKeyCallback(GLFWkeyfun callback) {
         glfwSetKeyCallback(_window, callback);
     }
@@ -67,4 +73,5 @@ namespace TWE {
 
     GLFWwindow* Window::getSource() const noexcept { return _window; }
     const std::string& Window::getTitle() const noexcept { return _title; }
+    FBO* Window::getFrameBuffer() const noexcept { return _frameBuffer.get(); }
 }

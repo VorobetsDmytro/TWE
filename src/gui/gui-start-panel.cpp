@@ -12,7 +12,7 @@ namespace TWE {
         ImGuiFileDialog::Instance()->SetFileStyle(IGFD_FileStyleByExtention, ".project", ImVec4(1.0f, 1.0f, 0.0f, 1.f));
     }
 
-    void GUIStartPanel::setScene(Scene* scene) {
+    void GUIStartPanel::setScene(IScene* scene) {
         _scene = scene;
     }
 

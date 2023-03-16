@@ -2,7 +2,8 @@
 
 namespace TWE {
     FBO::FBO(uint32_t width, uint32_t height, const FBOAttachmentSpecification& attachments)
-    : _width(width), _height(height), _attachments(attachments) {
+    : _attachments(attachments) {
+        _size = { width, height };
         for(auto& specification : _attachments.textureSpecifications) {
             if(specification.textureFormat == FBOTextureFormat::DEPTH24STENCIL8)
                 _depthSpecification = specification;
@@ -18,7 +19,7 @@ namespace TWE {
 
     void FBO::bind() {
         glBindFramebuffer(GL_FRAMEBUFFER, _id);
-        glViewport(0, 0, _width, _height);
+        glViewport(0, 0, _size.width, _size.height);
     }
 
     void FBO::unbind() {
@@ -34,8 +35,7 @@ namespace TWE {
     }
 
     void FBO::resize(uint32_t width, uint32_t height) {
-        _width = width;
-        _height = height;
+        _size = { width, height };
         clean();
         create();
     }
@@ -74,10 +74,10 @@ namespace TWE {
             for(int i = 0; i < colorAttachmentsSize; ++i) {
                 switch (_colorSpecifications[i].textureFormat) {
                 case FBOTextureFormat::R32I:
-                    attachColorTexture(_colorAttachments[i], i, GL_R32I, GL_RED_INTEGER, _width, _height);
+                    attachColorTexture(_colorAttachments[i], i, GL_R32I, GL_RED_INTEGER, _size.width, _size.height);
                     break;
                 case FBOTextureFormat::RGBA8:
-                    attachColorTexture(_colorAttachments[i], i, GL_RGBA8, GL_RGBA, _width, _height);
+                    attachColorTexture(_colorAttachments[i], i, GL_RGBA8, GL_RGBA, _size.width, _size.height);
                     break;
                 }
             }
@@ -86,12 +86,12 @@ namespace TWE {
             glGenTextures(1, &_depthAttachment);
             switch (_depthSpecification.textureFormat) {
                 case FBOTextureFormat::DEPTH24STENCIL8:
-                    attachDepthTexture(_depthAttachment, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, _width, _height);
+                    attachDepthTexture(_depthAttachment, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, _size.width, _size.height);
                     break;
             }
         }
         if(_colorAttachments.size() > 1) {
-            uint32_t buffers[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+            static const uint32_t buffers[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
             glDrawBuffers(_colorAttachments.size(), buffers);
         } else if(_colorAttachments.empty())
             glDrawBuffer(GL_NONE);
@@ -108,7 +108,7 @@ namespace TWE {
     }
 
     uint32_t FBO::getId() const noexcept { return _id; }
-    std::pair<uint32_t, uint32_t> FBO::getSize() const noexcept { return {_width, _height}; }
+    const FBOSizeSpecification& FBO::getSize() const noexcept { return _size; }
     FBOAttachmentSpecification& FBO::getAttachments() { return _attachments; }
     uint32_t FBO::getColorAttachment(uint32_t index) const noexcept { return _colorAttachments[index]; }
     uint32_t FBO::getDepthAttachment() const noexcept { return _depthAttachment; }

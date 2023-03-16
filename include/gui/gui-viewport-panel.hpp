@@ -1,7 +1,8 @@
 #ifndef GUI_VIEWPORT_PANEL_HPP
 #define GUI_VIEWPORT_PANEL_HPP
 
-#include "scene/scene.hpp"
+#include "scene/iscene.hpp"
+#include "input/window.hpp"
 
 #include "undo-redo/ur-commands/ur-commands.hpp"
 
@@ -23,7 +24,8 @@ namespace TWE {
     public:
         GUIViewportPanel();
         void showPanel(Entity& selectedEntity, bool& isFocusedOnViewport, bool& isMouseOnViewport);
-        void setScene(Scene* scene);
+        void setScene(IScene* scene);
+        void setWindow(Window* window);
         void setGizmoOperation(GizmoOperation operation);
     private:
         void selectEntity(Entity& entity, Entity& selectedEntity);
@@ -31,7 +33,8 @@ namespace TWE {
         void showViewportStatePanel(Entity& selectedEntity);
         bool getIsMouseDisabled();
         bool showGizmo(Entity& selectedEntity);
-        Scene* _scene;
+        IScene* _scene;
+        Window* _window;
         GizmoOperation _gizmoOperation;
     };
 }

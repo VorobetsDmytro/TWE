@@ -6,8 +6,8 @@
 #include <string>
 #include <entt/entt.hpp>
 
+#include "scene/iscene.hpp"
 #include "scene/components/components.hpp"
-#include "scene/scene.hpp"
 
 #include "renderer/texture.hpp"
 
@@ -43,16 +43,16 @@ namespace TWE {
         static void render2D(const RendererSpecification& rendererSpec);
         static void render3D(const RendererSpecification& rendererSpec, const glm::vec3& cameraPosition, const glm::mat4& cameraView, const glm::mat4& cameraProjection, 
             const glm::mat4& cameraProjectionView, int lightsCount);
-        static void renderScene(Scene* scene);
+        static void renderScene(IScene* scene);
         static void cleanScreen(const glm::vec4& color);
         static void cleanDepth();
         static void setViewport(int startX, int startY, int endX, int endY);
         static void setLight(MeshRendererComponent& meshRendererComponent, const LightComponent& light, TransformComponent& transform, int lightIndex);
         static void setShadows(MeshRendererComponent& meshRendererComponent, const glm::mat4& lightSpaceMat, int lightIndex);
         static void generateDepthMap(LightComponent& lightComponent, const TransformComponent& transformComponent, const glm::mat4& lightProjection, 
-                                     const glm::mat4& lightView, const glm::mat4& projectionView, Scene* scene);
+                                     const glm::mat4& lightView, const glm::mat4& projectionView, IScene* scene);
     private:
-        static void renderShadowMap(Scene* scene, const glm::vec3& position, const glm::mat4& view, const glm::mat4& projection, const glm::mat4& projectionView);
+        static void renderShadowMap(IScene* scene, const glm::vec3& position, const glm::mat4& view, const glm::mat4& projection, const glm::mat4& projectionView);
         static std::vector<LightShaderNamesSpecification> lightShaderNames;
     };
 }

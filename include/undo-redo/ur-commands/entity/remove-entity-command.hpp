@@ -1,7 +1,8 @@
 #ifndef REMOVE_ENTITY_COMMAND_HPP
 #define REMOVE_ENTITY_COMMAND_HPP
 
-#include "scene/scene.hpp"
+#include "scene/iscene.hpp"
+#include "scene/components/components.hpp"
 #include "undo-redo/iur-command.hpp"
 
 namespace TWE {
@@ -32,7 +33,7 @@ namespace TWE {
         std::function<void()> _unselectFunc;
         Entity _entity;
         entt::entity _sourceEntity;
-        Scene* _sourceScene;
+        IScene* _sourceScene;
         btDynamicsWorld* _dynamicsWorld = nullptr;
         btDynamicsWorld* _tempWorld;
     };

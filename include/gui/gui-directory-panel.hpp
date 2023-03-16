@@ -1,7 +1,7 @@
 #ifndef GUI_DIRECTORY_PANEL_HPP
 #define GUI_DIRECTORY_PANEL_HPP
 
-#include "scene/scene.hpp"
+#include "scene/iscene.hpp"
 #include "scene/scene-serializer.hpp"
 #include "registry/registry.hpp"
 #include "stream/script-creator.hpp"
@@ -24,7 +24,7 @@ namespace TWE {
     public:
         GUIDirectoryPanel();
         void showPanel(Entity& selectedEntity);
-        void setScene(Scene* scene);
+        void setScene(IScene* scene);
         void setProjectData(ProjectData* projectData);
         void setCurrentPath(const std::filesystem::path& curPath);
     private:
@@ -34,7 +34,7 @@ namespace TWE {
         void showDirectoryFileMenuPopup(const std::string& popupId, std::filesystem::path& filePath, Entity& selectedEntity);
         bool renderContent(Entity& selectedEntity);
         std::filesystem::path _curPath;
-        Scene* _scene;
+        IScene* _scene;
         ProjectData* _projectData;
         Texture* _dirTexture;
         Texture* _fileTexture;
