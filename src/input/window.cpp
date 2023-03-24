@@ -66,7 +66,15 @@ namespace TWE {
         glfwSetFramebufferSizeCallback(_window, callback);
     }
 
-    void Window::setVSync(GLboolean isOn) {
+    void Window::setWindowCloseCallback(GLFWwindowclosefun callback) {
+        glfwSetWindowCloseCallback(_window, callback);
+    }
+
+    void Window::setTitle(const std::string& title) {
+        glfwSetWindowTitle(_window, title.c_str());
+    }
+
+    void Window::setVSync(bool isOn) {
         _vSync = isOn;
         glfwSwapInterval(_vSync ? 1 : 0);
     }
@@ -74,4 +82,5 @@ namespace TWE {
     GLFWwindow* Window::getSource() const noexcept { return _window; }
     const std::string& Window::getTitle() const noexcept { return _title; }
     FBO* Window::getFrameBuffer() const noexcept { return _frameBuffer.get(); }
+    bool Window::getIsVSyncOn() const noexcept { return _vSync; }
 }

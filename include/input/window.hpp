@@ -22,12 +22,15 @@ namespace TWE {
         void setMouseButtonCallback(GLFWmousebuttonfun callback);
         void setCursorPosCallback(GLFWcursorposfun callback);
         void setFramebufferSizeCallback(GLFWframebuffersizefun callback);
-        void setVSync(GLboolean isOn);
+        void setWindowCloseCallback(GLFWwindowclosefun callback);
+        void setVSync(bool isOn);
+        void setTitle(const std::string& title);
         [[nodiscard]] GLFWwindow* getSource() const noexcept;
         [[nodiscard]] const std::string& getTitle() const noexcept;
         [[nodiscard]] FBO* getFrameBuffer() const noexcept;
+        [[nodiscard]] bool getIsVSyncOn() const noexcept;
     private:
-        GLboolean _vSync;
+        bool _vSync;
         std::string _title;
         GLFWwindow* _window;
         std::unique_ptr<FBO> _frameBuffer;

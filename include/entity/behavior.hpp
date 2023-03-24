@@ -77,7 +77,7 @@ namespace TWE {
         if(hasComponent<T>()) {
             std::string componentName = typeid(T).name();
             componentName = componentName.substr(6);
-            throw std::runtime_error("Error: A " + componentName + " is already exists.");
+            throw std::runtime_error("Error: The " + componentName + " is already exists.");
         }
         return &gameObject.addComponent<T>(std::forward<Args>(args)...);
     }

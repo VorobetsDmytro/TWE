@@ -26,13 +26,14 @@ namespace TWE {
         void reset() override;
         void setDebugCamera(DebugCamera* debugCamera) override;
         void setName(const std::string& name) override;
+        void setIsFocusedOnDebugCamera(bool isFocusedOnDebugCamera) override;
         void setScriptDLLRegistry(Registry<DLLLoadData>* scriptDLLRegistry) override;
         void setProjectData(ProjectData* projectData) override;
         void setState(SceneState state) override;
         void cleanEntity(Entity& entity) override;
         Entity createEntity(const std::string& name = "Entity") override;
         Entity copyEntityState(Entity& entity, SceneStateSpecification& to) override;
-        [[nodiscard]] bool& getIsFocusedOnDebugCamera() override;
+        [[nodiscard]] bool getIsFocusedOnDebugCamera() const noexcept override;
         [[nodiscard]] entt::registry* getRegistry() const noexcept override;
         [[nodiscard]] btDynamicsWorld* getDynamicWorld() const noexcept override;
         [[nodiscard]] const std::string& getName() const noexcept override;

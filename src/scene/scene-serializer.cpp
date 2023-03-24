@@ -8,7 +8,6 @@ namespace TWE {
         std::string sceneName = std::filesystem::path(path).stem().string();
         scene->setName(sceneName);
         jsonMain["Scene"] = sceneName;
-        jsonMain["RootPath"] = projectData->rootPath;
         nlohmann::json jsonEntities = nlohmann::json::array();
         auto& view = scene->getSceneRegistry()->edit.entityRegistry.view<NameComponent>();
         int size = view.size();
@@ -22,24 +21,18 @@ namespace TWE {
         return true;
     }
 
-    bool SceneSerializer::deserialize(IScene* scene, const std::string& path) {
+    bool SceneSerializer::deserialize(IScene* scene, const std::string& path, ProjectData* projectData) {
         std::string jsonBodyStr = File::getBody(path.c_str());
         nlohmann::json jsonMain = nlohmann::json::parse(jsonBodyStr);
         if(!jsonMain.contains("Scene"))
             return false;
         scene->reset();
-        std::filesystem::path rootPath;
-        #ifndef TWE_BUILD
-        rootPath = (std::string)jsonMain["RootPath"];
-        #else
-        rootPath = "./";
-        #endif
         scene->setName(jsonMain["Scene"]);
         auto& entities = jsonMain["Entities"].items();
         for(auto& [index, components] : entities) {        
-            Entity instance = deserializeCreationTypeComponent(scene, components, rootPath);
+            Entity instance = deserializeCreationTypeComponent(scene, components, projectData->rootPath);
             if(instance.getSource() != entt::null)
-                deserializeEntity(scene, instance, components, rootPath);
+                deserializeEntity(scene, instance, components, projectData->rootPath);
         }
         revalidateParentChildsComponent(scene);
         return true;

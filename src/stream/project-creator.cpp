@@ -18,18 +18,12 @@ namespace TWE {
         return true;
     }
 
-    ProjectData* ProjectCreator::load(const std::string& projectFilePath, Registry<DLLLoadData>* scriptDLLRegistry) {
+    ProjectData* ProjectCreator::load(const std::string& projectFilePath, Registry<DLLLoadData>* scriptDLLRegistry, const std::filesystem::path& rootPath) {
         if(!std::filesystem::exists(projectFilePath))
             return nullptr;
         std::string jsonBodyStr = File::getBody(projectFilePath.c_str());
         nlohmann::json jsonMain = nlohmann::json::parse(jsonBodyStr);
         auto& scripts = jsonMain["ScriptsDLL"].items();
-        std::filesystem::path rootPath;
-        #ifndef TWE_BUILD
-        rootPath = (std::string)jsonMain["ProjectRootPath"];
-        #else
-        rootPath = "./";
-        #endif
         for(auto& [index, data] : scripts) {
             DLLLoadData* dllData = new DLLLoadData();
             deserializaScriptDLL(dllData, data, rootPath);
@@ -44,7 +38,6 @@ namespace TWE {
             return false;
         nlohmann::json jsonMain;
         jsonMain["Project"] = projectData->projectName;
-        jsonMain["ProjectRootPath"] = projectData->rootPath;
         jsonMain["DLLTempDir"] = projectData->dllTempDir.string();
         std::string lastScenePath = std::filesystem::relative(projectData->lastScenePath, projectData->rootPath).string();
         jsonMain["LastScenePath"] = !lastScenePath.empty() ? lastScenePath : projectData->lastScenePath;
@@ -67,7 +60,6 @@ namespace TWE {
         std::filesystem::path projectFilePath = projectDirectoryPath + '/' + projectName + ".project";
 
         jsonMain["Project"] = projectName;
-        jsonMain["ProjectRootPath"] = std::filesystem::absolute(projectDirectoryPath).string();
         jsonMain["DLLTempDir"] = "/scripts/temp";
         jsonMain["LastScenePath"] = "";
         jsonMain["ScriptsDLL"] = nlohmann::json::array();

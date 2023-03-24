@@ -2,40 +2,43 @@
 
 namespace TWE {
     void URControl::undo() {
-        if(undoStack.empty())
+        if(_undoStack.empty())
             return;
-        auto command = undoStack.top();
-        undoStack.pop();
+        auto command = _undoStack.top();
+        _undoStack.pop();
         command->unExecute();
-        redoStack.push(command);
+        _redoStack.push(command);
     }
 
     void URControl::redo() {
-        if(redoStack.empty())
+        if(_redoStack.empty())
             return;
-        auto command = redoStack.top();
-        redoStack.pop();
+        auto command = _redoStack.top();
+        _redoStack.pop();
         command->execute();
-        undoStack.push(command);
+        _undoStack.push(command);
     }
 
     void URControl::execute(IURCommand* command) {
         command->execute();
-        undoStack.push(command);
-        while(!redoStack.empty()) {
-            delete redoStack.top();
-            redoStack.pop();
+        _undoStack.push(command);
+        while(!_redoStack.empty()) {
+            delete _redoStack.top();
+            _redoStack.pop();
         }
     }
 
     void URControl::reset() {
-        while(!undoStack.empty()) {
-            delete undoStack.top();
-            undoStack.pop();
+        while(!_undoStack.empty()) {
+            delete _undoStack.top();
+            _undoStack.pop();
         }
-        while(!redoStack.empty()) {
-            delete redoStack.top();
-            redoStack.pop();
+        while(!_redoStack.empty()) {
+            delete _redoStack.top();
+            _redoStack.pop();
         }
     }
+
+    const std::stack<IURCommand*>& URControl::getUndoStack() const noexcept { return _undoStack; }
+    const std::stack<IURCommand*>& URControl::getRedoStack() const noexcept { return _redoStack; }
 }

@@ -1,7 +1,7 @@
 #include "gui/gui-start-panel.hpp"
 
 namespace TWE {
-    void GUIStartPanel::initialize() {
+    GUIStartPanel::GUIStartPanel() {
         title = "The Worst Engine";
         ImGuiIO& io = ImGui::GetIO();
         io.Fonts->Clear();
@@ -10,10 +10,6 @@ namespace TWE {
         fontRobotoBold64 = io.Fonts->AddFontFromFileTTF("../../fonts/Roboto-Bold.ttf", 64.f, nullptr, io.Fonts->GetGlyphRangesCyrillic());
 
         ImGuiFileDialog::Instance()->SetFileStyle(IGFD_FileStyleByExtention, ".project", ImVec4(1.0f, 1.0f, 0.0f, 1.f));
-    }
-
-    void GUIStartPanel::setScene(IScene* scene) {
-        _scene = scene;
     }
 
     void GUIStartPanel::showPanel() {

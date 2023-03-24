@@ -2,25 +2,29 @@
 
 namespace TWE {
     GUIViewportPanel::GUIViewportPanel() {
-        _gizmoOperation = GizmoOperation::Translate;
-        _scene = nullptr;
-        _window = nullptr;
+        _guiState = nullptr;
     }
 
-    void GUIViewportPanel::showPanel(Entity& selectedEntity, bool& isFocusedOnViewport, bool& isMouseOnViewport) {
-        if(!_scene || !_window)
-            return;
+    void GUIViewportPanel::setGUIState(GUIStateSpecification* guiState) {
+        _guiState = guiState;
+    }
+
+    void GUIViewportPanel::showPanel() {
         ImGui::Begin("Viewport");
-        showViewportStatePanel(selectedEntity);
+        if(!_guiState) {
+            ImGui::End();
+            return;
+        }
+        showViewportStatePanel();
         auto& cursorPos = ImGui::GetCursorPos();
         if(ImGui::IsMouseClicked(1) && ImGui::IsWindowHovered())
             ImGui::SetWindowFocus();
-        isFocusedOnViewport = ImGui::IsWindowFocused();
+        _guiState->isFocusedOnViewport = ImGui::IsWindowFocused();
         ImVec2 viewPortSize = ImGui::GetContentRegionAvail();
-        auto& frameSize = _window->getFrameBuffer()->getSize();
+        auto& frameSize = _guiState->window->getFrameBuffer()->getSize();
         if(viewPortSize.x != frameSize.width || viewPortSize.y != frameSize.height)
-            _window->getFrameBuffer()->resize(viewPortSize.x, viewPortSize.y);
-        auto frameId = (void*)(uint64_t)_window->getFrameBuffer()->getColorAttachment(0);
+            _guiState->window->getFrameBuffer()->resize(viewPortSize.x, viewPortSize.y);
+        auto frameId = (void*)(uint64_t)_guiState->window->getFrameBuffer()->getColorAttachment(0);
         ImGui::Image(frameId, viewPortSize, {0, 1}, {1, 0});
 
         auto& windowSize = ImGui::GetWindowSize();
@@ -32,27 +36,29 @@ namespace TWE {
         mousePos.x -= minBound.x;
         mousePos.y -= minBound.y;
         mousePos.y = viewPortSize.y - mousePos.y;
-        if(_scene->getIsFocusedOnDebugCamera() && !ImGuiFileDialog::Instance()->IsOpened()) {
-            bool isUsing = showGizmo(selectedEntity);
+        
+        bool bShowGizmo = _guiState->scene->getIsFocusedOnDebugCamera() && !ImGuiFileDialog::Instance()->IsOpened() && _guiState->bgFuncsInRun.empty();
+        if(bShowGizmo) {
+            bool isUsing = showGizmo();
             if(mousePos.x >= 0.f && mousePos.y >= 0.f && mousePos.x < viewPortSize.x && mousePos.y < viewPortSize.y) {
-                isMouseOnViewport = true;
+                _guiState->isMouseOnViewport = true;
                 if(!isUsing && !getIsMouseDisabled() && ImGui::IsMouseClicked(0)) {
-                    int data = _window->getFrameBuffer()->readPixel(1, (int)mousePos.x, (int)mousePos.y);
-                    if(data == -1 || !_scene->getSceneStateSpecification()->entityRegistry.valid((entt::entity)data))
-                        unselectEntity(selectedEntity);
+                    int data = _guiState->window->getFrameBuffer()->readPixel(1, (int)mousePos.x, (int)mousePos.y);
+                    if(data == -1 || !_guiState->scene->getSceneStateSpecification()->entityRegistry.valid((entt::entity)data))
+                        unselectEntity(_guiState->selectedEntity);
                     else
-                        selectEntity(Entity{ (entt::entity)data, _scene }, selectedEntity);
+                        selectEntity(Entity{ (entt::entity)data, _guiState->scene });
                 }
             } else
-                isMouseOnViewport = false;
+                _guiState->isMouseOnViewport = false;
         }
         ImGui::End();
     }
 
-    bool GUIViewportPanel::showGizmo(Entity& selectedEntity) {
-        if(_gizmoOperation == GizmoOperation::None || selectedEntity.getSource() == entt::null)
+    bool GUIViewportPanel::showGizmo() {
+        if(_guiState->gizmoOperation == GizmoOperation::None || _guiState->selectedEntity.getSource() == entt::null)
             return false;
-        Camera* camera = _scene->getSceneCamera()->camera;
+        Camera* camera = _guiState->scene->getSceneCamera()->camera;
         if(!camera)
             return false;
         ImGuizmo::SetOrthographic(false);
@@ -61,12 +67,12 @@ namespace TWE {
         auto& windowSize = ImGui::GetWindowSize();
         ImGuizmo::SetRect(windowPos.x, windowPos.y, windowSize.x, windowSize.y);
 
-        const glm::mat4& cameraProjection = _scene->getSceneCamera()->projection;
-        glm::mat4 cameraView =  _scene->getSceneCamera()->view;
-        auto& selectedEntityTransform = selectedEntity.getComponent<TransformComponent>();
+        const glm::mat4& cameraProjection = _guiState->scene->getSceneCamera()->projection;
+        glm::mat4 cameraView =  _guiState->scene->getSceneCamera()->view;
+        auto& selectedEntityTransform = _guiState->selectedEntity.getComponent<TransformComponent>();
         auto selectedEntityModel = selectedEntityTransform.getModel();
 
-        ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), static_cast<ImGuizmo::OPERATION>(_gizmoOperation),
+        ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), static_cast<ImGuizmo::OPERATION>(_guiState->gizmoOperation),
                              ImGuizmo::LOCAL, glm::value_ptr(selectedEntityModel));
 
         bool isUsing = ImGuizmo::IsUsing();
@@ -80,7 +86,7 @@ namespace TWE {
         if(isUsing) {
             glm::vec3 position, rotation, size;
             Math::decomposeTransform(selectedEntityModel, position, rotation, size);
-            switch (_gizmoOperation) {
+            switch (_guiState->gizmoOperation) {
             case GizmoOperation::Translate:
                 addToURControl = true;
                 selectedEntityTransform.setPosition(position);
@@ -101,28 +107,29 @@ namespace TWE {
         if(Input::mouseButtonAction(Mouse::MOUSE_BUTTON_LEFT) == Action::RELEASE && addToURControl) {
             addToURControl = false;
             if(oldState.getTransform() != newState.getTransform())
-                _scene->getSceneStateSpecification()->urControl.execute(
-                    new ChangeTransformComponentState(selectedEntity, oldState, newState));
+                _guiState->scene->getSceneStateSpecification()->urControl.execute(
+                    new ChangeTransformComponentState(_guiState->selectedEntity, oldState, newState));
         }
 
         return isUsing;
     }
 
-    void GUIViewportPanel::showViewportStatePanel(Entity& selectedEntity) {
+    void GUIViewportPanel::showViewportStatePanel() {
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar;
         ImGui::Begin("##ViewportState", 0, flags);
 
-        bool playFlag = _scene->getSceneState() != SceneState::Edit;
-        if(playFlag) {
+        bool hasBGFuncsInRun = !_guiState->bgFuncsInRun.empty();
+        bool playFlag = _guiState->scene->getSceneState() != SceneState::Edit;
+        if(playFlag || hasBGFuncsInRun) {
             ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
         }
         if(ImGui::Button("Play")) {
-            unselectEntity(selectedEntity);
-            _scene->setState(SceneState::Run);
+            unselectEntity(_guiState->selectedEntity);
+            _guiState->scene->setState(SceneState::Run);
             ImGui::SetWindowFocus("Viewport");
         }
-        if(playFlag) {
+        if(playFlag || hasBGFuncsInRun) {
             ImGui::PopItemFlag();
             ImGui::PopStyleVar();
         }
@@ -133,29 +140,29 @@ namespace TWE {
         }
         ImGui::SameLine();
         if(ImGui::Button("Stop")) {
-            unselectEntity(selectedEntity);
-            _scene->setState(SceneState::Edit);
+            unselectEntity(_guiState->selectedEntity);
+            _guiState->scene->setState(SceneState::Edit);
         }
         ImGui::SameLine();
-        bool pauseFlag = !playFlag || _scene->getSceneState() == SceneState::Run;
+        bool pauseFlag = !playFlag || _guiState->scene->getSceneState() == SceneState::Run;
         if(ImGui::Button(pauseFlag ? "Pause" : "Unpause"))
             if(pauseFlag)
-                _scene->setState(SceneState::Pause);
+                _guiState->scene->setState(SceneState::Pause);
             else
-                _scene->setState(SceneState::Unpause);
+                _guiState->scene->setState(SceneState::Unpause);
+                
         if(!playFlag) {
             ImGui::PopItemFlag();
             ImGui::PopStyleVar();
         }
-
         ImGui::End();
     }
 
-    void GUIViewportPanel::selectEntity(Entity& entity, Entity& selectedEntity) {
-        unselectEntity(selectedEntity);
-        selectedEntity = entity;
-        if(selectedEntity.hasComponent<PhysicsComponent>())
-            selectedEntity.getComponent<PhysicsComponent>().setShowCollider(true);
+    void GUIViewportPanel::selectEntity(Entity& entity) {
+        unselectEntity(_guiState->selectedEntity);
+        _guiState->selectedEntity = entity;
+        if(_guiState->selectedEntity.hasComponent<PhysicsComponent>())
+            _guiState->selectedEntity.getComponent<PhysicsComponent>().setShowCollider(true);
     }
 
     void GUIViewportPanel::unselectEntity(Entity& entity) {
@@ -164,18 +171,6 @@ namespace TWE {
         if(entity.hasComponent<PhysicsComponent>())
             entity.getComponent<PhysicsComponent>().setShowCollider(false);
         entity = {};
-    }
-
-    void GUIViewportPanel::setGizmoOperation(GizmoOperation operation) {
-        _gizmoOperation = operation;
-    }
-
-    void GUIViewportPanel::setScene(IScene* scene) {
-        _scene = scene;
-    }
-
-    void GUIViewportPanel::setWindow(Window* window) {
-        _window = window;
     }
 
     bool GUIViewportPanel::getIsMouseDisabled() { return ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_NoMouse; }

@@ -23,6 +23,10 @@ namespace TWE {
         _name = name;
     }
 
+    void Scene::setIsFocusedOnDebugCamera(bool isFocusedOnDebugCamera) {
+        _isFocusedOnDebugCamera = isFocusedOnDebugCamera;
+    }
+
     void Scene::setScriptDLLRegistry(Registry<DLLLoadData>* scriptDLLRegistry) {
         _scriptDLLRegistry = scriptDLLRegistry;
     }
@@ -413,7 +417,7 @@ namespace TWE {
         return { instance, this };
     }
 
-    bool& Scene::getIsFocusedOnDebugCamera() { return _isFocusedOnDebugCamera; }
+    bool Scene::getIsFocusedOnDebugCamera() const noexcept { return _isFocusedOnDebugCamera; }
     entt::registry* Scene::getRegistry() const noexcept { return &_sceneRegistry.current->entityRegistry; }
     btDynamicsWorld* Scene::getDynamicWorld() const noexcept { return _sceneRegistry.current->physics->getDynamicWorld(); }
     const std::string& Scene::getName() const noexcept { return _name; }

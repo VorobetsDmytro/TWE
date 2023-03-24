@@ -3,7 +3,7 @@
 namespace TWE {
     std::shared_ptr<DebugCamera> Engine::debugCamera = std::make_shared<DebugCamera>(glm::vec3(0.f, 0.f, 0.f), 0.1f);
     std::unique_ptr<Window> Engine::window;
-    std::shared_ptr<Scene> Engine::curScene;
+    std::shared_ptr<IScene> Engine::curScene;
     Registry<DLLLoadData> Engine::scriptDLLRegistry;
     Registry<MeshSpecification> Engine::meshRegistry;
     Registry<MeshRendererSpecification> Engine::meshRendererRegistry;
@@ -22,6 +22,7 @@ namespace TWE {
         window->setMouseButtonCallback(&Engine::mouseButtonCallback);
         window->setCursorPosCallback(&Engine::mouseCallback);
         window->setFramebufferSizeCallback(&Engine::framebufferSizeCallback);
+        window->setWindowCloseCallback(&Engine::windowCloseCallback);
         window->initGLAD(wndWidth, wndHeight);
         window->initFBO(wndWidth, wndHeight);
         std::filesystem::path rootPath;
@@ -50,7 +51,7 @@ namespace TWE {
         Shape::initialize(&meshRegistry, &meshRendererRegistry, &textureRegistry, rootPath);
         Input::setWindow(window->getSource());
         Renderer::init();
-        setVSync(false);
+        window->setVSync(false);
     }
 
     void Engine::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
@@ -76,10 +77,6 @@ namespace TWE {
             return;
         debugCamera->keyInput(Time::getDeltaTime());
         #endif
-    }
-
-    void Engine::setVSync(GLboolean isOn) {
-        window->setVSync(isOn);
     }
 
     void Engine::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
@@ -122,20 +119,41 @@ namespace TWE {
         window->getFrameBuffer()->resize(width, height);
     }
 
+    void Engine::windowCloseCallback(GLFWwindow* window) {
+        #ifndef TWE_BUILD
+        bool shouldCloseWindow = !gui->getHasBGFuncs() && !gui->getIsURExecuted();
+        glfwSetWindowShouldClose(window, shouldCloseWindow ? GLFW_TRUE : GLFW_FALSE);
+        #endif
+    }
+
     void Engine::updateTitle() {
+        #ifndef TWE_BUILD
         static std::string title;
         static std::string preTitle;
+        static bool hasUndo = false;
+        static bool preHasUndo = false;
+        if(projectData->projectName.empty())
+            return;
         title = window->getTitle() + " - " + projectData->projectName + ": " + curScene->getName();
-        if(std::strcmp(preTitle.c_str(), title.c_str())) {
-            glfwSetWindowTitle(window->getSource(), title.c_str());
+        hasUndo = gui->getIsURExecuted();
+        if(std::strcmp(preTitle.c_str(), title.c_str()) || (hasUndo != preHasUndo)) {
+            if(hasUndo)
+                title.push_back('*');
+            window->setTitle(title);
             preTitle = title;
+            preHasUndo = hasUndo;
         }
+        #else
+        static bool onceUpdate = true;
+        if(onceUpdate) {
+            window->setTitle(projectData->projectName);
+            onceUpdate = false;
+        }
+        #endif
     }
 
     void Engine::start(const std::string& buildFilePath){
-        #ifndef TWE_BUILD
-        gui->addCheckbox("Debug camera focus", curScene->getIsFocusedOnDebugCamera());
-        #else
+        #ifdef TWE_BUILD
         loadBuild(buildFilePath);
         #endif
         while(!glfwWindowShouldClose(window->getSource())){
@@ -186,12 +204,12 @@ namespace TWE {
         auto buildData = BuildCreator::load(buildFilePath);
         if(buildData) {
             std::filesystem::path projectFilePath = "./" + buildData->projectFilePath.string();
-            auto projectData = ProjectCreator::load(projectFilePath.string(), &scriptDLLRegistry);
+            auto projectData = ProjectCreator::load(projectFilePath.string(), &scriptDLLRegistry, "./");
             if(projectData) {
                 *this->projectData.get() = *projectData;
                 std::filesystem::path startScenePath = "./" + buildData->startScenePath.string();
-                SceneSerializer::deserialize(curScene.get(), startScenePath.string());
-                curScene->getIsFocusedOnDebugCamera() = false;
+                SceneSerializer::deserialize(curScene.get(), startScenePath.string(), projectData);
+                curScene->setIsFocusedOnDebugCamera(false);
                 curScene->getSceneAudio()->startAudioOnRun(curScene->getRegistry());
             }
         }

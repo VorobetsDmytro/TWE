@@ -4,10 +4,9 @@
 #include "scene/iscene.hpp"
 #include "scene/shape.hpp"
 
-#include "input/window.hpp"
-
 #include "gui/gui-components.hpp"
 #include "gui/gui-types.hpp"
+#include "gui/igui-panel.hpp"
 
 #include "registry/registry.hpp"
 #include "undo-redo/ur-commands/ur-commands.hpp"
@@ -18,27 +17,25 @@
 #include <imgui-filedialog/ImGuiFileDialog.h>
 
 namespace TWE {
-    class GUIComponentsPanel {
+    class GUIComponentsPanel: public IGUIPanel {
     public:
         GUIComponentsPanel();
-        void showPanel(Entity& entity);
-        void setScene(IScene* scene);
-        void setWindow(Window* window);
+        void showPanel() override;
+        void setGUIState(GUIStateSpecification* guiState) override;
     private:
-        void showFileDialog(Entity& entity);
-        void showNameComponent(Entity& entity);
-        void showTransformComponent(Entity& entity);
-        void showMeshComponent(Entity& entity);
-        void showMeshRendererComponent(Entity& entity);
-        void showCameraComponent(Entity& entity);
-        void showLightComponent(Entity& entity);
-        void showPhysicsComponent(Entity& entity);
-        void showScriptComponent(Entity& entity);
-        void showAudioComponent(Entity& entity);
-        void showAddComponentMenu(Entity& entity);
+        void showFileDialog();
+        void showNameComponent();
+        void showTransformComponent();
+        void showMeshComponent();
+        void showMeshRendererComponent();
+        void showCameraComponent();
+        void showLightComponent();
+        void showPhysicsComponent();
+        void showScriptComponent();
+        void showAudioComponent();
+        void showAddComponentMenu();
         void showSeparator();
-        IScene* _scene;
-        Window* _window;
+        GUIStateSpecification* _guiState;
     };
 }
 

@@ -27,7 +27,7 @@ namespace TWE {
     public:
         static bool create(const std::string& projectName, const std::string& projectPath);
         static bool save(ProjectData* projectData, Registry<DLLLoadData>* scriptDLLRegistry);
-        static ProjectData* load(const std::string& projectFilePath, Registry<DLLLoadData>* scriptDLLRegistry);
+        static ProjectData* load(const std::string& projectFilePath, Registry<DLLLoadData>* scriptDLLRegistry, const std::filesystem::path& rootPath);
     private:
         static void serializeScriptDLL(DLLLoadData* dllData, nlohmann::json& jsonScript, ProjectData* projectData);
         static void deserializaScriptDLL(DLLLoadData* dllData, nlohmann::json& jsonScript, const std::filesystem::path& rootPath);

@@ -4,38 +4,28 @@
 #include "scene/iscene.hpp"
 #include "input/window.hpp"
 
+#include "gui/igui-panel.hpp"
+
 #include "undo-redo/ur-commands/ur-commands.hpp"
 
 #include <imgui.h>
 #include <imgui_stdlib.h>
 #include <imgui_internal.h>
 #include <imgui-filedialog/ImGuiFileDialog.h>
-#include <ImGuizmo.h>
 
 namespace TWE {
-    enum class GizmoOperation {
-        None = -1,
-        Translate = ImGuizmo::OPERATION::TRANSLATE,
-        Rotate = ImGuizmo::OPERATION::ROTATE,
-        Scale = ImGuizmo::OPERATION::SCALE,
-    };
-
-    class GUIViewportPanel {
+    class GUIViewportPanel: public IGUIPanel {
     public:
         GUIViewportPanel();
-        void showPanel(Entity& selectedEntity, bool& isFocusedOnViewport, bool& isMouseOnViewport);
-        void setScene(IScene* scene);
-        void setWindow(Window* window);
-        void setGizmoOperation(GizmoOperation operation);
+        void showPanel() override;
+        void setGUIState(GUIStateSpecification* guiState) override;
     private:
-        void selectEntity(Entity& entity, Entity& selectedEntity);
+        void selectEntity(Entity& entity);
         void unselectEntity(Entity& entity);
-        void showViewportStatePanel(Entity& selectedEntity);
+        void showViewportStatePanel();
         bool getIsMouseDisabled();
-        bool showGizmo(Entity& selectedEntity);
-        IScene* _scene;
-        Window* _window;
-        GizmoOperation _gizmoOperation;
+        bool showGizmo();
+        GUIStateSpecification* _guiState;
     };
 }
 

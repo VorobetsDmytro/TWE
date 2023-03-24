@@ -19,7 +19,7 @@ namespace TWE {
     class SceneSerializer {
     public:
         static bool serialize(IScene* scene, const std::string& path, ProjectData* projectData);
-        static bool deserialize(IScene* scene, const std::string& path);
+        static bool deserialize(IScene* scene, const std::string& path, ProjectData* projectData);
     private:
         static void serializeEntity(Entity& entity, nlohmann::json& jsonEntities, ProjectData* projectData, IScene* scene);
         static void serializeCreationTypeComponent(Entity& entity, nlohmann::json& jsonEntity);

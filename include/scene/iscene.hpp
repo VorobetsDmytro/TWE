@@ -43,13 +43,14 @@ namespace TWE {
         virtual void reset() {}
         virtual void setDebugCamera(DebugCamera* debugCamera) {}
         virtual void setName(const std::string& name) {}
+        virtual void setIsFocusedOnDebugCamera(bool isFocusedOnDebugCamera) {}
         virtual void setScriptDLLRegistry(Registry<DLLLoadData>* scriptDLLRegistry) {}
         virtual void setProjectData(ProjectData* projectData) {}
         virtual void setState(SceneState state) {}
         virtual void cleanEntity(Entity& entity) {}
         virtual Entity createEntity(const std::string& name = "Entity") { return {}; }
         virtual Entity copyEntityState(Entity& entity, SceneStateSpecification& to) { return {}; }
-        [[nodiscard]] virtual bool& getIsFocusedOnDebugCamera() { return tempBool; }
+        [[nodiscard]] virtual bool getIsFocusedOnDebugCamera() const noexcept { return false; }
         [[nodiscard]] virtual entt::registry* getRegistry() const noexcept { return nullptr; }
         [[nodiscard]] virtual btDynamicsWorld* getDynamicWorld() const noexcept { return nullptr; }
         [[nodiscard]] virtual const std::string& getName() const noexcept { return tempStr; }
@@ -64,7 +65,6 @@ namespace TWE {
         [[nodiscard]] virtual SceneRegistrySpecification* getSceneRegistry() { return nullptr; }
         [[nodiscard]] virtual SceneState getSceneState() { return SceneState::Edit; }
     private:
-        bool tempBool;
         std::string tempStr;
     };
 }
