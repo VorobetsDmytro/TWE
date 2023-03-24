@@ -1,7 +1,7 @@
 #ifndef START_PANEL_HPP
 #define START_PANEL_HPP
 
-#include "scene/iscene.hpp"
+#include "gui/igui-panel.hpp"
 
 #include <imgui.h>
 #include <imgui_stdlib.h>
@@ -10,14 +10,11 @@
 #include <string>
 
 namespace TWE {
-    class GUIStartPanel {
+    class GUIStartPanel: public IGUIPanel {
     public:
-        GUIStartPanel() = default;
-        void initialize();
-        void showPanel();
-        void setScene(IScene* scene);
+        GUIStartPanel();
+        void showPanel() override;
     private:
-        IScene* _scene;
         ImFont* fontRobotoBold16;
         ImFont* fontRobotoBold32;
         ImFont* fontRobotoBold64;

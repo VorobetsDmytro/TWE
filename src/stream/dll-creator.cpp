@@ -10,19 +10,17 @@ namespace TWE {
         std::string buildDir = _tempDir + '/' + scriptName + "/build"; 
         std::string generateCommand = "cmake -S " + _tempDir + '/' + scriptName + " -B " + buildDir ;
         if(system(generateCommand.c_str()) != 0) {
-            std::cout << "Failed to generate script build files\n";
+            std::cout << "Failed to generate " << scriptName << " script build files\n";
             return {};
         }
         std::string buildCommand = "cmake --build " + buildDir;
         if(system(buildCommand.c_str()) != 0) {
-            std::cout << "Failed to build script\n";
+            std::cout << "Failed to build " << scriptName << " script\n";
             return {};
         }
         std::string dllPath = buildDir + "/Debug/" + scriptName + ".dll";
         std::string pdbPath = buildDir + "/Debug/" + scriptName + ".pdb";
         std::string factoryFuncName = "create" + scriptName;
-        std::cout << dllPath << std::endl;
-        std::cout << factoryFuncName << std::endl;
         File::remove(pdbPath.c_str());
         return { dllPath, factoryFuncName, scriptName, scriptDirectoryPath };
     }
@@ -31,7 +29,7 @@ namespace TWE {
         #if defined(TWE_PLATFORM_WINDOWS)
         HINSTANCE hDll = LoadLibrary(loadData.dllPath.c_str());
         if (hDll == NULL) {
-            std::cout << "Failed to load library:\n" << loadData.dllPath << "\n";
+            std::cout << "Failed to load library:\n" << loadData.dllPath << "\n\n";
             return nullptr;
         }
         loadData.hDlls.push_back(hDll);

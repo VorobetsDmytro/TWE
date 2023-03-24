@@ -3,11 +3,16 @@
 
 #include "scene/iscene.hpp"
 #include "scene/scene-serializer.hpp"
+
 #include "registry/registry.hpp"
+
 #include "stream/script-creator.hpp"
 #include "stream/project-creator.hpp"
+
 #include "gui/gui-components.hpp"
 #include "gui/gui-types.hpp"
+#include "gui/igui-panel.hpp"
+
 #include "renderer/texture.hpp"
 
 #include <imgui.h>
@@ -20,26 +25,25 @@
 #include <algorithm>
 
 namespace TWE {
-    class GUIDirectoryPanel {
+    class GUIDirectoryPanel: public IGUIPanel {
     public:
         GUIDirectoryPanel();
-        void showPanel(Entity& selectedEntity);
-        void setScene(IScene* scene);
-        void setProjectData(ProjectData* projectData);
-        void setCurrentPath(const std::filesystem::path& curPath);
+        void showPanel() override;
+        void setGUIState(GUIStateSpecification* guiState) override;
     private:
+        void setRootPath(std::filesystem::path& rootPath);
         void loadScene(std::filesystem::path& scenePath);
         void loadTextures();
         void showDirectoryMenuPopup(const std::string& popupId);
-        void showDirectoryFileMenuPopup(const std::string& popupId, std::filesystem::path& filePath, Entity& selectedEntity);
-        bool renderContent(Entity& selectedEntity);
+        void showDirectoryFileMenuPopup(const std::string& popupId, std::filesystem::path& filePath);
+        bool renderContent();
         std::filesystem::path _curPath;
-        IScene* _scene;
-        ProjectData* _projectData;
+        std::filesystem::path _rootPath;
         Texture* _dirTexture;
         Texture* _fileTexture;
         std::string _dirImgPath;
         std::string _fileImgPath;
+        GUIStateSpecification* _guiState;
     };
 }
 

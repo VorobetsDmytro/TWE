@@ -2,45 +2,50 @@
 
 namespace TWE {
     GUIComponentsPanel::GUIComponentsPanel() {
-        _scene = nullptr;
-        _window = nullptr;
+        _guiState = nullptr;
         ImGuiFileDialog::Instance()->SetFileStyle(IGFD_FileStyleByExtention, ".png", ImVec4(1.0f, 1.0f, 0.0f, 1.f));
         ImGuiFileDialog::Instance()->SetFileStyle(IGFD_FileStyleByExtention, ".jpeg", ImVec4(1.0f, 1.0f, 0.0f, 1.f));
         ImGuiFileDialog::Instance()->SetFileStyle(IGFD_FileStyleByExtention, ".jpg", ImVec4(1.0f, 1.0f, 0.0f, 1.f));
         ImGuiFileDialog::Instance()->SetFileStyle(IGFD_FileStyleByExtention, ".mp3", ImVec4(1.0f, 1.0f, 0.0f, 1.f));
     }
 
-    void GUIComponentsPanel::showPanel(Entity& entity) {
+    void GUIComponentsPanel::setGUIState(GUIStateSpecification* guiState) {
+        _guiState = guiState;
+    }
+
+    void GUIComponentsPanel::showPanel() {
         ImGui::Begin("Components");
-        if(!_scene || !_window)
+        if(!_guiState || !_guiState->bgFuncsInRun.empty()) {
+            ImGui::End();
             return;
+        }
         if(ImGui::IsMouseClicked(1) && ImGui::IsWindowHovered()) 
             ImGui::SetWindowFocus();
-        if(entity.getSource() != entt::null) {
-            showNameComponent(entity);
-            showTransformComponent(entity);
-            showMeshComponent(entity);
-            showMeshRendererComponent(entity);
-            showCameraComponent(entity);
-            showLightComponent(entity);
-            showPhysicsComponent(entity);
-            showScriptComponent(entity);
-            showAudioComponent(entity);
-            showAddComponentMenu(entity);
-            showFileDialog(entity);
+        if(_guiState->selectedEntity.getSource() != entt::null) {
+            showNameComponent();
+            showTransformComponent();
+            showMeshComponent();
+            showMeshRendererComponent();
+            showCameraComponent();
+            showLightComponent();
+            showPhysicsComponent();
+            showScriptComponent();
+            showAudioComponent();
+            showAddComponentMenu();
+            showFileDialog();
         }
         ImGui::End();
     }
 
-    void GUIComponentsPanel::showFileDialog(Entity& entity) {
+    void GUIComponentsPanel::showFileDialog() {
         if(ImGuiFileDialog::Instance()->Display("AddAudioSource")) {
             if(ImGuiFileDialog::Instance()->IsOk()) {
                 std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-                if(entity.hasComponent<AudioComponent>()){
-                    auto& audioComponent = entity.getComponent<AudioComponent>();
+                if(_guiState->selectedEntity.hasComponent<AudioComponent>()){
+                    auto& audioComponent = _guiState->selectedEntity.getComponent<AudioComponent>();
                     std::filesystem::path soundPath = filePathName;
                     if(soundPath.extension() == ".mp3")
-                        _scene->getSceneRegistry()->current->urControl.execute(new AddSoundSourceAudioComponentCommand(entity, soundPath));
+                        _guiState->scene->getSceneRegistry()->current->urControl.execute(new AddSoundSourceAudioComponentCommand(_guiState->selectedEntity, soundPath));
                 }
             }
             ImGuiFileDialog::Instance()->Close();
@@ -49,8 +54,8 @@ namespace TWE {
         if(ImGuiFileDialog::Instance()->Display("BaseTexture")) {
             if(ImGuiFileDialog::Instance()->IsOk()) {
                 std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-                if(entity.hasComponent<MeshComponent>()){
-                    auto& meshComponent = entity.getComponent<MeshComponent>();
+                if(_guiState->selectedEntity.hasComponent<MeshComponent>()){
+                    auto& meshComponent = _guiState->selectedEntity.getComponent<MeshComponent>();
                     auto newState = meshComponent;
                     TextureSpecification textureSpecification(filePathName, 0, TextureType::Texture2D, TextureInOutFormat::RGBA);
                     TextureAttachmentSpecification* textureInRegistry = nullptr;
@@ -71,7 +76,7 @@ namespace TWE {
                     Texture* texture = new Texture();
                     texture->setAttachments(*textureInRegistry);
                     newState.setTexture(texture);
-                    _scene->getSceneRegistry()->current->urControl.execute(new ChangeMeshComponentStateCommand(entity, newState));
+                    _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangeMeshComponentStateCommand(_guiState->selectedEntity, newState));
                 }
             }
             ImGuiFileDialog::Instance()->Close();
@@ -97,8 +102,8 @@ namespace TWE {
                             }
                         }
                     if(attachemnts.textureSpecifications.size() == 6) {
-                        if(entity.hasComponent<MeshComponent>()){
-                            auto& meshComponent = entity.getComponent<MeshComponent>();
+                        if(_guiState->selectedEntity.hasComponent<MeshComponent>()){
+                            auto& meshComponent = _guiState->selectedEntity.getComponent<MeshComponent>();
                             auto newState = meshComponent;
                             TextureAttachmentSpecification* textureInRegistry = nullptr;
                             auto values = Shape::shapeSpec->textureRegistry->getValues();
@@ -118,7 +123,7 @@ namespace TWE {
                             Texture* texture = new Texture();
                             texture->setAttachments(*textureInRegistry);
                             newState.setTexture(texture);
-                            _scene->getSceneRegistry()->current->urControl.execute(new ChangeMeshComponentStateCommand(entity, newState));
+                            _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangeMeshComponentStateCommand(_guiState->selectedEntity, newState));
                         }
                     }
                 }
@@ -128,15 +133,7 @@ namespace TWE {
         }
     }
 
-    void GUIComponentsPanel::setScene(IScene* scene) {
-        _scene = scene;
-    }
-
-    void GUIComponentsPanel::setWindow(Window* window) {
-        _window = window;
-    }
-
-    void GUIComponentsPanel::showAddComponentMenu(Entity& entity) {
+    void GUIComponentsPanel::showAddComponentMenu() {
         ImGui::Dummy({0.f, 5.f});
         std::string popUpId = guiPopups[GUIPopupIds::AddComponentPopup];
         if(ImGui::Button("Add component", { ImGui::GetContentRegionAvail().x, 20.f }))
@@ -145,39 +142,39 @@ namespace TWE {
         ImGui::SetNextWindowSize({popUpWidth, 0.f});
         if(ImGui::BeginPopup(popUpId.c_str())) {
             auto& availSize = ImGui::GetContentRegionAvail();
-            if(!entity.hasComponent<MeshComponent>() || !entity.hasComponent<MeshRendererComponent>()) {
+            if(!_guiState->selectedEntity.hasComponent<MeshComponent>() || !_guiState->selectedEntity.hasComponent<MeshRendererComponent>()) {
                 if(ImGui::Button("Mesh component", {availSize.x, 0.f})) {
-                    _scene->getSceneRegistry()->current->urControl.execute(new AddMeshComponentCommand(entity));
+                    _guiState->scene->getSceneRegistry()->current->urControl.execute(new AddMeshComponentCommand(_guiState->selectedEntity));
                     ImGui::CloseCurrentPopup();
                 }
             }
-            if(!entity.hasComponent<CameraComponent>()) {
+            if(!_guiState->selectedEntity.hasComponent<CameraComponent>()) {
                 if(ImGui::Button("Camera component", {availSize.x, 0.f})) {
-                    _scene->getSceneRegistry()->current->urControl.execute(new AddCameraComponentCommand(entity, _window->getFrameBuffer()));
+                    _guiState->scene->getSceneRegistry()->current->urControl.execute(new AddCameraComponentCommand(_guiState->selectedEntity, _guiState->window->getFrameBuffer()));
                     ImGui::CloseCurrentPopup();
                 }
             }
-            if(!entity.hasComponent<LightComponent>()) {
+            if(!_guiState->selectedEntity.hasComponent<LightComponent>()) {
                 if(ImGui::Button("Light component", {availSize.x, 0.f})) {
-                    _scene->getSceneRegistry()->current->urControl.execute(new AddLightComponentCommand(entity));
+                    _guiState->scene->getSceneRegistry()->current->urControl.execute(new AddLightComponentCommand(_guiState->selectedEntity));
                     ImGui::CloseCurrentPopup();
                 }
             }
-            if(!entity.hasComponent<PhysicsComponent>()) {
+            if(!_guiState->selectedEntity.hasComponent<PhysicsComponent>()) {
                 if(ImGui::Button("Physics component", {availSize.x, 0.f})) {
-                    _scene->getSceneRegistry()->current->urControl.execute(new AddPhysicsComponentCommand(entity));
+                    _guiState->scene->getSceneRegistry()->current->urControl.execute(new AddPhysicsComponentCommand(_guiState->selectedEntity));
                     ImGui::CloseCurrentPopup();
                 }
             }
-            if(!entity.hasComponent<ScriptComponent>()) {
+            if(!_guiState->selectedEntity.hasComponent<ScriptComponent>()) {
                 if(ImGui::Button("Script component", {availSize.x, 0.f})) {
-                    _scene->getSceneRegistry()->current->urControl.execute(new AddScriptComponentCommand(entity));
+                    _guiState->scene->getSceneRegistry()->current->urControl.execute(new AddScriptComponentCommand(_guiState->selectedEntity));
                     ImGui::CloseCurrentPopup();
                 }
             }
-             if(!entity.hasComponent<AudioComponent>()) {
+             if(!_guiState->selectedEntity.hasComponent<AudioComponent>()) {
                 if(ImGui::Button("Audio component", {availSize.x, 0.f})) {
-                    _scene->getSceneRegistry()->current->urControl.execute(new AddAudioComponentCommand(entity));
+                    _guiState->scene->getSceneRegistry()->current->urControl.execute(new AddAudioComponentCommand(_guiState->selectedEntity));
                     ImGui::CloseCurrentPopup();
                 }
              }
@@ -185,27 +182,27 @@ namespace TWE {
         }
     }
 
-    void GUIComponentsPanel::showNameComponent(Entity& entity) {
-        if(entity.hasComponent<NameComponent>()) {
-            auto& nameComponent = entity.getComponent<NameComponent>();
+    void GUIComponentsPanel::showNameComponent() {
+        if(_guiState->selectedEntity.hasComponent<NameComponent>()) {
+            auto& nameComponent = _guiState->selectedEntity.getComponent<NameComponent>();
             auto& name = nameComponent.getName();
             ImGui::Text("Name");
             ImGui::SameLine();
             if(ImGui::InputText("##Name", &name)) {
                 auto newState = nameComponent;
                 newState.setName(name);
-                _scene->getSceneRegistry()->current->urControl.execute(new ChangeNameComponentStateCommand(entity, newState));
+                _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangeNameComponentStateCommand(_guiState->selectedEntity, newState));
             }
             showSeparator();
         }
     }
 
-    void GUIComponentsPanel::showTransformComponent(Entity& entity) {
-        if(entity.hasComponent<TransformComponent>()) {
+    void GUIComponentsPanel::showTransformComponent() {
+        if(_guiState->selectedEntity.hasComponent<TransformComponent>()) {
             auto id = (void*)(typeid(TransformComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Transform")) {
-                auto& transformComponent = entity.getComponent<TransformComponent>();
+                auto& transformComponent = _guiState->selectedEntity.getComponent<TransformComponent>();
                 auto position = transformComponent.getPosition();
                 static bool addToURControl = false;
                 static TransformComponent oldState;
@@ -233,7 +230,7 @@ namespace TWE {
                 if(Input::mouseButtonAction(Mouse::MOUSE_BUTTON_LEFT) == Action::RELEASE && addToURControl) {
                     addToURControl = false;
                     if(oldState.getTransform() != newState.getTransform())
-                        _scene->getSceneRegistry()->current->urControl.execute(new ChangeTransformComponentState(entity, oldState, newState));
+                        _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangeTransformComponentState(_guiState->selectedEntity, oldState, newState));
                 }
                 ImGui::TreePop();
             }
@@ -248,15 +245,15 @@ namespace TWE {
         ImGui::PopStyleVar(1);
     }
 
-    void GUIComponentsPanel::showMeshComponent(Entity& entity) {
-        if(entity.hasComponent<MeshComponent>()) {
+    void GUIComponentsPanel::showMeshComponent() {
+        if(_guiState->selectedEntity.hasComponent<MeshComponent>()) {
             auto id = (void*)(typeid(MeshComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Mesh")) {
                 std::string popUpId = guiPopups[GUIPopupIds::MeshPopup];
                 if(ImGui::IsItemClicked(1))
                     ImGui::OpenPopup(popUpId.c_str());
-                auto& meshComponent = entity.getComponent<MeshComponent>();
+                auto& meshComponent = _guiState->selectedEntity.getComponent<MeshComponent>();
                 std::vector<std::string> meshRegistryKeys = Shape::shapeSpec->meshRegistry->getKeys();
                 std::string selectedMesh = meshComponent.getRegistryId();
                 int meshIndex = GUIComponents::combo("Mesh", selectedMesh, meshRegistryKeys);
@@ -265,13 +262,13 @@ namespace TWE {
                     std::string meshId = meshRegistryKeys[meshIndex];
                     auto meshSpecification = Shape::shapeSpec->meshRegistry->get(meshId);
                     newState.setMesh(meshSpecification->vao, meshSpecification->vbo, meshSpecification->ebo, meshId, meshSpecification->modelSpec);
-                    entity.getComponent<CreationTypeComponent>().setType(meshSpecification->creationType);
-                    _scene->getSceneRegistry()->current->urControl.execute(new ChangeMeshComponentStateCommand(entity, newState));
+                    _guiState->selectedEntity.getComponent<CreationTypeComponent>().setType(meshSpecification->creationType);
+                    _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangeMeshComponentStateCommand(_guiState->selectedEntity, newState));
                 }
                 auto textureId = (void*)(typeid(Texture).hash_code());
                 bool isCubemap = false;
-                if(entity.hasComponent<MeshRendererComponent>()) {
-                    auto& meshRendererComponent = entity.getComponent<MeshRendererComponent>();
+                if(_guiState->selectedEntity.hasComponent<MeshRendererComponent>()) {
+                    auto& meshRendererComponent = _guiState->selectedEntity.getComponent<MeshRendererComponent>();
                     if(meshRendererComponent.getRegistryId() == "Cubemap renderer")
                         isCubemap = true;
                 }
@@ -305,17 +302,17 @@ namespace TWE {
                                 Texture* texture = new Texture();
                                 texture->setAttachments(*textureInRegistry);
                                 newState.setTexture(texture);
-                                _scene->getSceneRegistry()->current->urControl.execute(new ChangeMeshComponentStateCommand(entity, newState));
+                                _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangeMeshComponentStateCommand(_guiState->selectedEntity, newState));
                             }
                         };
                     int baseBtnPressed = GUIComponents::imageButton("Base", baseTexture ? (void*)(uint64_t)baseTexture->id : (void*)(uint64_t)0, { 20.f, 20.f }, baseDragAndDropFunc);
                     if(baseBtnPressed == 0)
                         if(isCubemap) {
                             ImGuiFileDialog::Instance()->OpenDialog("CubemapTexture", "Choose File", ".png,.jpeg,.jpg", 
-                                (_scene->getProjectData()->rootPath.string() + '/').c_str(), 6, nullptr);
+                                (_guiState->scene->getProjectData()->rootPath.string() + '/').c_str(), 6, nullptr);
                         } else
                             ImGuiFileDialog::Instance()->OpenDialog("BaseTexture", "Choose File", ".png,.jpeg,.jpg", 
-                                (_scene->getProjectData()->rootPath.string() + '/').c_str(), 1, nullptr);
+                                (_guiState->scene->getProjectData()->rootPath.string() + '/').c_str(), 1, nullptr);
                     else if(baseBtnPressed == 1) {
                         auto newState = meshComponent;
                         if(isCubemap) {
@@ -323,11 +320,11 @@ namespace TWE {
                             newState.setTexture(meshComponent.getTexture()->getAttachments());
                             for(int i = 0; i < size; ++i)
                                 newState.getTexture()->removeTexture(0);
-                            _scene->getSceneRegistry()->current->urControl.execute(new ChangeMeshComponentStateCommand(entity, newState));
+                            _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangeMeshComponentStateCommand(_guiState->selectedEntity, newState));
                         } else {
                             newState.setTexture(meshComponent.getTexture()->getAttachments());
                             newState.getTexture()->removeTexture(0);
-                            _scene->getSceneRegistry()->current->urControl.execute(new ChangeMeshComponentStateCommand(entity, newState));
+                            _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangeMeshComponentStateCommand(_guiState->selectedEntity, newState));
                         }
                     }
                     ImGui::TreePop();
@@ -337,7 +334,7 @@ namespace TWE {
                 if(ImGui::BeginPopup(popUpId.c_str())) {
                     auto& availSize = ImGui::GetContentRegionAvail();
                     if(ImGui::Button("Remove component", { availSize.x, 0.f })) {
-                        _scene->getSceneRegistry()->current->urControl.execute(new RemoveMeshComponentCommand(entity));
+                        _guiState->scene->getSceneRegistry()->current->urControl.execute(new RemoveMeshComponentCommand(_guiState->selectedEntity));
                         ImGui::CloseCurrentPopup();
                     }
                     ImGui::EndPopup();
@@ -348,15 +345,15 @@ namespace TWE {
         }
     }
 
-    void GUIComponentsPanel::showMeshRendererComponent(Entity& entity) {
-        if(entity.hasComponent<MeshRendererComponent>()) {
+    void GUIComponentsPanel::showMeshRendererComponent() {
+        if(_guiState->selectedEntity.hasComponent<MeshRendererComponent>()) {
             auto id = (void*)(typeid(MeshRendererComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Mesh Renderer")) {
                 std::string popUpId = guiPopups[GUIPopupIds::MeshRendererPopup];
                 if(ImGui::IsItemClicked(1))
                     ImGui::OpenPopup(popUpId.c_str());
-                auto& meshRendererComponent = entity.getComponent<MeshRendererComponent>();
+                auto& meshRendererComponent = _guiState->selectedEntity.getComponent<MeshRendererComponent>();
                 auto& material = meshRendererComponent.getMaterial();
                 std::vector<std::string> meshRendererRegistryKeys = Shape::shapeSpec->meshRendererRegistry->getKeys();
                 std::string registryId = meshRendererComponent.getRegistryId();
@@ -367,7 +364,7 @@ namespace TWE {
                     auto meshRendererSpecification = Shape::shapeSpec->meshRendererRegistry->get(meshRendererId);
                     newState.setShader(meshRendererSpecification->vertexShaderPath.c_str(), 
                         meshRendererSpecification->fragmentShaderPath.c_str(), meshRendererId);
-                    _scene->getSceneRegistry()->current->urControl.execute(new ChangeMeshRendererComponentState(entity, meshRendererComponent, newState));
+                    _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangeMeshRendererComponentState(_guiState->selectedEntity, meshRendererComponent, newState));
                 }
                 static bool addToURControl = false;
                 static MeshRendererComponent oldState;
@@ -409,12 +406,12 @@ namespace TWE {
                     if(GUIComponents::checkBox("Is 3D", is3D)) {
                         meshRendererComponent.setIs3D(is3D);
                         newState = meshRendererComponent;
-                        _scene->getSceneRegistry()->current->urControl.execute(new ChangeMeshRendererComponentState(entity, oldState, newState));
+                        _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangeMeshRendererComponentState(_guiState->selectedEntity, oldState, newState));
                     }
                     if(Input::mouseButtonAction(Mouse::MOUSE_BUTTON_LEFT) == Action::RELEASE && addToURControl) {
                         addToURControl = false;
                         if(oldState.getMaterial() != newState.getMaterial())
-                            _scene->getSceneRegistry()->current->urControl.execute(new ChangeMeshRendererComponentState(entity, oldState, newState));
+                            _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangeMeshRendererComponentState(_guiState->selectedEntity, oldState, newState));
                     }
                     ImGui::TreePop();
                 }
@@ -423,7 +420,7 @@ namespace TWE {
                 if(ImGui::BeginPopup(popUpId.c_str())) {
                     auto& availSize = ImGui::GetContentRegionAvail();
                     if(ImGui::Button("Remove component", { availSize.x, 0.f })) {
-                        _scene->getSceneRegistry()->current->urControl.execute(new RemoveMeshRendererComponentCommand(entity));
+                        _guiState->scene->getSceneRegistry()->current->urControl.execute(new RemoveMeshRendererComponentCommand(_guiState->selectedEntity));
                         ImGui::CloseCurrentPopup();
                     }
                     ImGui::EndPopup();
@@ -434,15 +431,15 @@ namespace TWE {
         }
     }
 
-    void GUIComponentsPanel::showCameraComponent(Entity& entity) {
-        if(entity.hasComponent<CameraComponent>()) {
+    void GUIComponentsPanel::showCameraComponent() {
+        if(_guiState->selectedEntity.hasComponent<CameraComponent>()) {
             auto id = (void*)(typeid(CameraComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Camera")) {
                 std::string popUpId = guiPopups[GUIPopupIds::CameraPopup];
                 if(ImGui::IsItemClicked(1))
                     ImGui::OpenPopup(popUpId.c_str());
-                auto& cameraComponent = entity.getComponent<CameraComponent>();
+                auto& cameraComponent = _guiState->selectedEntity.getComponent<CameraComponent>();
                 auto* cameraSource = cameraComponent.getSource();
                 static bool addToURControl = false;
                 static CameraComponent oldState;
@@ -468,7 +465,7 @@ namespace TWE {
                 if(GUIComponents::checkBox("Is focused on", isFocusedOn, 105.f)) {
                     cameraComponent.setFocuse(isFocusedOn);
                     newState = cameraComponent;
-                    _scene->getSceneRegistry()->current->urControl.execute(new ChangeCameraComponentStateCommand(entity, oldState, newState));
+                    _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangeCameraComponentStateCommand(_guiState->selectedEntity, oldState, newState));
                 }
                 if(cameraSource->getType() == CameraProjectionType::Perspective) {
                     auto& perspectiveSpecification = cameraSource->getPerspectiveSpecification();
@@ -492,14 +489,14 @@ namespace TWE {
                 if(Input::mouseButtonAction(Mouse::MOUSE_BUTTON_LEFT) == Action::RELEASE && addToURControl) {
                     addToURControl = false;
                     if(*oldState.getSource() != *newState.getSource())
-                        _scene->getSceneRegistry()->current->urControl.execute(new ChangeCameraComponentStateCommand(entity, oldState, newState));
+                        _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangeCameraComponentStateCommand(_guiState->selectedEntity, oldState, newState));
                 }
                 float popUpWidth = 150.f;
                 ImGui::SetNextWindowSize({popUpWidth, 0.f});
                 if(ImGui::BeginPopup(popUpId.c_str())) {
                     auto& availSize = ImGui::GetContentRegionAvail();
                     if(ImGui::Button("Remove component", { availSize.x, 0.f })) {
-                        _scene->getSceneRegistry()->current->urControl.execute(new RemoveCameraComponentCommand(entity));
+                        _guiState->scene->getSceneRegistry()->current->urControl.execute(new RemoveCameraComponentCommand(_guiState->selectedEntity));
                         ImGui::CloseCurrentPopup();
                     }
                     ImGui::EndPopup();
@@ -510,15 +507,15 @@ namespace TWE {
         }
     }
 
-    void GUIComponentsPanel::showLightComponent(Entity& entity) {
-        if(entity.hasComponent<LightComponent>()) {
+    void GUIComponentsPanel::showLightComponent() {
+        if(_guiState->selectedEntity.hasComponent<LightComponent>()) {
             auto id = (void*)(typeid(LightComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Light")) {
                 std::string popUpId = guiPopups[GUIPopupIds::LightPopup];
                 if(ImGui::IsItemClicked(1))
                     ImGui::OpenPopup(popUpId.c_str());
-                auto& lightComponent = entity.getComponent<LightComponent>();
+                auto& lightComponent = _guiState->selectedEntity.getComponent<LightComponent>();
                 auto lightType = lightComponent.getType();
                 std::string selectedType = lightTypes[lightType];
                 static bool addToURControl = false;
@@ -577,7 +574,7 @@ namespace TWE {
                     if(GUIComponents::checkBox("Cast shadows", castShadows, 120.f)) {
                         lightComponent.setCastShadows(castShadows);
                         newState = lightComponent;
-                        _scene->getSceneRegistry()->current->urControl.execute(new ChangeLightComponentStateCommand(entity, oldState, newState));
+                        _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangeLightComponentStateCommand(_guiState->selectedEntity, oldState, newState));
                     }
                     float projectionAspect = lightComponent.getLightProjectionAspect();
                     if(GUIComponents::dragFloat("Shadow cover", projectionAspect, 0.5f, 1.f, 999999.f, 120.f)) {
@@ -593,20 +590,20 @@ namespace TWE {
                         uint32_t newShadowmapSize = std::stoi(shadowMapSizes[shadowmapIndex]);
                         lightComponent.setShadowMapSize(newShadowmapSize);
                         newState = lightComponent;
-                        _scene->getSceneRegistry()->current->urControl.execute(new ChangeLightComponentStateCommand(entity, oldState, newState));
+                        _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangeLightComponentStateCommand(_guiState->selectedEntity, oldState, newState));
                     }
                 }
                 if(Input::mouseButtonAction(Mouse::MOUSE_BUTTON_LEFT) == Action::RELEASE && addToURControl) {
                     addToURControl = false;
                     if(oldState != newState)
-                        _scene->getSceneRegistry()->current->urControl.execute(new ChangeLightComponentStateCommand(entity, oldState, newState));
+                        _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangeLightComponentStateCommand(_guiState->selectedEntity, oldState, newState));
                 }
                 float popUpWidth = 150.f;
                 ImGui::SetNextWindowSize({popUpWidth, 0.f});
                 if(ImGui::BeginPopup(popUpId.c_str())) {
                     auto& availSize = ImGui::GetContentRegionAvail();
                     if(ImGui::Button("Remove component", { availSize.x, 0.f })) {
-                        _scene->getSceneRegistry()->current->urControl.execute(new RemoveLightComponentCommand(entity));
+                        _guiState->scene->getSceneRegistry()->current->urControl.execute(new RemoveLightComponentCommand(_guiState->selectedEntity));
                         ImGui::CloseCurrentPopup();
                     }
                     ImGui::EndPopup();
@@ -617,23 +614,23 @@ namespace TWE {
         }
     }
 
-    void GUIComponentsPanel::showPhysicsComponent(Entity& entity) {
-        if(entity.hasComponent<PhysicsComponent>()) {
+    void GUIComponentsPanel::showPhysicsComponent() {
+        if(_guiState->selectedEntity.hasComponent<PhysicsComponent>()) {
             auto id = (void*)(typeid(PhysicsComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Physics")) {
                 std::string popUpId = guiPopups[GUIPopupIds::PhysicsPopup];
                 if(ImGui::IsItemClicked(1))
                     ImGui::OpenPopup(popUpId.c_str());
-                auto& physicsComponent = entity.getComponent<PhysicsComponent>();
+                auto& physicsComponent = _guiState->selectedEntity.getComponent<PhysicsComponent>();
                 physicsComponent.setShowCollider(true);
                 ColliderType colliderType = physicsComponent.getColliderType();
 
                 int colliderTypeIndex = GUIComponents::combo("Collider type", colliderTypes[static_cast<int>(colliderType)], colliderTypes, 90.f);
                 if(colliderTypeIndex != -1) {
                     ColliderType newColliderType = static_cast<ColliderType>(colliderTypeIndex);
-                    _scene->getSceneRegistry()->current->urControl.execute(new SetColliderTypePhysicsComponentCommand(entity, newColliderType, 
-                    colliderType, entity.getComponent<TransformComponent>().getSize()));
+                    _guiState->scene->getSceneRegistry()->current->urControl.execute(new SetColliderTypePhysicsComponentCommand(_guiState->selectedEntity, newColliderType, 
+                    colliderType, _guiState->selectedEntity.getComponent<TransformComponent>().getSize()));
                 }
 
                 static bool addToURControl = false;
@@ -655,14 +652,14 @@ namespace TWE {
                     if(GUIComponents::checkBox("Is rotated", isRotated, 90.f)) {
                         PhysicsComponentProperties newProperties = { physicsComponent.getMass(), isRotated, 
                             physicsComponent.getIsTrigger(), physicsComponent.getShapeDimensions() };
-                        _scene->getSceneRegistry()->current->urControl.execute(new ChangePhysicsComponentPropertiesCommand(entity, oldProperties, newProperties));
+                        _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangePhysicsComponentPropertiesCommand(_guiState->selectedEntity, oldProperties, newProperties));
                     }
                 }
                 bool isTrigger = physicsComponent.getIsTrigger();
                 if(GUIComponents::checkBox("Is trigger", isTrigger, 90.f)) {
                     PhysicsComponentProperties newProperties = { physicsComponent.getMass(), physicsComponent.getIsRotated(), 
                         isTrigger, physicsComponent.getShapeDimensions() };
-                    _scene->getSceneRegistry()->current->urControl.execute(new ChangePhysicsComponentPropertiesCommand(entity, oldProperties, newProperties));
+                    _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangePhysicsComponentPropertiesCommand(_guiState->selectedEntity, oldProperties, newProperties));
                 }
 
                 auto shapeDimensions = physicsComponent.getShapeDimensions();
@@ -699,14 +696,14 @@ namespace TWE {
                 if(Input::mouseButtonAction(Mouse::MOUSE_BUTTON_LEFT) == Action::RELEASE && addToURControl) {
                     addToURControl = false;
                     if(oldProperties != newProperties)
-                        _scene->getSceneRegistry()->current->urControl.execute(new ChangePhysicsComponentPropertiesCommand(entity, oldProperties, newProperties));
+                        _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangePhysicsComponentPropertiesCommand(_guiState->selectedEntity, oldProperties, newProperties));
                 }
                 float popUpWidth = 150.f;
                 ImGui::SetNextWindowSize({popUpWidth, 0.f});
                 if(ImGui::BeginPopup(popUpId.c_str())) {
                     auto& availSize = ImGui::GetContentRegionAvail();
                     if(ImGui::Button("Remove component", { availSize.x, 0.f })) {
-                        _scene->getSceneRegistry()->current->urControl.execute(new RemovePhysicsComponentCommand(entity));
+                        _guiState->scene->getSceneRegistry()->current->urControl.execute(new RemovePhysicsComponentCommand(_guiState->selectedEntity));
                         ImGui::CloseCurrentPopup();
                     }
                     ImGui::EndPopup();
@@ -717,15 +714,15 @@ namespace TWE {
         }
     }
 
-    void GUIComponentsPanel::showScriptComponent(Entity& entity) {
-        if(entity.hasComponent<ScriptComponent>()) {
+    void GUIComponentsPanel::showScriptComponent() {
+        if(_guiState->selectedEntity.hasComponent<ScriptComponent>()) {
             auto id = (void*)(typeid(ScriptComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Script")) {
                 std::string popUpId = guiPopups[GUIPopupIds::ScriptPopup];
                 if(ImGui::IsItemClicked(1))
                     ImGui::OpenPopup(popUpId.c_str());
-                auto& scriptComponent = entity.getComponent<ScriptComponent>();
+                auto& scriptComponent = _guiState->selectedEntity.getComponent<ScriptComponent>();
                 auto& scriptsBihaviorName = scriptComponent.getScriptsBehaviorName();
                 static int currentScriptIndex = 0;
                 if(currentScriptIndex >= scriptsBihaviorName.size())
@@ -745,20 +742,20 @@ namespace TWE {
                     auto& script = scriptComponent.getScripts()[currentScriptIndex];
                     bool isEnabled = script.isEnabled;
                     if(GUIComponents::checkBox("Enabled", isEnabled, 110.f))
-                        _scene->getSceneRegistry()->current->urControl.execute(new SetScriptComponentEnabledStateCommand(entity, script.behaviorClassName, isEnabled));
+                        _guiState->scene->getSceneRegistry()->current->urControl.execute(new SetScriptComponentEnabledStateCommand(_guiState->selectedEntity, script.behaviorClassName, isEnabled));
                     auto& availSize = ImGui::GetContentRegionAvail();
-                    bool validateScriptFlag = _scene->getSceneState() != SceneState::Edit;
+                    bool validateScriptFlag = _guiState->scene->getSceneState() != SceneState::Edit || !_guiState->bgFuncsInRun.empty();
                     if(validateScriptFlag) {
                         ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
                         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
                     }
                     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5.f);
                     if(ImGui::Button("Validate")) {
-                        _scene->getSceneScripts()->validateScript(script.behaviorClassName, _scene);
+                        _guiState->scene->getSceneScripts()->validateScript(script.behaviorClassName, _guiState->scene);
                         ImGui::CloseCurrentPopup();
                     }
                     if(ImGui::Button("Unbind script")) {
-                        _scene->getSceneRegistry()->current->urControl.execute(new UnbindBehaviorScriptComponentCommand(entity, script.behaviorClassName));
+                        _guiState->scene->getSceneRegistry()->current->urControl.execute(new UnbindBehaviorScriptComponentCommand(_guiState->selectedEntity, script.behaviorClassName));
                         ImGui::CloseCurrentPopup();
                     }
                     if(validateScriptFlag) {
@@ -768,10 +765,10 @@ namespace TWE {
                 }
                 if(ImGui::BeginPopup(popUpBindId.c_str())) {
                     auto& availSize = ImGui::GetContentRegionAvail();
-                    auto& scriptRegistryKeys = _scene->getScriptDLLRegistry()->getKeys();
+                    auto& scriptRegistryKeys = _guiState->scene->getScriptDLLRegistry()->getKeys();
                     for(auto& behaviorClassName : scriptRegistryKeys) {
                         if(ImGui::Button(behaviorClassName.c_str(), { availSize.x, 0.f })) {
-                            _scene->getSceneRegistry()->current->urControl.execute(new BindBehaviorScriptComponentCommand(entity, behaviorClassName));
+                            _guiState->scene->getSceneRegistry()->current->urControl.execute(new BindBehaviorScriptComponentCommand(_guiState->selectedEntity, behaviorClassName));
                             ImGui::CloseCurrentPopup();
                         }
                     }
@@ -780,7 +777,7 @@ namespace TWE {
                 if(ImGui::BeginPopup(popUpId.c_str())) {
                     auto& availSize = ImGui::GetContentRegionAvail();
                     if(ImGui::Button("Remove component", { availSize.x, 0.f })) {
-                        _scene->getSceneRegistry()->current->urControl.execute(new RemoveScriptComponentCommand(entity));
+                        _guiState->scene->getSceneRegistry()->current->urControl.execute(new RemoveScriptComponentCommand(_guiState->selectedEntity));
                         ImGui::CloseCurrentPopup();
                     }
                     ImGui::EndPopup();
@@ -791,15 +788,15 @@ namespace TWE {
         }
     }
 
-    void GUIComponentsPanel::showAudioComponent(Entity& entity) {
-        if(entity.hasComponent<AudioComponent>()) {
+    void GUIComponentsPanel::showAudioComponent() {
+        if(_guiState->selectedEntity.hasComponent<AudioComponent>()) {
             auto id = (void*)(typeid(AudioComponent).hash_code());
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
             if(ImGui::TreeNodeEx(id, flags, "Audio")) {
                 std::string popUpId = guiPopups[GUIPopupIds::AudioPopup];
                 if(ImGui::IsItemClicked(1))
                     ImGui::OpenPopup(popUpId.c_str());
-                auto& audioComponent = entity.getComponent<AudioComponent>();
+                auto& audioComponent = _guiState->selectedEntity.getComponent<AudioComponent>();
                 auto soundSources = audioComponent.getPathsOfSoundSources();
                 static int currentSoundSourceIndex = 0;
                 if(currentSoundSourceIndex >= soundSources.size())
@@ -807,7 +804,7 @@ namespace TWE {
                 std::string selectedSoundSourceStr = !soundSources.empty() ? soundSources[currentSoundSourceIndex] : "None";
                 auto addFunc = [&]() {
                     ImGuiFileDialog::Instance()->OpenDialog("AddAudioSource", "Choose File", ".mp3", 
-                        (_scene->getProjectData()->rootPath.string() + '/').c_str(), 1, nullptr);
+                        (_guiState->scene->getProjectData()->rootPath.string() + '/').c_str(), 1, nullptr);
                 };
                 int selectedSoundSourceIndex = GUIComponents::comboAndButton("Sound source", selectedSoundSourceStr, soundSources, addFunc, 100.f);
                 if(selectedSoundSourceIndex != -1)
@@ -827,21 +824,21 @@ namespace TWE {
                     if(GUIComponents::checkBox("Is start paused", startPaused, 100.f)) {
                         newState = oldState;
                         newState.startPaused = startPaused;
-                        _scene->getSceneRegistry()->current->urControl.execute(new ChangeAudioComponentPropertiesCommand(entity, 
+                        _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangeAudioComponentPropertiesCommand(_guiState->selectedEntity, 
                             soundSourceSpecification->getSoundSourcePath(), oldState, newState));
                     }
                     bool looped = soundSourceSpecification->getPlayLooped();
                     if(GUIComponents::checkBox("Is looped", looped, 100.f)) {
                         newState = oldState;
                         newState.playLooped = looped;
-                        _scene->getSceneRegistry()->current->urControl.execute(new ChangeAudioComponentPropertiesCommand(entity, 
+                        _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangeAudioComponentPropertiesCommand(_guiState->selectedEntity, 
                             soundSourceSpecification->getSoundSourcePath(), oldState, newState));
                     }
                     bool is3D = soundSourceSpecification->getIs3D();
                     if(GUIComponents::checkBox("Is 3D", is3D, 100.f)) {
                         newState = oldState;
                         newState.is3d = is3D;
-                        _scene->getSceneRegistry()->current->urControl.execute(new ChangeAudioComponentPropertiesCommand(entity, 
+                        _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangeAudioComponentPropertiesCommand(_guiState->selectedEntity, 
                             soundSourceSpecification->getSoundSourcePath(), oldState, newState));
                     }
                     float volume = newState.volume;
@@ -873,12 +870,12 @@ namespace TWE {
                     if(Input::mouseButtonAction(Mouse::MOUSE_BUTTON_LEFT) == Action::RELEASE && addToURControl) {
                         addToURControl = false;
                         if(oldState != newState)
-                            _scene->getSceneRegistry()->current->urControl.execute(new ChangeAudioComponentPropertiesCommand(entity, 
+                            _guiState->scene->getSceneRegistry()->current->urControl.execute(new ChangeAudioComponentPropertiesCommand(_guiState->selectedEntity, 
                                 soundSourceSpecification->getSoundSourcePath(), oldState, newState));
                     }
                     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5.f);
                     if(ImGui::Button("Remove sound source"))
-                        _scene->getSceneRegistry()->current->urControl.execute(new RemoveSoundSourceAudioComponentCommand(entity, 
+                        _guiState->scene->getSceneRegistry()->current->urControl.execute(new RemoveSoundSourceAudioComponentCommand(_guiState->selectedEntity, 
                             soundSourceSpecification->getSoundSourcePath()));
                 }
                 float popUpWidth = 150.f;
@@ -886,7 +883,7 @@ namespace TWE {
                 if(ImGui::BeginPopup(popUpId.c_str())) {
                     auto& availSize = ImGui::GetContentRegionAvail();
                     if(ImGui::Button("Remove component", { availSize.x, 0.f })) {
-                        _scene->getSceneRegistry()->current->urControl.execute(new RemoveAudioComponentCommand(entity));
+                        _guiState->scene->getSceneRegistry()->current->urControl.execute(new RemoveAudioComponentCommand(_guiState->selectedEntity));
                         ImGui::CloseCurrentPopup();
                     }
                     ImGui::EndPopup();

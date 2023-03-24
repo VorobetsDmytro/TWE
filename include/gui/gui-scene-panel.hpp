@@ -3,8 +3,11 @@
 
 #include "scene/iscene.hpp"
 #include "scene/shape.hpp"
+
 #include "gui/gui-components.hpp"
 #include "gui/gui-types.hpp"
+#include "gui/igui-panel.hpp"
+
 #include "undo-redo/ur-commands/ur-commands.hpp"
 
 #include <imgui.h>
@@ -13,25 +16,25 @@
 #include <imgui-filedialog/ImGuiFileDialog.h>
 
 namespace TWE {
-    class GUIScenePanel {
+    class GUIScenePanel: public IGUIPanel {
     public:
-        GUIScenePanel() = default;
-        void showPanel(Entity& selectedEntity);
-        void setScene(IScene* scene);
-        void addEntityToSelected(Entity& selectedEntity);
-        bool isSceneEntityPopupOpen();
+        GUIScenePanel();
+        void showPanel() override;
+        void setGUIState(GUIStateSpecification* guiState) override;
     private:
-        void showSceneEntity(Entity& entity, Entity& selectedEntity);
-        void showSceneEntityPopup(const std::string& popupId, Entity& selectedEntity);
-        void showSceneMenuPopup(const std::string& popupId, Entity& selectedEntity);
-        bool showCreateEntityMenu(Entity& selectedEntity);
-        void selectEntity(Entity& entity, Entity& selectedEntity);
+        void showFileDialog();
+        void addEntityToSelected();
+        void showSceneEntity(Entity& entity);
+        void showSceneEntityPopup(const std::string& popupId);
+        void showSceneMenuPopup(const std::string& popupId);
+        bool showCreateEntityMenu();
+        void selectEntity(Entity& entity);
         void unselectEntity(Entity& entity);
         void showSeparator(Entity& entity, bool isUpper = false);
-        IScene* _scene;
         bool _canOpenWindowPopup;
         bool _showSceneEntityPopup;
         Entity _showSceneEntity;
+        GUIStateSpecification* _guiState;
     };
 }
 

@@ -35,10 +35,9 @@ namespace TWE {
         void start(const std::string& buildFilePath = "");
     protected:
         void updateInput();
-        void setVSync(GLboolean isOn);
         static std::unique_ptr<Window> window;
         static std::unique_ptr<ProjectData> projectData;
-        static std::shared_ptr<Scene> curScene;
+        static std::shared_ptr<IScene> curScene;
         static std::shared_ptr<DebugCamera> debugCamera;
         static Registry<DLLLoadData> scriptDLLRegistry;
         static Registry<MeshSpecification> meshRegistry;
@@ -51,6 +50,7 @@ namespace TWE {
         static void mouseCallback(GLFWwindow* window, double xpos, double ypos);
         static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
         static void framebufferSizeCallback(GLFWwindow* window, int width, int height);
+        static void windowCloseCallback(GLFWwindow* window);
         #ifndef TWE_BUILD
         static std::unique_ptr<GUI> gui;
         #else

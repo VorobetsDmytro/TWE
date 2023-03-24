@@ -9,6 +9,8 @@
 #include "gui/gui-start-panel.hpp"
 #include "gui/gui-scene-panel.hpp"
 #include "gui/gui-viewport-panel.hpp"
+#include "gui/gui-console-panel.hpp"
+#include "gui/gui-state-specification.hpp"
 
 #include "registry/registry.hpp"
 #include "stream/project-creator.hpp"
@@ -26,52 +28,39 @@
 #include <string>
 #include <functional>
 #include <iostream>
+#include <future>
+#include <chrono>
 
 namespace TWE {
-
-    struct GUISpecification {
-        GUISpecification() = default;
-        IScene* _scene;
-        Entity _selectedEntity;
-        ProjectData* projectData;
-        int readPixelFBOData;
-        bool isMouseOnViewport;
-        bool isFocusedOnViewport;
-    };
-
     class GUI{
     public:
         GUI(GLFWwindow *window);
         ~GUI();
         void begin();
         void end();
-        void addCheckbox(const char* name, bool& var);
-        void addInputText(const char* name, std::string& var);
-        void addButton(const char* name, std::function<void()> func);
         void setScene(IScene* scene);
         void setWindow(Window* window);
         void setProjectData(ProjectData* projectData);
+        [[nodiscard]] bool getHasBGFuncs();
         [[nodiscard]] bool getIsMouseOnViewport();
         [[nodiscard]] bool getIsFocusedOnViewport();
         [[nodiscard]] bool getIsMouseDisabled();
+        [[nodiscard]] bool getIsURExecuted();
     private:
-        void initImguiFileDialog();
+        void initPanels();
         void showDockSpace();
-        void showTestPanel();
         void showFileDialog();
         bool showGizmo();
+        void showMenuBar();
         void processInput();
+        void processBGFuncs();
+        void processUR();
         void selectEntity(Entity& entity);
         void unselectEntity();
-        GUIStartPanel _start;
-        GUIComponentsPanel _components;
-        GUIDirectoryPanel _directory;
-        GUIScenePanel _scene;
-        GUIViewportPanel _viewport;
-        GUISpecification _specification;
-        std::vector<std::pair<const char*, bool&>> _checkBoxes;
-        std::vector<std::pair<const char*, std::string&>> _inputTextes;
-        std::vector<std::pair<const char*, std::function<void()>>> _buttons;
+        bool isSelectedEntityValid();
+        std::unique_ptr<IGUIPanel> _startPanel;
+        std::vector<std::unique_ptr<IGUIPanel>> _panels;
+        GUIStateSpecification _guiState;
     };
 }
 

@@ -37,13 +37,13 @@ namespace TWE {
                         script.instance->needLoadScene = false;
                     }
                 } catch(const std::exception& error) {
-                    std::cerr << error.what() << std::endl;
+                    std::cout << error.what() << "\n\n";
                     script.isEnabled = false;
                 }
             }
         });
         if(needLoadScene) {
-            if(SceneSerializer::deserialize(scene, loadScenePath.string())) {
+            if(SceneSerializer::deserialize(scene, loadScenePath.string(), _projectData)) {
                 std::filesystem::path scenePath = std::filesystem::relative(loadScenePath, _projectData->rootPath);
                 if(!scenePath.empty())
                     _projectData->lastScenePath = scenePath;
@@ -92,18 +92,22 @@ namespace TWE {
             unbindScript(&scene->getSceneRegistry()->run.entityRegistry, scriptDLLData, scene);
             DLLCreator::freeDLLFunc(*scriptDLLData);
             dllRegistry->erase(scriptName);
+
+            std::cout << "Start script compilation: " << scriptName << "\n";
             auto dllData = new DLLLoadData(DLLCreator::compileScript(scriptName, scriptDLLData->scriptDirectoryPath));
             dllRegistry->add(scriptName, dllData);
+
             if(!dllData || !dllData->isValid) {
-                std::cout << "Script " +  scriptName + " compile error!\n";
+                std::cout << "Script " <<  scriptName << " compile error!\n\n";
                 dllData->dllPath = scriptDLLData->dllPath;
                 dllData->factoryFuncName = scriptDLLData->factoryFuncName;
                 dllData->scriptDirectoryPath = scriptDLLData->scriptDirectoryPath;
                 dllData->scriptName = scriptDLLData->scriptName;
-            }
+            } else
+                std::cout << "Script " <<  scriptName << " has been compiled successfuly!\n\n";
             bindScript(dllData, editEntities);
         } else 
-            std::cout << "Script " +  scriptName + " was not found in the script dll registry!\n";
+            std::cout << "Script " +  scriptName + " was not found in the script dll registry!\n\n";
     }
 
     void SceneScripts::validateScripts(IScene* scene) {
