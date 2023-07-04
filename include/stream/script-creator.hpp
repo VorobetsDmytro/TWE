@@ -10,9 +10,9 @@
 namespace TWE {
     class ScriptCreator {
     public:
-        static bool create(const std::string& scriptName, const std::string& scriptDirectoryPath);
+        static bool create(std::string scriptName, std::string scriptDirectoryPath);
     private:
-        static bool validateScriptName(const std::string& scriptName);
+        static bool validateScriptName(std::string scriptName);
     };
 }
 

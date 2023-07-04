@@ -10,12 +10,10 @@ namespace TWE {
     void GUIDirectoryPanel::loadTextures() {
         _dirImgPath = "../../images/folder.png";
         _fileImgPath = "../../images/file.png";
-        TextureSpecification dirSpec(_dirImgPath, 0, TextureType::Texture2D, TextureInOutFormat::RGBA);
-        TextureSpecification fileSpec(_fileImgPath, 0, TextureType::Texture2D, TextureInOutFormat::RGBA);
         _dirTexture = new Texture();
-        _dirTexture->setTexture(dirSpec);
+        _dirTexture->setTexture(TextureSpecification{_dirImgPath, 0, TextureType::Texture2D, TextureInOutFormat::RGBA});
         _fileTexture = new Texture();
-        _fileTexture->setTexture(fileSpec);
+        _fileTexture->setTexture(TextureSpecification{_fileImgPath, 0, TextureType::Texture2D, TextureInOutFormat::RGBA});
     }
 
     void GUIDirectoryPanel::setGUIState(GUIStateSpecification* guiState) {
@@ -96,7 +94,8 @@ namespace TWE {
 
             std::string fileName = path.filename().string();
             ImGui::ImageButton(entry.is_directory() ? dirTextureId : fileTextureId, { contentCellSize - padding, contentCellSize - padding }, {0, 1}, {1, 0});
-            if(ImGui::BeginDragDropSource()) {
+            bool canDragAndDrop = _guiState->bgFuncsInRun.empty();
+            if(canDragAndDrop && ImGui::BeginDragDropSource()) {
                 const wchar_t* item = path.c_str();
                 ImGui::SetDragDropPayload(guiDragAndDropTypes[GUIDragAndDropType::DirectoryItem].c_str(), item, (wcslen(item) + 1) * sizeof(wchar_t));
                 ImGui::EndDragDropSource();
@@ -167,7 +166,8 @@ namespace TWE {
                     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
                 }
                 if(ImGui::Button("Validate", {availSize.x, 0.f})) {
-                    static std::string scriptName = filePath.stem().string();
+                    static std::string scriptName;
+                    scriptName = filePath.stem().string();
                     std::shared_future<void> validScriptsFuture = std::async(std::launch::async, [&]() {
                         _guiState->scene->getSceneScripts()->validateScript(scriptName, _guiState->scene);
                     });
@@ -247,7 +247,7 @@ namespace TWE {
                 static std::string scriptName;
                 if(GUIComponents::inputAndButton("Script name", scriptName, "Create")) {
                     auto checkScriptUniqName = _guiState->scene->getScriptDLLRegistry()->get(scriptName);
-                    if(!checkScriptUniqName) {
+                    if(!checkScriptUniqName && !scriptName.empty()) {
                         std::string scriptDirectoryPath = _curPath.string();
                         if(ScriptCreator::create(scriptName, scriptDirectoryPath)) {
                             auto dllData = new DLLLoadData(DLLCreator::compileScript(scriptName, scriptDirectoryPath));

@@ -31,6 +31,9 @@ namespace TWE {
 
     void LightComponent::setType(LightType type) {
         _type = type;
+        if(type == LightType::Dir && !_fbo) {
+            setShadowMapSize(SHADOW_MAP_DEFAULT_SIZE);
+        }
     }
 
     void LightComponent::setCastShadows(bool castShadows) {

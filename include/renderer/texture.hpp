@@ -78,7 +78,7 @@ namespace TWE {
         void unbind();
         void clean();
         void setAttachments(const TextureAttachmentSpecification& attachments);
-        void setTexture(TextureSpecification& textureSpec);
+        void setTexture(const TextureSpecification& textureSpec);
         void removeTexture(uint32_t texNumber);
         [[nodiscard]] uint32_t getId(int index) const noexcept;
         [[nodiscard]] uint32_t getIndexByTexNumber(uint32_t texNumber) const noexcept;

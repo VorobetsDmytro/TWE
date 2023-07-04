@@ -40,7 +40,7 @@ namespace TWE {
         if(!status) {
             char errorInfo[512];
             glGetShaderInfoLog(shader, sizeof(errorInfo), NULL, errorInfo);
-            std::cout << "Error compilation a shader.\n" << errorInfo << std::endl;
+            // std::cout << "Error compilation a shader.\n" << errorInfo << std::endl;
         };
         return shader;
     }
@@ -54,7 +54,7 @@ namespace TWE {
         if(!status) {
             char errorInfo[512];
             glGetProgramInfoLog(_id, sizeof(errorInfo), NULL, errorInfo);
-            std::cout << "Error link a shader.\n" << errorInfo << std::endl;
+            // std::cout << "Error link the shaders.\n" << errorInfo << std::endl;
         };
     }
 
