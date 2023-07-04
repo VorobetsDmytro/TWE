@@ -14,9 +14,11 @@ namespace TWE {
     class SceneBulletDebugDrawer: public btIDebugDraw {
     public:
         void initShader(const std::filesystem::path& rootPath) {
-            std::string vert = SHADER_PATHS[ShaderIndices::COLLIDER_VERT];
-            std::string frag = SHADER_PATHS[ShaderIndices::COLLIDER_FRAG];
-            _shader = new Shader((rootPath / vert).string().c_str(), (rootPath / frag).string().c_str());
+            _vertShaderPath = SHADER_PATHS[ShaderIndices::COLLIDER_VERT];
+            _fragShaderPath = SHADER_PATHS[ShaderIndices::COLLIDER_FRAG];
+            _vertShaderPath.insert(0, rootPath.string());
+            _fragShaderPath.insert(0, rootPath.string());
+            _shader = new Shader(_vertShaderPath.c_str(), _fragShaderPath.c_str());
         }
 
         void setMats(const glm::mat4& view, const glm::mat4& projection) {
@@ -59,6 +61,8 @@ namespace TWE {
     private:
         GLuint _VBO, _VAO;
         Shader* _shader = nullptr;
+        std::string _vertShaderPath;
+        std::string _fragShaderPath;
         int _debugMode;
     };
 }

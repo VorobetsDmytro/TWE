@@ -86,17 +86,18 @@ namespace TWE {
             _showSceneEntity = entity;
             ImGuiFileDialog::Instance()->Close();
         }
+        bool hasntBGFuncs = _guiState->bgFuncsInRun.empty();
         if(ImGui::IsItemClicked(0) || ImGui::IsItemClicked(1)) {
-            if(entity.getSource() != _guiState->selectedEntity.getSource())
+            if(hasntBGFuncs && entity.getSource() != _guiState->selectedEntity.getSource())
                 selectEntity(entity);
             ImGuiFileDialog::Instance()->Close();
         }
-        if(ImGui::BeginDragDropSource()) {
+        if(hasntBGFuncs && ImGui::BeginDragDropSource()) {
             auto item = std::to_wstring((int)_guiState->selectedEntity.getSource());
             ImGui::SetDragDropPayload(guiDragAndDropTypes[GUIDragAndDropType::EntityItem].c_str(), item.c_str(), (wcslen(item.c_str()) + 1) * sizeof(wchar_t));
             ImGui::EndDragDropSource();
         }
-        if(ImGui::BeginDragDropTarget()) {
+        if(hasntBGFuncs && ImGui::BeginDragDropTarget()) {
             if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(guiDragAndDropTypes[GUIDragAndDropType::EntityItem].c_str())) {
                 const wchar_t* item = static_cast<const wchar_t*>(payload->Data);
                 std::wstring itemWSTR = item;
@@ -126,17 +127,19 @@ namespace TWE {
         ImGui::SetNextWindowSize({popUpWidth, 0.f});
         if(ImGui::BeginPopup(popupId.c_str())) {
             auto& availSize = ImGui::GetContentRegionAvail();
+            bool hasBGFuncsInRun = !_guiState->bgFuncsInRun.empty();
+            if(hasBGFuncsInRun) {
+                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+            }
+
             if(showCreateEntityMenu()) {
                 addEntityToSelected();
                 _guiState->scene->getSceneRegistry()->current->urControl.execute(new CreateEntityCommand(_guiState->selectedEntity, 
                     [&](){ unselectEntity(_guiState->selectedEntity); }));
             }
             ImGui::Separator();
-            bool hasBGFuncsInRun = !_guiState->bgFuncsInRun.empty();
-            if(hasBGFuncsInRun) {
-                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-            }
+            
             if(ImGui::Button("Remove", {availSize.x, 0.f})) {
                 auto removeEntity = _guiState->selectedEntity;
                 unselectEntity(_guiState->selectedEntity);

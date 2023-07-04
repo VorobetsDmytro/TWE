@@ -751,7 +751,10 @@ namespace TWE {
                     }
                     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5.f);
                     if(ImGui::Button("Validate")) {
-                        _guiState->scene->getSceneScripts()->validateScript(script.behaviorClassName, _guiState->scene);
+                        std::shared_future<void> validScriptsFuture = std::async(std::launch::async, [&]() {
+                            _guiState->scene->getSceneScripts()->validateScript(script.behaviorClassName, _guiState->scene);
+                        });
+                        _guiState->bgFuncsInRun.push_back(validScriptsFuture);
                         ImGui::CloseCurrentPopup();
                     }
                     if(ImGui::Button("Unbind script")) {

@@ -9,21 +9,22 @@ namespace TWE {
         if(!std::filesystem::exists(projectData->rootPath.string() + '/' + startScenePath.string()))
             return false;
         std::string buildDirPath = projectData->rootPath.string() + "/build";
+        std::string tweType = getTWEType();
         if(!std::filesystem::exists(buildDirPath))
             std::filesystem::create_directory(buildDirPath);
-        std::string debugPath = buildDirPath + "/Debug";
+        std::string debugPath = buildDirPath + "/" + tweType;
         if(!std::filesystem::exists(debugPath))
             std::filesystem::create_directory(debugPath);
         std::string buildFilePath = debugPath + '/' + projectData->projectName + ".build";
         createBuildFile(projectData, buildFilePath, startScenePath);
-        createCMakeFile(projectData, buildDirPath);
-        copyRootPathFiles(projectData, buildDirPath);
-        std::string generateCommand = "cmake -S " + buildDirPath + " -B " + buildDirPath;
+        createCMakeFile(projectData, buildDirPath, tweType);
+        copyRootPathFiles(projectData, buildDirPath, tweType);
+        std::string generateCommand = "cmake -DCMAKE_BUILD_TYPE=" + tweType + " -S " + buildDirPath + " -B " + buildDirPath;
         if(system(generateCommand.c_str()) != 0) {
             std::cout << "Failed to generate project build files\n";
             return false;
         }
-        std::string buildCommand = "cmake --build " + buildDirPath;
+        std::string buildCommand = "cmake --build " + buildDirPath + " --config " + tweType;
         if(system(buildCommand.c_str()) != 0) {
             std::cout << "Failed to build project\n";
             return false;
@@ -31,9 +32,9 @@ namespace TWE {
         return true;
     }
 
-    void BuildCreator::copyRootPathFiles(ProjectData* projectData, const std::filesystem::path& buildDirPath) {
+    void BuildCreator::copyRootPathFiles(ProjectData* projectData, const std::filesystem::path& buildDirPath, const std::string& tweType) {
         auto dirIt = std::filesystem::directory_iterator(projectData->rootPath);
-        std::string debugPath = buildDirPath.string() + "/Debug";
+        std::string debugPath = buildDirPath.string() + "/" + tweType;
         const auto copyOptions = std::filesystem::copy_options::overwrite_existing
                                | std::filesystem::copy_options::recursive;
         for(auto& entry : dirIt) {
@@ -52,7 +53,7 @@ namespace TWE {
         std::filesystem::copy("../../shaders", projectShadersPath, copyOptions);
     }
 
-    void BuildCreator::createCMakeFile(ProjectData* projectData, const std::filesystem::path& buildDirPath) {
+    void BuildCreator::createCMakeFile(ProjectData* projectData, const std::filesystem::path& buildDirPath, const std::string& tweType) {
         std::string cmakeFilePath = buildDirPath.string() + "/CMakeLists.txt";
         if(std::filesystem::exists(cmakeFilePath))
             std::filesystem::remove(cmakeFilePath);
@@ -65,8 +66,8 @@ namespace TWE {
         os << "\"" + fixPath("../../src") + "/main.cpp\")\n";
 
         os << "file(GLOB_RECURSE LIBFILES\n";
-        os << "\"" +  fixPath("../../lib") + "/*.lib\"\n";
-        os << "\"" +  fixPath("../../external") + "/*.lib\")\n";
+        os << "\"" +  fixPath("../../lib") + "/" + tweType + "/*.lib\"\n";
+        os << "\"" +  fixPath("../../external") + "/*/lib/" + tweType + "/*.lib\")\n";
         os << "file(MAKE_DIRECTORY \"${CMAKE_BINARY_DIR}/Debug\" \"${CMAKE_BINARY_DIR}/Release\")\n";
 
         os << "add_executable(" + projectData->projectName << " ${CPPFILES})\n";

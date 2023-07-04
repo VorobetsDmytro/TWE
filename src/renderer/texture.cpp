@@ -40,7 +40,7 @@ namespace TWE {
         _attachments = attachments;
     }
 
-    void Texture::setTexture(TextureSpecification& textureSpec) {
+    void Texture::setTexture(const TextureSpecification& textureSpec) {
         int index = getIndexByTexNumber(textureSpec.texNumber);
         if(index == -1) {
             _attachments.textureSpecifications.push_back(textureSpec);

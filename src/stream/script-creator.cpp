@@ -1,7 +1,7 @@
 #include "stream/script-creator.hpp"
 
 namespace TWE {
-    bool ScriptCreator::create(const std::string& scriptName, const std::string& scriptDirectoryPath) {
+    bool ScriptCreator::create(std::string scriptName, std::string scriptDirectoryPath) {
         if(!validateScriptName(scriptName))
             return false;
         if(!std::filesystem::exists(scriptDirectoryPath))
@@ -27,7 +27,7 @@ namespace TWE {
         return true;
     }
 
-    bool ScriptCreator::validateScriptName(const std::string& scriptName) {
+    bool ScriptCreator::validateScriptName(std::string scriptName) {
         return std::regex_match(scriptName, std::regex("^[a-zA-Z][a-zA-Z0-9]+"));
     }
 }

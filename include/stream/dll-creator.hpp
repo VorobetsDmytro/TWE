@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "stream/file.hpp"
+#include "stream/twe-type.hpp"
 
 namespace TWE {
     typedef void*(*PVoid)();
@@ -43,7 +44,7 @@ namespace TWE {
     private:
         static std::string _tempDir;
         static void createScriptDirectory(const std::string& tempDir, const std::string& scriptName);
-        static void createCMakeFile(const std::string& tempDir, const std::string& scriptName);
+        static void createCMakeFile(const std::string& tempDir, const std::string& scriptName, const std::string& tweType);
         static void createCPPFile(const std::string& tempDir, const std::string& scriptName, const std::string& scriptDirectoryPath);
         static std::string fixPath(const std::string& path);
     };

@@ -4,22 +4,23 @@ namespace TWE {
     std::string DLLCreator::_tempDir;
     
     DLLLoadData DLLCreator::compileScript(const std::string& scriptName, const std::string& scriptDirectoryPath) {
+        std::string tweType = getTWEType(); 
         createScriptDirectory(_tempDir, scriptName);
-        createCMakeFile(_tempDir, scriptName);
+        createCMakeFile(_tempDir, scriptName, tweType);
         createCPPFile(_tempDir, scriptName, scriptDirectoryPath);
-        std::string buildDir = _tempDir + '/' + scriptName + "/build"; 
-        std::string generateCommand = "cmake -S " + _tempDir + '/' + scriptName + " -B " + buildDir ;
+        std::string buildDir = _tempDir + '/' + scriptName + "/build";
+        std::string generateCommand = "cmake -DCMAKE_BUILD_TYPE=" + tweType + " -S " + _tempDir + '/' + scriptName + " -B " + buildDir ;
         if(system(generateCommand.c_str()) != 0) {
             std::cout << "Failed to generate " << scriptName << " script build files\n";
             return {};
         }
-        std::string buildCommand = "cmake --build " + buildDir;
+        std::string buildCommand = "cmake --build " + buildDir + " --config " + tweType;
         if(system(buildCommand.c_str()) != 0) {
             std::cout << "Failed to build " << scriptName << " script\n";
             return {};
         }
-        std::string dllPath = buildDir + "/Debug/" + scriptName + ".dll";
-        std::string pdbPath = buildDir + "/Debug/" + scriptName + ".pdb";
+        std::string dllPath = buildDir + "/" + tweType + "/" + scriptName + ".dll";
+        std::string pdbPath = buildDir + "/" + tweType + "/" + scriptName + ".pdb";
         std::string factoryFuncName = "create" + scriptName;
         File::remove(pdbPath.c_str());
         return { dllPath, factoryFuncName, scriptName, scriptDirectoryPath };
@@ -58,10 +59,10 @@ namespace TWE {
             std::filesystem::create_directory(buildDir);
     }
 
-    void DLLCreator::createCMakeFile(const std::string& tempDir, const std::string& scriptName) {
+    void DLLCreator::createCMakeFile(const std::string& tempDir, const std::string& scriptName, const std::string& tweType) {
         std::string cmakeFilePath = tempDir + '/' + scriptName + "/CMakeLists.txt";
         if(std::filesystem::exists(cmakeFilePath))
-            return;;
+            return;
         std::ofstream os;
         os.open(cmakeFilePath);
         os << "cmake_minimum_required(VERSION 3.20)\n";
@@ -71,8 +72,8 @@ namespace TWE {
         os << "\"" + fixPath(tempDir) + "/" + scriptName + "/" + scriptName + ".cpp\")\n";
 
         os << "file(GLOB_RECURSE LIBFILES\n";
-        os << "\"" + fixPath("../../lib") + "/*.lib\"\n";
-        os << "\"" + fixPath("../../external") + "/*.lib\")\n";
+        os << "\"" +  fixPath("../../lib") + "/" + tweType + "/*.lib\"\n";
+        os << "\"" +  fixPath("../../external") + "/*/lib/" + tweType + "/*.lib\")\n";
 
         os << "add_library(" + scriptName << " MODULE ${CPPFILES})\n";
         os << "target_compile_features(" + scriptName + " PRIVATE cxx_std_17)\n";

@@ -1,6 +1,15 @@
 cmake_minimum_required(VERSION 3.20)
 project(TWE_BUILD_LIB)
 
+# BUILD TYPE (Debug/Release)
+set(CMAKE_BUILD_TYPE Release)
+
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+endif()
+
+message("CMAKE_BUILD_TYPE: " ${CMAKE_BUILD_TYPE})
+
 file(GLOB_RECURSE CPPFILES
     "../src/main.cpp"
     "../src/engine.cpp"
@@ -14,9 +23,15 @@ file(GLOB_RECURSE CPPFILES
     "../src/ui-build/*.cpp"
 )
 
-file(GLOB_RECURSE LIBFILES 
-    "../external/*.lib" 
-)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    file(GLOB_RECURSE LIBFILES 
+        "../external/*/lib/Debug/*.lib" 
+    )
+else()
+    file(GLOB_RECURSE LIBFILES 
+        "../external/*/lib/Release/*.lib" 
+    )
+endif()
 file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/Debug" "${CMAKE_BINARY_DIR}/Release")
 
 add_library(TWE_BUILD_LIB STATIC ${CPPFILES})

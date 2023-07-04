@@ -41,9 +41,9 @@ namespace TWE {
         curScene->setDebugCamera(debugCamera.get());
         curScene->setScriptDLLRegistry(&scriptDLLRegistry);
         curScene->setProjectData(projectData.get());
+        #ifndef TWE_BUILD
         curScene->getSceneRegistry()->edit.physics->getDebugDrawer()->initShader(rootPath);
         curScene->getSceneRegistry()->run.physics->getDebugDrawer()->initShader(rootPath);
-        #ifndef TWE_BUILD
         gui->setScene(curScene.get());
         gui->setProjectData(projectData.get());
         gui->setWindow(window.get());

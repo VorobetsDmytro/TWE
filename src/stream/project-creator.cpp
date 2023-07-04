@@ -7,6 +7,8 @@ namespace TWE {
         if(!std::filesystem::exists(projectPath))
             return false;
         std::string projectDirectoryPath = projectPath + '/' + projectName;
+        if(std::filesystem::exists(projectDirectoryPath))
+            return false;
         std::filesystem::create_directory(projectDirectoryPath);
         std::filesystem::create_directory(projectDirectoryPath + "/audio");
         std::filesystem::create_directory(projectDirectoryPath + "/models");

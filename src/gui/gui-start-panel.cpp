@@ -31,10 +31,10 @@ namespace TWE {
         ImGui::PushFont(fontRobotoBold32);
         ImGui::SetCursorPos({btnPosX, windowSize.y / 2.f});
         if(ImGui::Button("New project", { btnWidth, 0.f }))
-            ImGuiFileDialog::Instance()->OpenDialog("NewProject", "Choose File", ".project", ".", 1, nullptr);
+            ImGuiFileDialog::Instance()->OpenDialog("NewProject", "Project creation", ".project", ".", 1, nullptr);
         ImGui::SetCursorPos({btnPosX, windowSize.y / 2.f + 50.f});
         if(ImGui::Button("Open project", { btnWidth, 0.f }))
-            ImGuiFileDialog::Instance()->OpenDialog("OpenProject", "Choose File", ".project", ".", 1, nullptr);
+            ImGuiFileDialog::Instance()->OpenDialog("OpenProject", "Choose project", ".project", ".", 1, nullptr);
         ImGui::PopFont();
         
         ImGui::End();
