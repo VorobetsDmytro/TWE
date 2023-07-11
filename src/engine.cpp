@@ -60,16 +60,16 @@ namespace TWE {
 
     void Engine::updateInput(){
         if(Input::getCloseApplication())
-            glfwSetWindowShouldClose(window->getSource(), GLFW_TRUE);
+            window->setWindowShouldClose(true);
         static bool preShowCursor = Input::getShowCursor();
         bool showCursor = Input::getShowCursor();
         if(preShowCursor != showCursor) {
-            glfwSetInputMode(window->getSource(), GLFW_CURSOR, showCursor ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+            window->setInputMode(GLFW_CURSOR, showCursor ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
             preShowCursor = showCursor;
         }
         #ifndef TWE_BUILD
         if(Input::isKeyPressed(Keyboard::KEY_ESCAPE) && !curScene->getIsFocusedOnDebugCamera()) {
-            glfwSetInputMode(window->getSource(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            window->setInputMode(GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             Input::setShowCursor(true);
             preShowCursor = true;
         }
@@ -119,10 +119,10 @@ namespace TWE {
         window->getFrameBuffer()->resize(width, height);
     }
 
-    void Engine::windowCloseCallback(GLFWwindow* window) {
+    void Engine::windowCloseCallback(GLFWwindow* glfwWindow) {
         #ifndef TWE_BUILD
         bool shouldCloseWindow = !gui->getHasBGFuncs() && !gui->getIsURExecuted();
-        glfwSetWindowShouldClose(window, shouldCloseWindow ? GLFW_TRUE : GLFW_FALSE);
+        window->setWindowShouldClose(shouldCloseWindow);
         #endif
     }
 
@@ -156,13 +156,13 @@ namespace TWE {
         #ifdef TWE_BUILD
         loadBuild(buildFilePath);
         #endif
-        while(!glfwWindowShouldClose(window->getSource())){
+        while(!window->getWindowShouldClose()){
             Renderer::cleanScreen({0.25f, 0.25f, 0.25f, 0.f});
-            glfwPollEvents();
+            window->pollEvents();
             updateTitle();
             updateInput();
             render();
-            glfwSwapBuffers(window->getSource());
+            window->swapBuffers();
             Time::calculate();
             Input::flush();
         }

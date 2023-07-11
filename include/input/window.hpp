@@ -25,10 +25,15 @@ namespace TWE {
         void setWindowCloseCallback(GLFWwindowclosefun callback);
         void setVSync(bool isOn);
         void setTitle(const std::string& title);
+        void setWindowShouldClose(bool shouldClose);
+        void setInputMode(int mode, int value);
+        void pollEvents();
+        void swapBuffers();
         [[nodiscard]] GLFWwindow* getSource() const noexcept;
         [[nodiscard]] const std::string& getTitle() const noexcept;
         [[nodiscard]] FBO* getFrameBuffer() const noexcept;
         [[nodiscard]] bool getIsVSyncOn() const noexcept;
+        [[nodiscard]] bool getWindowShouldClose() const noexcept;
     private:
         bool _vSync;
         std::string _title;

@@ -74,13 +74,30 @@ namespace TWE {
         glfwSetWindowTitle(_window, title.c_str());
     }
 
+    void Window::setWindowShouldClose(bool shouldClose) {
+        glfwSetWindowShouldClose(_window, shouldClose);
+    }
+
+    void Window::setInputMode(int mode, int value) {
+        glfwSetInputMode(_window, mode, value);
+    }
+
     void Window::setVSync(bool isOn) {
         _vSync = isOn;
         glfwSwapInterval(_vSync ? 1 : 0);
+    }
+
+    void Window::pollEvents() {
+        glfwPollEvents();
+    }
+
+    void Window::swapBuffers() {
+        glfwSwapBuffers(_window);
     }
 
     GLFWwindow* Window::getSource() const noexcept { return _window; }
     const std::string& Window::getTitle() const noexcept { return _title; }
     FBO* Window::getFrameBuffer() const noexcept { return _frameBuffer.get(); }
     bool Window::getIsVSyncOn() const noexcept { return _vSync; }
+    bool Window::getWindowShouldClose() const noexcept { return glfwWindowShouldClose(_window); }
 }
