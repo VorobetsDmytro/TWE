@@ -28,4 +28,4 @@ Afterwards you have to build the project:
 To working with scripts you have to set a CMake default generator as MSVC`(recommended Visual Studio 16 2019)`
 
 ## Author
-[Dmytro Vorobets](https://github.com/Parasik72)
+[Dmytro Vorobets](https://github.com/VorobetsDmytro)
